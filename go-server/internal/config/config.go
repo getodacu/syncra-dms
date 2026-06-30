@@ -13,7 +13,8 @@ import (
 const (
 	defaultServerHostPort = "localhost:8080"
 	defaultVersion        = "dev"
-	devDatabaseName       = "syncra_dev"
+	appDatabaseName       = "syncra_dms"
+	testDatabaseName      = "syncra_dms_dev"
 )
 
 type Config struct {
@@ -47,27 +48,11 @@ func Load() (Config, error) {
 	if cfg.DSNDev == "" {
 		return Config{}, errors.New("DSN_DEV is required")
 	}
-	if cfg.AtlasDatabaseURL == "" {
-		return Config{}, errors.New("ATLAS_DATABASE_URL is required")
-	}
-	if cfg.AtlasDevDatabaseURL == "" {
-		return Config{}, errors.New("ATLAS_DEV_DATABASE_URL is required")
-	}
-	if err := requireDatabaseName("DSN", cfg.DSN, devDatabaseName); err != nil {
+	if err := requireDatabaseName("DSN", cfg.DSN, appDatabaseName); err != nil {
 		return Config{}, err
 	}
-	if err := requireDatabaseName("DSN_DEV", cfg.DSNDev, devDatabaseName); err != nil {
+	if err := requireDatabaseName("DSN_DEV", cfg.DSNDev, testDatabaseName); err != nil {
 		return Config{}, err
-	}
-	if err := requireDatabaseName("ATLAS_DATABASE_URL", cfg.AtlasDatabaseURL, devDatabaseName); err != nil {
-		return Config{}, err
-	}
-	atlasDevDBName, err := DatabaseNameFromDSN(cfg.AtlasDevDatabaseURL)
-	if err != nil {
-		return Config{}, fmt.Errorf("ATLAS_DEV_DATABASE_URL: %w", err)
-	}
-	if atlasDevDBName == devDatabaseName {
-		return Config{}, errors.New("ATLAS_DEV_DATABASE_URL must not target syncra_dev")
 	}
 
 	return cfg, nil

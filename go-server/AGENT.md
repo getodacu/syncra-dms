@@ -12,10 +12,12 @@ These rules apply inside `go-server/` in addition to the repository conventions.
 
 ## Database Rules
 
-- Local development uses the `syncra_dev` database.
-- `DSN` and `DSN_DEV` must both target `syncra_dev`.
-- `ATLAS_DATABASE_URL` must target the same `syncra_dev` database in URL form.
-- `ATLAS_DEV_DATABASE_URL` must target a separate empty scratch database, not `syncra_dev`.
+- Local runtime uses the `syncra_dms` database.
+- Postgres-backed tests use the `syncra_dms_dev` database.
+- `DSN` must target `syncra_dms`.
+- `DSN_DEV` must target `syncra_dms_dev`.
+- `ATLAS_DATABASE_URL` must target the same `syncra_dms` database in URL form.
+- `ATLAS_DEV_DATABASE_URL` must target a separate empty scratch database, not `syncra_dms` or `syncra_dms_dev`.
 - Do not run migration apply commands until DSN targets have been checked.
 
 ## Commands

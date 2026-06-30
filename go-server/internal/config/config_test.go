@@ -6,9 +6,9 @@ import (
 )
 
 func TestLoadReadsEnvironmentAndDefaults(t *testing.T) {
-	t.Setenv("DSN", "host=localhost user=syncra password=syncra dbname=syncra_dev port=5432 sslmode=disable TimeZone=Europe/Bucharest")
-	t.Setenv("DSN_DEV", "host=localhost user=syncra password=syncra dbname=syncra_dev port=5432 sslmode=disable TimeZone=Europe/Bucharest")
-	t.Setenv("ATLAS_DATABASE_URL", "postgres://syncra:syncra@localhost:5432/syncra_dev?sslmode=disable")
+	t.Setenv("DSN", "host=localhost user=syncra password=syncra dbname=syncra_dms port=5432 sslmode=disable TimeZone=Europe/Bucharest")
+	t.Setenv("DSN_DEV", "host=localhost user=syncra password=syncra dbname=syncra_dms_dev port=5432 sslmode=disable TimeZone=Europe/Bucharest")
+	t.Setenv("ATLAS_DATABASE_URL", "postgres://syncra:syncra@localhost:5432/syncra_dms?sslmode=disable")
 	t.Setenv("ATLAS_DEV_DATABASE_URL", "postgres://syncra:syncra@localhost:5432/syncra_atlas?sslmode=disable")
 	t.Setenv("SERVER_HOST_PORT", "127.0.0.1:9090")
 	t.Setenv("DEBUG", "true")
@@ -36,9 +36,7 @@ func TestLoadReadsEnvironmentAndDefaults(t *testing.T) {
 }
 
 func TestLoadRequiresDSN(t *testing.T) {
-	t.Setenv("DSN_DEV", "host=localhost dbname=syncra_dev")
-	t.Setenv("ATLAS_DATABASE_URL", "postgres://syncra:syncra@localhost:5432/syncra_dev?sslmode=disable")
-	t.Setenv("ATLAS_DEV_DATABASE_URL", "postgres://syncra:syncra@localhost:5432/syncra_atlas?sslmode=disable")
+	t.Setenv("DSN_DEV", "host=localhost dbname=syncra_dms_dev")
 
 	_, err := Load()
 	if err == nil || !strings.Contains(err.Error(), "DSN is required") {
@@ -46,15 +44,43 @@ func TestLoadRequiresDSN(t *testing.T) {
 	}
 }
 
-func TestLoadRejectsAtlasDevDatabaseURLPointingAtAppDatabase(t *testing.T) {
-	t.Setenv("DSN", "host=localhost dbname=syncra_dev")
-	t.Setenv("DSN_DEV", "host=localhost dbname=syncra_dev")
-	t.Setenv("ATLAS_DATABASE_URL", "postgres://syncra:syncra@localhost:5432/syncra_dev?sslmode=disable")
-	t.Setenv("ATLAS_DEV_DATABASE_URL", "postgres://syncra:syncra@localhost:5432/syncra_dev?sslmode=disable")
+func TestLoadDoesNotValidateAtlasDevDatabaseURLDuringAPIRuntime(t *testing.T) {
+	t.Setenv("DSN", "host=localhost dbname=syncra_dms")
+	t.Setenv("DSN_DEV", "host=localhost dbname=syncra_dms_dev")
+	t.Setenv("ATLAS_DATABASE_URL", "postgres://syncra:syncra@localhost:5432/syncra_dms?sslmode=disable")
+	t.Setenv("ATLAS_DEV_DATABASE_URL", "postgres://syncra:syncra@localhost:5432/syncra_dms_dev?sslmode=disable")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if !strings.Contains(cfg.AtlasDevDatabaseURL, "syncra_dms_dev") {
+		t.Fatalf("AtlasDevDatabaseURL = %q, want configured value loaded", cfg.AtlasDevDatabaseURL)
+	}
+}
+
+func TestLoadDoesNotRequireAtlasURLsForAPIRuntime(t *testing.T) {
+	t.Setenv("DSN", "host=localhost dbname=syncra_dms")
+	t.Setenv("DSN_DEV", "host=localhost dbname=syncra_dms_dev")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.AtlasDatabaseURL != "" || cfg.AtlasDevDatabaseURL != "" {
+		t.Fatalf("Atlas URLs = %q/%q, want empty when unset", cfg.AtlasDatabaseURL, cfg.AtlasDevDatabaseURL)
+	}
+}
+
+func TestLoadRejectsDSNDevPointingAtAppDatabase(t *testing.T) {
+	t.Setenv("DSN", "host=localhost dbname=syncra_dms")
+	t.Setenv("DSN_DEV", "host=localhost dbname=syncra_dms")
+	t.Setenv("ATLAS_DATABASE_URL", "postgres://syncra:syncra@localhost:5432/syncra_dms?sslmode=disable")
+	t.Setenv("ATLAS_DEV_DATABASE_URL", "postgres://syncra:syncra@localhost:5432/syncra_atlas?sslmode=disable")
 
 	_, err := Load()
-	if err == nil || !strings.Contains(err.Error(), "ATLAS_DEV_DATABASE_URL must not target syncra_dev") {
-		t.Fatalf("Load() error = %v, want Atlas dev database safety error", err)
+	if err == nil || !strings.Contains(err.Error(), "DSN_DEV must target syncra_dms_dev") {
+		t.Fatalf("Load() error = %v, want DSN_DEV database safety error", err)
 	}
 }
 
@@ -66,8 +92,8 @@ func TestDatabaseNameFromDSN(t *testing.T) {
 	}{
 		{
 			name: "postgres keyword dsn",
-			dsn:  "host=localhost user=syncra dbname=syncra_dev sslmode=disable",
-			want: "syncra_dev",
+			dsn:  "host=localhost user=syncra dbname=syncra_dms sslmode=disable",
+			want: "syncra_dms",
 		},
 		{
 			name: "postgres url",

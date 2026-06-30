@@ -29,7 +29,7 @@ Backend configuration follows the example conventions:
 - `ATLAS_DATABASE_URL`
 - `ATLAS_DEV_DATABASE_URL`
 
-`DSN` and `DSN_DEV` must target the local `syncra_dev` database. `ATLAS_DEV_DATABASE_URL` must target a separate scratch database.
+`DSN` must target the local `syncra_dms` database. `DSN_DEV` must target the local `syncra_dms_dev` database. `ATLAS_DEV_DATABASE_URL` must target a separate scratch database.
 
 ## Frontend Interface
 

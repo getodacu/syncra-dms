@@ -25,7 +25,8 @@ go run ./cmd/api
 
 Required local databases:
 
-- `syncra_dev` for application development and tests.
+- `syncra_dms` for the running application.
+- `syncra_dms_dev` for PostgreSQL-backed tests.
 - a separate empty Atlas scratch database, for example `syncra_atlas`.
 
 Operational endpoints:

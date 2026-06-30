@@ -10,7 +10,7 @@ go test ./...
 go run ./cmd/api
 ```
 
-`DSN`, `DSN_DEV`, and `ATLAS_DATABASE_URL` must target `syncra_dev`. `ATLAS_DEV_DATABASE_URL` must target a separate empty scratch database.
+`DSN` must target `syncra_dms`. `DSN_DEV` must target `syncra_dms_dev`. `ATLAS_DATABASE_URL` must target `syncra_dms`. `ATLAS_DEV_DATABASE_URL` must target a separate empty scratch database.
 
 ## Endpoints
 
