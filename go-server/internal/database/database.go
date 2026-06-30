@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"ai.ro/syncra/dms/internal/auth"
+	"ai.ro/syncra/dms/internal/orgunits"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -22,5 +23,6 @@ func ApplicationModels() []any {
 		&auth.AuthAccount{},
 		&auth.Session{},
 		&auth.Verification{},
+		&orgunits.Unit{},
 	}
 }

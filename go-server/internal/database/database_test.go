@@ -1,10 +1,24 @@
 package database
 
-import "testing"
+import (
+	"testing"
 
-func TestApplicationModelsIncludesAuthModels(t *testing.T) {
-	if got := ApplicationModels(); len(got) != 4 {
-		t.Fatalf("ApplicationModels() length = %d, want 4 auth models", len(got))
+	"ai.ro/syncra/dms/internal/orgunits"
+)
+
+func TestApplicationModelsIncludesDomainModels(t *testing.T) {
+	got := ApplicationModels()
+	if len(got) < 5 {
+		t.Fatalf("ApplicationModels() length = %d, want at least 5 models", len(got))
+	}
+	foundOrganizationUnit := false
+	for _, model := range got {
+		if _, ok := model.(*orgunits.Unit); ok {
+			foundOrganizationUnit = true
+		}
+	}
+	if !foundOrganizationUnit {
+		t.Fatal("ApplicationModels() does not include orgunits.Unit")
 	}
 }
 
