@@ -1,0 +1,154 @@
+{
+  "title": "Propunere de proiect",
+  "description": "Extrage informații din propuneri de proiect, inclusiv solicitantul, partenerii, obiectivele, fazele, activitățile, bugetul și rezultatele așteptate.",
+  "category": "Public Sector and Grants",
+  "json": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "titlu": {
+        "description": "Titlul complet al propunerii de proiect",
+        "type": "string"
+      },
+      "acronim": {
+        "description": "Acronimul proiectului, dacă este specificat",
+        "type": "string"
+      },
+      "solicitant": {
+        "description": "Organizația coordonatoare sau solicitantul principal",
+        "type": "string"
+      },
+      "parteneri": {
+        "description": "Lista partenerilor implicați în proiect",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "obiective": {
+        "description": "Lista obiectivelor proiectului",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "faze": {
+        "description": "Lista fazelor, etapelor sau pachetelor de lucru identificate în proiect",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cod_faza": {
+              "description": "Codul fazei (ex. F1, WP1, Etapa 1), dacă există",
+              "type": "string"
+            },
+            "denumire": {
+              "description": "Denumirea fazei",
+              "type": "string"
+            },
+            "descriere": {
+              "description": "Descrierea fazei",
+              "type": "string"
+            },
+            "durata_luni": {
+              "description": "Durata fazei în luni, dacă este specificată",
+              "type": "number"
+            },
+            "activitati": {
+              "description": "Activitățile asociate fazei",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "cod_activitate": {
+                    "description": "Codul activității (ex. A1.1, T2.3), dacă există",
+                    "type": "string"
+                  },
+                  "denumire": {
+                    "description": "Denumirea activității",
+                    "type": "string"
+                  },
+                  "descriere": {
+                    "description": "Descrierea activității",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "cod_activitate",
+                  "denumire",
+                  "descriere"
+                ]
+              }
+            }
+          },
+          "required": [
+            "cod_faza",
+            "denumire",
+            "descriere",
+            "durata_luni",
+            "activitati"
+          ]
+        }
+      },
+      "activitati": {
+        "description": "Lista completă a activităților identificate în proiect, indiferent de fază",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "buget_total": {
+        "description": "Bugetul total al proiectului",
+        "type": "number"
+      },
+      "moneda": {
+        "description": "Moneda bugetului (RON, EUR, USD etc.)",
+        "type": "string"
+      },
+      "durata_luni": {
+        "description": "Durata totală a proiectului exprimată în luni",
+        "type": "number"
+      },
+      "trl_initial": {
+        "description": "Nivelul TRL la începutul proiectului",
+        "type": "number"
+      },
+      "trl_final": {
+        "description": "Nivelul TRL estimat la finalul proiectului",
+        "type": "number"
+      },
+      "domenii_aplicare": {
+        "description": "Domeniile de aplicare sau sectoarele țintă ale proiectului",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "rezultate_asteptate": {
+        "description": "Lista rezultatelor, livrabilelor sau impactului așteptat",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "titlu",
+      "acronim",
+      "solicitant",
+      "parteneri",
+      "obiective",
+      "faze",
+      "activitati",
+      "buget_total",
+      "moneda",
+      "durata_luni",
+      "trl_initial",
+      "trl_final",
+      "domenii_aplicare",
+      "rezultate_asteptate"
+    ]
+  }
+}

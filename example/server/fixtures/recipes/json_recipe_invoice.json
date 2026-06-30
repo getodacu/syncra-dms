@@ -1,0 +1,111 @@
+{
+  "title": "Factură",
+  "description": "Extrage informații structurate din facturi, inclusiv furnizorul, clientul, numărul facturii, datele, liniile și totalurile.",
+  "category": "Finance and Accounting",
+  "json": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "furnizor_nume": {
+        "description": "Denumirea furnizorului",
+        "type": "string"
+      },
+      "furnizor_cui": {
+        "description": "CUI/CIF furnizor",
+        "type": "string"
+      },
+      "client_nume": {
+        "description": "Denumirea clientului",
+        "type": "string"
+      },
+      "client_cui": {
+        "description": "CUI/CIF client",
+        "type": "string"
+      },
+      "numar_factura": {
+        "description": "Numărul facturii, extras ca string",
+        "type": "string"
+      },
+      "data_emitere": {
+        "description": "Data emiterii facturii în format YYYY-MM-DD",
+        "type": "string"
+      },
+      "data_scadenta": {
+        "description": "Data scadentă în format YYYY-MM-DD, dacă există",
+        "type": "string"
+      },
+      "moneda": {
+        "description": "Moneda facturii, de exemplu RON, EUR, USD",
+        "type": "string"
+      },
+      "subtotal_fara_tva": {
+        "description": "Valoarea totală fără TVA",
+        "type": "number"
+      },
+      "total_tva": {
+        "description": "Valoarea totală TVA",
+        "type": "number"
+      },
+      "total_cu_tva": {
+        "description": "Valoarea totală cu TVA",
+        "type": "number"
+      },
+      "linii": {
+        "description": "Liniile facturii",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "descriere": {
+              "description": "Descriere produs sau serviciu",
+              "type": "string"
+            },
+            "cantitate": {
+              "description": "Cantitatea",
+              "type": "number"
+            },
+            "pret_unitar": {
+              "description": "Preț unitar fără TVA sau preț unitar detectat",
+              "type": "number"
+            },
+            "cota_tva": {
+              "description": "Cota TVA",
+              "type": "number"
+            },
+            "valoare_totala": {
+              "description": "Valoarea totală a liniei",
+              "type": "number"
+            }
+          },
+          "required": [
+            "descriere",
+            "cantitate",
+            "pret_unitar",
+            "cota_tva",
+            "valoare_totala"
+          ]
+        }
+      },
+      "observatii": {
+        "description": "Observații sau mențiuni de pe factură",
+        "type": "string"
+      }
+    },
+    "required": [
+      "furnizor_nume",
+      "furnizor_cui",
+      "client_nume",
+      "client_cui",
+      "numar_factura",
+      "data_emitere",
+      "data_scadenta",
+      "moneda",
+      "subtotal_fara_tva",
+      "total_tva",
+      "total_cu_tva",
+      "linii",
+      "observatii"
+    ]
+  }
+}

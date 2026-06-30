@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+	<body style="margin:0;background:#f6f7f9;color:#171717;font-family:Inter,Arial,sans-serif;">
+		<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f6f7f9;padding:32px 16px;">
+			<tr>
+				<td align="center">
+					<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+						<tr>
+							<td style="padding:28px 28px 8px;">
+								<p style="margin:0 0 8px;color:#64748b;font-size:13px;font-weight:600;text-transform:uppercase;">Payment received</p>
+								<h1 style="margin:0;color:#111827;font-size:24px;line-height:1.25;font-weight:700;">Your Syncra invoice is ready</h1>
+							</td>
+						</tr>
+						<tr>
+							<td style="padding:8px 28px 20px;color:#374151;font-size:15px;line-height:1.6;">
+								<p style="margin:0 0 16px;">Hi {{billingName}},</p>
+								<p style="margin:0;">We received your payment for {{credits}} Syncra credits. Your invoice is attached as a PDF.</p>
+							</td>
+						</tr>
+						<tr>
+							<td style="padding:0 28px 24px;">
+								<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+									<tr>
+										<td style="padding:12px 14px;background:#f9fafb;color:#64748b;font-size:12px;font-weight:700;text-transform:uppercase;">Invoice</td>
+										<td style="padding:12px 14px;background:#f9fafb;color:#111827;font-size:14px;font-weight:700;text-align:right;">{{invoiceLabel}}</td>
+									</tr>
+									<tr>
+										<td style="padding:12px 14px;border-top:1px solid #e5e7eb;color:#64748b;font-size:13px;">Invoice date</td>
+										<td style="padding:12px 14px;border-top:1px solid #e5e7eb;color:#111827;font-size:13px;text-align:right;">{{invoiceDate}}</td>
+									</tr>
+									<tr>
+										<td style="padding:12px 14px;border-top:1px solid #e5e7eb;color:#64748b;font-size:13px;">Total</td>
+										<td style="padding:12px 14px;border-top:1px solid #e5e7eb;color:#111827;font-size:13px;font-weight:700;text-align:right;">{{totalAmount}} {{currency}}</td>
+									</tr>
+									<tr>
+										<td style="padding:12px 14px;border-top:1px solid #e5e7eb;color:#64748b;font-size:13px;">Order ID</td>
+										<td style="padding:12px 14px;border-top:1px solid #e5e7eb;color:#111827;font-size:13px;text-align:right;">{{orderId}}</td>
+									</tr>
+								</table>
+							</td>
+						</tr>
+						<tr>
+							<td style="padding:0 28px 28px;color:#64748b;font-size:13px;line-height:1.6;">
+								<p style="margin:0;">Thank you for using Syncra.</p>
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+		</table>
+	</body>
+</html>

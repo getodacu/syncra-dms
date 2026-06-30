@@ -1,0 +1,46 @@
+{
+  "title": "Carte electronică de identitate",
+  "description": "Extrage datele de identificare din cartea electronică de identitate, inclusiv nume, prenume, sex, CNP, data nașterii și numărul documentului.",
+  "category": "Identity and KYC",
+  "json": {
+    "type": "object",
+    "properties": {
+      "Nume": {
+        "type": "string",
+        "description": ""
+      },
+      "Prenume": {
+        "type": "string",
+        "description": ""
+      },
+      "Sex": {
+        "type": "string",
+        "description": "Sexul biologic: M for male, F for female",
+        "enum": [
+          "M",
+          "F"
+        ]
+      },
+      "CNP": {
+        "type": "number",
+        "description": "Cod numeric personal format din 13 cifre"
+      },
+      "Data nasterii": {
+        "type": "string",
+        "description": "Data nasterii in format DD.MM.YYYY"
+      },
+      "Nr. document": {
+        "type": "string",
+        "description": "Numarul documentului"
+      }
+    },
+    "required": [
+      "Nume",
+      "Sex",
+      "CNP",
+      "Data nasterii",
+      "Nr. document",
+      "Prenume"
+    ]
+  }
+}

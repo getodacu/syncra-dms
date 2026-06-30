@@ -1,0 +1,125 @@
+{
+    "title": "CV Simplu",
+    "description": "Extrage informațiile principale dintr-un CV, inclusiv datele de contact, experiența profesională, educația, competențele și alte informații relevante.",
+    "category": "Human Resources",
+    "json": {
+      "type": "object",
+      "properties": {
+        "Nume complet": {
+          "type": "string",
+          "description": "Numele complet al candidatului"
+        },
+        "Email": {
+          "type": "string",
+          "description": "Adresa de email"
+        },
+        "Telefon": {
+          "type": "string",
+          "description": "Numărul de telefon"
+        },
+        "Locatie": {
+          "type": "string",
+          "description": "Orașul și țara candidatului"
+        },
+        "Profil profesional": {
+          "type": "string",
+          "description": "Rezumatul profesional sau obiectivul de carieră"
+        },
+        "Experienta profesionala": {
+          "type": "array",
+          "description": "Experiența profesională a candidatului",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Functie": {
+                "type": "string"
+              },
+              "Organizatie": {
+                "type": "string"
+              },
+              "Perioada": {
+                "type": "string"
+              },
+              "Descriere": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "Functie",
+              "Organizatie",
+              "Perioada"
+            ]
+          }
+        },
+        "Educatie": {
+          "type": "array",
+          "description": "Studii și calificări",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Institutie": {
+                "type": "string"
+              },
+              "Calificare": {
+                "type": "string"
+              },
+              "Perioada": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "Institutie",
+              "Calificare"
+            ]
+          }
+        },
+        "Competente": {
+          "type": "array",
+          "description": "Competențe și abilități",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Limbi": {
+          "type": "array",
+          "description": "Limbi cunoscute",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Certificari": {
+          "type": "array",
+          "description": "Certificări și cursuri relevante",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Proiecte": {
+          "type": "array",
+          "description": "Proiecte relevante menționate în CV",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Linkuri": {
+          "type": "array",
+          "description": "LinkedIn, GitHub, portofoliu sau alte linkuri relevante",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Observatii": {
+          "type": "string",
+          "description": "Alte informații relevante extrase din CV"
+        }
+      },
+      "required": [
+        "Nume complet",
+        "Email",
+        "Telefon",
+        "Experienta profesionala",
+        "Educatie",
+        "Competente"
+      ]
+    }
+  }

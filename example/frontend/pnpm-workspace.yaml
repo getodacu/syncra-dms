@@ -1,0 +1,9 @@
+allowBuilds:
+  '@tailwindcss/oxide': true
+  esbuild: true
+minimumReleaseAgeExclude:
+  - dompurify@3.4.6
+overrides:
+  dompurify: 3.4.6
+patchedDependencies:
+  jsonjoy-builder@1.0.3: patches/jsonjoy-builder@1.0.3.patch

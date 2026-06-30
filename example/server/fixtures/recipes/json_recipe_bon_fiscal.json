@@ -1,0 +1,116 @@
+{
+  "title": "Bon fiscal",
+  "description": "Extrage câmpurile relevante din bonuri fiscale, inclusiv comerciantul, liniile, totalurile, TVA-ul și metoda de plată.",
+  "category": "Finance and Accounting",
+  "json": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "comerciant_nume": {
+        "description": "Denumirea comerciantului",
+        "type": "string"
+      },
+      "comerciant_cif": {
+        "description": "CIF/CUI comerciant",
+        "type": "string"
+      },
+      "comerciant_adresa": {
+        "description": "Adresa comerciantului sau a punctului de lucru",
+        "type": "string"
+      },
+      "numar_bon": {
+        "description": "Numărul bonului fiscal, extras ca string",
+        "type": "string"
+      },
+      "data_emitere": {
+        "description": "Data emiterii în format YYYY-MM-DD",
+        "type": "string"
+      },
+      "ora_emitere": {
+        "description": "Ora emiterii în format HH:MM:SS, dacă apare",
+        "type": "string"
+      },
+      "moneda": {
+        "description": "Moneda documentului, de obicei RON",
+        "type": "string"
+      },
+      "linii": {
+        "description": "Produsele sau serviciile cumpărate",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "descriere": {
+              "description": "Denumirea produsului sau serviciului",
+              "type": "string"
+            },
+            "cantitate": {
+              "description": "Cantitatea",
+              "type": "number"
+            },
+            "pret_unitar": {
+              "description": "Prețul unitar",
+              "type": "number"
+            },
+            "valoare_totala": {
+              "description": "Valoarea totală a liniei",
+              "type": "number"
+            },
+            "cota_tva": {
+              "description": "Cota TVA, dacă poate fi identificată",
+              "type": "number"
+            }
+          },
+          "required": [
+            "descriere",
+            "cantitate",
+            "pret_unitar",
+            "valoare_totala",
+            "cota_tva"
+          ]
+        }
+      },
+      "total_cu_tva": {
+        "description": "Totalul final al bonului fiscal",
+        "type": "number"
+      },
+      "total_tva": {
+        "description": "Total TVA, dacă apare sau poate fi calculat",
+        "type": "number"
+      },
+      "metoda_plata": {
+        "description": "Metoda de plată: numerar, card, voucher, tichet etc.",
+        "type": "string"
+      },
+      "suma_platita": {
+        "description": "Suma plătită",
+        "type": "number"
+      },
+      "rest": {
+        "description": "Restul acordat clientului, dacă apare",
+        "type": "number"
+      },
+      "observatii": {
+        "description": "Alte mențiuni de pe bon",
+        "type": "string"
+      }
+    },
+    "required": [
+      "comerciant_nume",
+      "comerciant_cif",
+      "comerciant_adresa",
+      "numar_bon",
+      "data_emitere",
+      "ora_emitere",
+      "moneda",
+      "linii",
+      "total_cu_tva",
+      "total_tva",
+      "metoda_plata",
+      "suma_platita",
+      "rest",
+      "observatii"
+    ]
+  }
+}

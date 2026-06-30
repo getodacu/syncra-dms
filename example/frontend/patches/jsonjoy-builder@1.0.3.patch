@@ -1,0 +1,46 @@
+diff --git a/dist/components/SchemaEditor/SchemaTypeSelector.js b/dist/components/SchemaEditor/SchemaTypeSelector.js
+index 477044f64baa1081f058251b743e0e053edf01f0..1fe420fa45b1357cbd3ba2f0c7018b463033ca4e 100644
+--- a/dist/components/SchemaEditor/SchemaTypeSelector.js
++++ b/dist/components/SchemaEditor/SchemaTypeSelector.js
+@@ -31,24 +31,6 @@ const typeOptions = [
+         label: "fieldTypeArrayLabel",
+         description: "fieldTypeArrayDescription",
+         group: "basic"
+-    },
+-    {
+-        id: "anyOf",
+-        label: "schemaTypeAnyOf",
+-        description: "anyOfDescription",
+-        group: "composition"
+-    },
+-    {
+-        id: "oneOf",
+-        label: "schemaTypeOneOf",
+-        description: "oneOfDescription",
+-        group: "composition"
+-    },
+-    {
+-        id: "allOf",
+-        label: "schemaTypeAllOf",
+-        description: "allOfDescription",
+-        group: "composition"
+     }
+ ];
+ const SchemaTypeSelector = ({ id, value, onChange })=>{
+diff --git a/dist/components/SchemaEditor/TypeDropdown.js b/dist/components/SchemaEditor/TypeDropdown.js
+index 88cf363fdc1b9be51ecb2b54ed208abf4d4c7db1..3305efa7caae98215b2e0c6fad6a1c306620518c 100644
+--- a/dist/components/SchemaEditor/TypeDropdown.js
++++ b/dist/components/SchemaEditor/TypeDropdown.js
+@@ -8,11 +8,7 @@ const typeOptions = [
+     "number",
+     "boolean",
+     "object",
+-    "array",
+-    "null",
+-    "anyOf",
+-    "oneOf",
+-    "allOf"
++    "array"
+ ];
+ const TypeDropdown = ({ value, onChange, className, readOnly })=>{
+     const t = useTranslation();

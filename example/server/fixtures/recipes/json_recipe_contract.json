@@ -1,0 +1,204 @@
+{
+    "title": "Contract",
+    "description": "Extrage informațiile esențiale dintr-un contract, inclusiv tipul și numărul contractului, părțile contractante, obiectul, perioadele, valoarea, obligațiile, penalitățile, clauzele importante, semnatarii și anexele.",
+    "category": "Legal and Contracts",
+    "json": {
+      "type": "object",
+      "properties": {
+        "Tip contract": {
+          "type": "string",
+          "description": "Tipul contractului: prestări servicii, furnizare, muncă, închiriere, parteneriat, subcontractare etc."
+        },
+        "Numar contract": {
+          "type": "string",
+          "description": "Numărul sau identificatorul contractului"
+        },
+        "Obiect contract": {
+          "type": "string",
+          "description": "Obiectul contractului"
+        },
+        "Parti": {
+          "type": "array",
+          "description": "Părțile contractante",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Rol": {
+                "type": "string",
+                "description": "Rolul părții în contract: beneficiar, furnizor, prestator, client, angajator etc."
+              },
+              "Denumire": {
+                "type": "string",
+                "description": "Denumirea organizației sau numele persoanei"
+              },
+              "CUI/CNP": {
+                "type": "string",
+                "description": "CUI, CIF, CNP sau alt identificator fiscal"
+              },
+              "Reprezentant": {
+                "type": "string",
+                "description": "Persoana care reprezintă partea"
+              }
+            },
+            "required": [
+              "Rol",
+              "Denumire",
+              "CUI/CNP",
+              "Reprezentant"
+            ]
+          }
+        },
+        "Data semnare": {
+          "type": "string",
+          "description": "Data semnării contractului în format DD.MM.YYYY"
+        },
+        "Data inceput": {
+          "type": "string",
+          "description": "Data începerii contractului în format DD.MM.YYYY"
+        },
+        "Data sfarsit": {
+          "type": "string",
+          "description": "Data expirării contractului în format DD.MM.YYYY"
+        },
+        "Durata": {
+          "type": "string",
+          "description": "Durata contractului exprimată textual, de exemplu 12 luni sau 3 ani"
+        },
+        "Valoare": {
+          "type": "number",
+          "description": "Valoarea totală a contractului"
+        },
+        "Moneda": {
+          "type": "string",
+          "description": "Moneda contractului: RON, EUR, USD etc."
+        },
+        "Modalitate plata": {
+          "type": "string",
+          "description": "Condițiile și modalitatea de plată"
+        },
+        "Obligatii": {
+          "type": "array",
+          "description": "Obligațiile principale prevăzute în contract",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Penalitati": {
+          "type": "array",
+          "description": "Penalități aplicabile în cazul nerespectării contractului",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Garantii": {
+          "type": "array",
+          "description": "Garanții, retenții sau alte mecanisme de asigurare contractuală",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Clauze reziliere": {
+          "type": "array",
+          "description": "Condițiile și clauzele de reziliere",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Clauze confidentialitate": {
+          "type": "array",
+          "description": "Clauze privind confidențialitatea informațiilor",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Clauze forta majora": {
+          "type": "array",
+          "description": "Clauze privind forța majoră",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Jurisdictie": {
+          "type": "string",
+          "description": "Instanța competentă, legea aplicabilă sau jurisdicția"
+        },
+        "Semnatari": {
+          "type": "array",
+          "description": "Persoanele care au semnat contractul",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Nume": {
+                "type": "string",
+                "description": "Numele semnatarului"
+              },
+              "Functie": {
+                "type": "string",
+                "description": "Funcția semnatarului"
+              },
+              "Organizatie": {
+                "type": "string",
+                "description": "Organizația reprezentată"
+              }
+            },
+            "required": [
+              "Nume",
+              "Functie",
+              "Organizatie"
+            ]
+          }
+        },
+        "Anexe": {
+          "type": "array",
+          "description": "Lista anexelor menționate în contract",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Clauze critice": {
+          "type": "array",
+          "description": "Lista clauzelor considerate importante pentru analiza contractuală",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Categorie": {
+                "type": "string",
+                "description": "Categoria clauzei critice"
+              },
+              "Continut": {
+                "type": "string",
+                "description": "Conținutul clauzei critice"
+              }
+            },
+            "required": [
+              "Categorie",
+              "Continut"
+            ]
+          }
+        }
+      },
+      "required": [
+        "Tip contract",
+        "Numar contract",
+        "Obiect contract",
+        "Parti",
+        "Data semnare",
+        "Data inceput",
+        "Data sfarsit",
+        "Durata",
+        "Valoare",
+        "Moneda",
+        "Modalitate plata",
+        "Obligatii",
+        "Penalitati",
+        "Garantii",
+        "Clauze reziliere",
+        "Clauze confidentialitate",
+        "Clauze forta majora",
+        "Jurisdictie",
+        "Semnatari",
+        "Anexe",
+        "Clauze critice"
+      ]
+    }
+  }

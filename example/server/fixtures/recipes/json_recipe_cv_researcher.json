@@ -1,0 +1,278 @@
+{
+    "title": "CV Cercetător",
+    "description": "Extrage informații structurate dintr-un CV, inclusiv date de contact, experiență profesională, educație, competențe, certificări, proiecte și alte informații relevante pentru recrutare și analiză HR.",
+    "category": "Human Resources",
+    "json": {
+      "type": "object",
+      "properties": {
+        "Nume complet": {
+          "type": "string",
+          "description": "Numele complet al candidatului"
+        },
+        "Email": {
+          "type": "string",
+          "description": "Adresa de email"
+        },
+        "Telefon": {
+          "type": "string",
+          "description": "Numărul de telefon"
+        },
+        "Locatie": {
+          "type": "string",
+          "description": "Orașul, țara sau adresa candidatului"
+        },
+        "LinkedIn": {
+          "type": "string",
+          "description": "Profil LinkedIn"
+        },
+        "GitHub": {
+          "type": "string",
+          "description": "Profil GitHub"
+        },
+        "Portofoliu": {
+          "type": "string",
+          "description": "Website personal sau portofoliu"
+        },
+        "Profil profesional": {
+          "type": "string",
+          "description": "Rezumatul profesional sau obiectivul de carieră"
+        },
+        "Ani experienta": {
+          "type": "number",
+          "description": "Numărul total estimat de ani de experiență profesională"
+        },
+        "Pozitie curenta": {
+          "type": "string",
+          "description": "Funcția actuală a candidatului"
+        },
+        "Angajator curent": {
+          "type": "string",
+          "description": "Compania la care lucrează în prezent"
+        },
+        "Experienta profesionala": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Functie": {
+                "type": "string"
+              },
+              "Angajator": {
+                "type": "string"
+              },
+              "Locatie": {
+                "type": "string"
+              },
+              "Data inceput": {
+                "type": "string"
+              },
+              "Data sfarsit": {
+                "type": "string"
+              },
+              "Responsabilitati": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "Functie",
+              "Angajator",
+              "Data inceput",
+              "Data sfarsit"
+            ]
+          }
+        },
+        "Educatie": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Institutie": {
+                "type": "string"
+              },
+              "Nivel": {
+                "type": "string",
+                "enum": [
+                  "Liceu",
+                  "Licenta",
+                  "Master",
+                  "Doctorat",
+                  "Postdoctorat",
+                  "Altul"
+                ]
+              },
+              "Domeniu": {
+                "type": "string"
+              },
+              "Data inceput": {
+                "type": "string"
+              },
+              "Data sfarsit": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "Institutie",
+              "Nivel",
+              "Domeniu"
+            ]
+          }
+        },
+        "Competente tehnice": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Competente soft": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Tehnologii": {
+          "type": "array",
+          "description": "Tehnologii, limbaje de programare, framework-uri și instrumente identificate în CV",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Limbi straine": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Limba": {
+                "type": "string"
+              },
+              "Nivel": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "Limba",
+              "Nivel"
+            ]
+          }
+        },
+        "Certificari": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Denumire": {
+                "type": "string"
+              },
+              "Emitent": {
+                "type": "string"
+              },
+              "Data obtinere": {
+                "type": "string"
+              },
+              "Data expirare": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "Denumire"
+            ]
+          }
+        },
+        "Proiecte": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Titlu": {
+                "type": "string"
+              },
+              "Descriere": {
+                "type": "string"
+              },
+              "Rol": {
+                "type": "string"
+              },
+              "Tehnologii": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "Titlu"
+            ]
+          }
+        },
+        "Publicatii": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Titlu": {
+                "type": "string"
+              },
+              "An": {
+                "type": "string"
+              },
+              "Revista sau conferinta": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "Premii": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Voluntariat": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Organizatie": {
+                "type": "string"
+              },
+              "Rol": {
+                "type": "string"
+              },
+              "Descriere": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "Permis conducere": {
+          "type": "string",
+          "description": "Categoria permisului de conducere dacă este menționată"
+        },
+        "Disponibilitate": {
+          "type": "string",
+          "description": "Disponibilitate pentru angajare sau preaviz"
+        },
+        "Cuvinte cheie": {
+          "type": "array",
+          "description": "Termeni relevanți pentru căutare și matching",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Observatii": {
+          "type": "string",
+          "description": "Alte informații relevante extrase din CV"
+        }
+      },
+      "required": [
+        "Nume complet",
+        "Email",
+        "Telefon",
+        "Experienta profesionala",
+        "Educatie",
+        "Competente tehnice"
+      ]
+    }
+  }
