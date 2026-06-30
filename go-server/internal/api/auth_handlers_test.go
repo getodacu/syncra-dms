@@ -150,6 +150,102 @@ func TestSendVerificationOTPRotatesForInvitedUser(t *testing.T) {
 	assertVerificationCount(t, db, verificationIdentifier("ada@example.com"), 1)
 }
 
+func TestDuplicateSignUpDoesNotRotateVerificationForNonActiveUsers(t *testing.T) {
+	tests := []struct {
+		name       string
+		status     string
+		softDelete bool
+	}{
+		{name: "inactive", status: "inactive"},
+		{name: "suspended", status: "suspended"},
+		{name: "deleted status", status: "deleted"},
+		{name: "soft deleted active", status: "active", softDelete: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name+" does not create", func(t *testing.T) {
+			router, db := newAuthTestRouter(t)
+			createStatusUser(t, db, "ada@example.com", tc.status, false, tc.softDelete)
+
+			response := authJSON(t, router, http.MethodPost, "/api/auth/sign-up/email", `{
+				"name":"Ada Lovelace",
+				"email":"ada@example.com",
+				"password":"password123"
+			}`, trustedAuthHeaders())
+			if response.Code != http.StatusOK {
+				t.Fatalf("signup status = %d body=%s, want ok", response.Code, response.Body.String())
+			}
+			assertNoVerificationCode(t, response)
+			assertVerificationCount(t, db, verificationIdentifier("ada@example.com"), 0)
+		})
+
+		t.Run(tc.name+" does not update", func(t *testing.T) {
+			router, db := newAuthTestRouter(t)
+			createStatusUser(t, db, "ada@example.com", tc.status, false, tc.softDelete)
+			createEmailVerification(t, db, "ada@example.com")
+			before := captureVerificationState(t, db, verificationIdentifier("ada@example.com"))
+
+			response := authJSON(t, router, http.MethodPost, "/api/auth/sign-up/email", `{
+				"name":"Ada Lovelace",
+				"email":"ada@example.com",
+				"password":"password123"
+			}`, trustedAuthHeaders())
+			if response.Code != http.StatusOK {
+				t.Fatalf("signup status = %d body=%s, want ok", response.Code, response.Body.String())
+			}
+			assertNoVerificationCode(t, response)
+			assertVerificationCount(t, db, verificationIdentifier("ada@example.com"), 1)
+			after := captureVerificationState(t, db, verificationIdentifier("ada@example.com"))
+			assertVerificationStateUnchanged(t, before, after)
+		})
+	}
+}
+
+func TestDuplicateSignUpRotatesVerificationForInvitedAndActiveUsers(t *testing.T) {
+	tests := []struct {
+		name       string
+		createUser func(*testing.T, *gorm.DB)
+	}{
+		{
+			name: "invited",
+			createUser: func(t *testing.T, db *gorm.DB) {
+				createInvitedUser(t, db, "ada@example.com")
+			},
+		},
+		{
+			name: "active",
+			createUser: func(t *testing.T, db *gorm.DB) {
+				createStatusUser(t, db, "ada@example.com", "active", false, false)
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			router, db := newAuthTestRouter(t)
+			tc.createUser(t, db)
+
+			response := authJSON(t, router, http.MethodPost, "/api/auth/sign-up/email", `{
+				"name":"Ada Lovelace",
+				"email":"ada@example.com",
+				"password":"password123"
+			}`, trustedAuthHeaders())
+			if response.Code != http.StatusOK {
+				t.Fatalf("signup status = %d body=%s, want ok", response.Code, response.Body.String())
+			}
+			var body struct {
+				VerificationCode      string `json:"verificationCode"`
+				VerificationExpiresAt string `json:"verificationExpiresAt"`
+			}
+			decodeJSON(t, response, &body)
+			if len(body.VerificationCode) != 6 || body.VerificationExpiresAt == "" {
+				t.Fatalf("unexpected signup verification response: %#v", body)
+			}
+			assertVerificationCount(t, db, verificationIdentifier("ada@example.com"), 1)
+		})
+	}
+}
+
 func TestEmailSignupVerifyLoginSessionAndSignOut(t *testing.T) {
 	router, db := newAuthTestRouter(t)
 	headers := trustedAuthHeaders()
@@ -434,6 +530,37 @@ func TestOAuthCallbackRejectsNewUnverifiedUserWithoutSideEffects(t *testing.T) {
 	}
 }
 
+func TestOAuthCallbackRejectsUnverifiedEmailMatchWithoutSideEffects(t *testing.T) {
+	router, db := newAuthTestRouterWithOptions(t, RouterOptions{
+		GoogleClientID:     "google-client",
+		GoogleClientSecret: "google-secret",
+		OAuthProfileFetcher: func(_ context.Context, providerID string, code string, redirectURI string) (OAuthProfile, error) {
+			return OAuthProfile{
+				ProviderID: providerID,
+				AccountID:  "google-unverified-email-match",
+				Email:      "ada@example.com",
+				Name:       "Updated Ada",
+				Verified:   false,
+			}, nil
+		},
+	})
+	user := createStatusUser(t, db, "ada@example.com", "active", true, false)
+	before := captureAuthUserState(t, db, user.ID)
+
+	response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
+		"code":"oauth-code",
+		"state":"state",
+		"redirectURI":"http://localhost:5173/api/auth/google/callback"
+	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("oauth callback status = %d body=%s, want forbidden", response.Code, response.Body.String())
+	}
+	assertSessionCount(t, db, 0)
+	assertOAuthAccountCount(t, db, auth.GoogleProviderID, "google-unverified-email-match", 0)
+	after := captureAuthUserState(t, db, user.ID)
+	assertAuthUserStateUnchanged(t, before, after)
+}
+
 func TestActiveUserCanSignIn(t *testing.T) {
 	router, db := newAuthTestRouter(t)
 	createVerifiedUser(t, db, "active@example.com", "password123")
@@ -536,6 +663,56 @@ func TestOAuthCallbackRejectsLinkedNonActiveUserWithoutMutation(t *testing.T) {
 	assertAuthUserStateUnchanged(t, before, after)
 }
 
+func TestOAuthCallbackAllowsLinkedUnverifiedProfileWithoutPromotion(t *testing.T) {
+	router, db := newAuthTestRouterWithOptions(t, RouterOptions{
+		GoogleClientID:     "google-client",
+		GoogleClientSecret: "google-secret",
+		OAuthProfileFetcher: func(_ context.Context, providerID string, code string, redirectURI string) (OAuthProfile, error) {
+			return OAuthProfile{
+				ProviderID: providerID,
+				AccountID:  "google-linked-unverified-profile",
+				Email:      "ada@example.com",
+				Name:       "Updated Ada",
+				Verified:   false,
+			}, nil
+		},
+	})
+	user := createStatusUser(t, db, "ada@example.com", "active", false, false)
+	now := time.Now().UTC()
+	account := auth.AuthAccount{
+		AccountID:  "google-linked-unverified-profile",
+		ProviderID: auth.GoogleProviderID,
+		UserID:     user.ID,
+		CreatedAt:  now,
+		UpdatedAt:  now,
+	}
+	if err := db.Create(&account).Error; err != nil {
+		t.Fatalf("create linked oauth account: %v", err)
+	}
+
+	response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
+		"code":"oauth-code",
+		"state":"state",
+		"redirectURI":"http://localhost:5173/api/auth/google/callback"
+	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+	if response.Code != http.StatusOK {
+		t.Fatalf("oauth callback status = %d body=%s, want ok", response.Code, response.Body.String())
+	}
+	assertSessionCount(t, db, 1)
+	assertOAuthAccountCount(t, db, auth.GoogleProviderID, "google-linked-unverified-profile", 1)
+
+	var after auth.User
+	if err := db.First(&after, "id = ?", user.ID).Error; err != nil {
+		t.Fatalf("load user after oauth: %v", err)
+	}
+	if after.EmailVerified {
+		t.Fatal("linked oauth callback promoted email verification for unverified profile")
+	}
+	if after.Status != "active" {
+		t.Fatalf("status = %q, want active", after.Status)
+	}
+}
+
 func TestPasswordResetConsumesTokenAndRevokesSessions(t *testing.T) {
 	router, db := newAuthTestRouter(t)
 	createVerifiedUser(t, db, "ada@example.com", "old-password")
@@ -606,7 +783,7 @@ func TestPasswordResetTokenOnlyReturnedForTrustedDelivery(t *testing.T) {
 	}
 }
 
-func TestPasswordResetRequestRejectsNonActiveUsersWithoutToken(t *testing.T) {
+func TestPasswordResetRequestDoesNotRotateForNonActiveUsers(t *testing.T) {
 	tests := []struct {
 		name       string
 		status     string
@@ -619,7 +796,7 @@ func TestPasswordResetRequestRejectsNonActiveUsersWithoutToken(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name+" does not create", func(t *testing.T) {
 			router, db := newAuthTestRouter(t)
 			user := createStatusUser(t, db, "ada@example.com", tc.status, true, tc.softDelete)
 			before := captureAuthUserState(t, db, user.ID)
@@ -627,12 +804,42 @@ func TestPasswordResetRequestRejectsNonActiveUsersWithoutToken(t *testing.T) {
 			response := authJSON(t, router, http.MethodPost, "/api/auth/password-reset/request", `{
 				"email":"ada@example.com"
 			}`, trustedAuthHeaders())
-			if response.Code != http.StatusForbidden {
-				t.Fatalf("reset request status = %d body=%s, want forbidden", response.Code, response.Body.String())
+			if response.Code != http.StatusOK {
+				t.Fatalf("reset request status = %d body=%s, want ok", response.Code, response.Body.String())
+			}
+			var body map[string]any
+			decodeJSON(t, response, &body)
+			if _, ok := body["resetToken"]; ok {
+				t.Fatalf("response leaked resetToken for non-active user: %s", response.Body.String())
 			}
 			assertVerificationCount(t, db, passwordResetIdentifier("ada@example.com"), 0)
 			after := captureAuthUserState(t, db, user.ID)
 			assertAuthUserStateUnchanged(t, before, after)
+		})
+
+		t.Run(tc.name+" does not update", func(t *testing.T) {
+			router, db := newAuthTestRouter(t)
+			user := createStatusUser(t, db, "ada@example.com", tc.status, true, tc.softDelete)
+			createPasswordResetVerification(t, db, "ada@example.com")
+			beforeUser := captureAuthUserState(t, db, user.ID)
+			beforeVerification := captureVerificationState(t, db, passwordResetIdentifier("ada@example.com"))
+
+			response := authJSON(t, router, http.MethodPost, "/api/auth/password-reset/request", `{
+				"email":"ada@example.com"
+			}`, trustedAuthHeaders())
+			if response.Code != http.StatusOK {
+				t.Fatalf("reset request status = %d body=%s, want ok", response.Code, response.Body.String())
+			}
+			var body map[string]any
+			decodeJSON(t, response, &body)
+			if _, ok := body["resetToken"]; ok {
+				t.Fatalf("response leaked resetToken for non-active user: %s", response.Body.String())
+			}
+			assertVerificationCount(t, db, passwordResetIdentifier("ada@example.com"), 1)
+			afterUser := captureAuthUserState(t, db, user.ID)
+			assertAuthUserStateUnchanged(t, beforeUser, afterUser)
+			afterVerification := captureVerificationState(t, db, passwordResetIdentifier("ada@example.com"))
+			assertVerificationStateUnchanged(t, beforeVerification, afterVerification)
 		})
 	}
 }
@@ -1365,6 +1572,18 @@ func assertVerificationStateUnchanged(t *testing.T, before verificationState, af
 	t.Helper()
 	if before.Value != after.Value || !before.ExpiresAt.Equal(after.ExpiresAt) || !before.UpdatedAt.Equal(after.UpdatedAt) {
 		t.Fatalf("verification state changed\nbefore=%#v\nafter=%#v", before, after)
+	}
+}
+
+func assertNoVerificationCode(t *testing.T, response *httptest.ResponseRecorder) {
+	t.Helper()
+	var body map[string]any
+	decodeJSON(t, response, &body)
+	if _, ok := body["verificationCode"]; ok {
+		t.Fatalf("response leaked verificationCode: %s", response.Body.String())
+	}
+	if _, ok := body["verificationExpiresAt"]; ok {
+		t.Fatalf("response leaked verificationExpiresAt: %s", response.Body.String())
 	}
 }
 

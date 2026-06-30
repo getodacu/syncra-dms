@@ -59,14 +59,14 @@ func (r *Resolver) Can(ctx context.Context, check Check) (bool, error) {
 func (r *Resolver) EffectiveGrants(ctx context.Context, userID string) ([]Grant, error) {
 	var user auth.User
 	if err := r.db.WithContext(ctx).
-		Select("id", "status", "primary_organization_unit_id").
+		Select("id", "status", "deleted_at", "primary_organization_unit_id").
 		First(&user, "id = ?", userID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, err
 	}
-	if user.Status != string(UserStatusActive) {
+	if !resolverUserActive(user) {
 		return nil, nil
 	}
 
@@ -92,6 +92,10 @@ func (r *Resolver) EffectiveGrants(ctx context.Context, userID string) ([]Grant,
 	}
 
 	return grants, nil
+}
+
+func resolverUserActive(user auth.User) bool {
+	return (user.Status == "" || user.Status == string(UserStatusActive)) && user.DeletedAt == nil
 }
 
 func (r *Resolver) userRoleGrants(ctx context.Context, userID string) ([]Grant, error) {

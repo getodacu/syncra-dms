@@ -231,6 +231,9 @@ func (h *authHandler) signUpEmail(c *gin.Context) {
 			if user.EmailVerified {
 				return nil
 			}
+			if !authUserCanUseCredentialLifecycle(user) {
+				return nil
+			}
 			return h.rotateEmailVerification(tx, email, &verificationCode, &verificationExpiresAt)
 		}
 
@@ -524,7 +527,7 @@ func (h *authHandler) requestPasswordReset(c *gin.Context) {
 		return
 	}
 	if !authUserCanUseCredentialLifecycle(user) {
-		writeError(c, http.StatusForbidden, errAuthUserInactive.Error())
+		c.JSON(http.StatusOK, requestPasswordResetResponse{OK: true})
 		return
 	}
 
@@ -935,6 +938,9 @@ func (h *authHandler) upsertOAuthUser(profile OAuthProfile) (auth.User, error) {
 				return err
 			}
 		} else {
+			if !profile.Verified {
+				return errAuthUserInactive
+			}
 			if !authUserCanUseOAuthProfile(user, profile) {
 				return errAuthUserInactive
 			}

@@ -30,6 +30,41 @@ func TestResolverDeniesInactiveUser(t *testing.T) {
 	}
 }
 
+func TestResolverEffectiveGrantsDeniesSoftDeletedActiveUser(t *testing.T) {
+	db := newResolverTestDB(t)
+	user := createResolverUser(t, db, string(UserStatusActive), nil)
+	role := createResolverRoleWithPermission(t, db, "role.view")
+	assignUserRole(t, db, user.ID, role.ID, ScopeGlobal, nil)
+	softDeleteResolverUser(t, db, user.ID)
+
+	grants, err := NewResolver(db).EffectiveGrants(t.Context(), user.ID)
+	if err != nil {
+		t.Fatalf("EffectiveGrants() error = %v", err)
+	}
+	if len(grants) != 0 {
+		t.Fatalf("EffectiveGrants() = %#v, want no grants", grants)
+	}
+}
+
+func TestResolverAllowsEmptyStatusNonDeletedUser(t *testing.T) {
+	db := newResolverTestDB(t)
+	user := createResolverUser(t, db, string(UserStatusActive), nil)
+	role := createResolverRoleWithPermission(t, db, "role.view")
+	assignUserRole(t, db, user.ID, role.ID, ScopeGlobal, nil)
+	setResolverUserStatus(t, db, user.ID, "")
+
+	allowed, err := NewResolver(db).Can(t.Context(), Check{
+		UserID:     user.ID,
+		Permission: "role.view",
+	})
+	if err != nil {
+		t.Fatalf("Can() error = %v", err)
+	}
+	if !allowed {
+		t.Fatal("Can() = false, want true")
+	}
+}
+
 func TestResolverAllowsUserRoleWithGlobalScope(t *testing.T) {
 	db := newResolverTestDB(t)
 	user := createResolverUser(t, db, string(UserStatusActive), nil)
@@ -383,6 +418,25 @@ func createResolverUser(t *testing.T, db *gorm.DB, status string, primaryOrganiz
 		t.Fatalf("create user: %v", err)
 	}
 	return user
+}
+
+func setResolverUserStatus(t *testing.T, db *gorm.DB, userID string, status string) {
+	t.Helper()
+	if status == "" {
+		if err := db.Exec("PRAGMA ignore_check_constraints = ON").Error; err != nil {
+			t.Fatalf("disable sqlite check constraints: %v", err)
+		}
+	}
+	if err := db.Model(&auth.User{}).Where("id = ?", userID).Update("status", status).Error; err != nil {
+		t.Fatalf("set user status: %v", err)
+	}
+}
+
+func softDeleteResolverUser(t *testing.T, db *gorm.DB, userID string) {
+	t.Helper()
+	if err := db.Model(&auth.User{}).Where("id = ?", userID).Update("deleted_at", time.Now().UTC()).Error; err != nil {
+		t.Fatalf("soft delete user: %v", err)
+	}
 }
 
 func createResolverRoleWithPermission(t *testing.T, db *gorm.DB, permissionCode string) Role {
