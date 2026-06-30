@@ -76,6 +76,7 @@ func NewRouter(options RouterOptions) http.Handler {
 			"version": version.Version,
 		})
 	})
+	registerSwaggerRoutes(router)
 
 	auth := newAuthHandler(options)
 	authAPI := router.Group("/api/auth")

@@ -18,6 +18,8 @@ rtk go run ./cmd/syncra api --port 8090
 - `GET /healthz`
 - `GET /readyz`
 - `GET /version`
+- `GET /swagger/index.html`
+- `GET /swagger/doc.json`
 - `/api/auth/*` for trusted SvelteKit-to-Go authentication requests
 
 ## Atlas
@@ -36,3 +38,4 @@ rtk go run ./cmd/syncra swagger
 ```
 
 This generates and validates `docs/swagger.json` using the installed `swagger` binary.
+The API serves the embedded spec at `/swagger/doc.json` and mounts Swagger UI at `/swagger/index.html`.

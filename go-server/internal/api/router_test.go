@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -36,6 +37,35 @@ func TestRouterReportsReadinessFailure(t *testing.T) {
 	body := assertJSONStatus(t, router, "/readyz", http.StatusServiceUnavailable, "status", "not_ready")
 	if body["error"] != "database unavailable" {
 		t.Fatalf("readyz error = %v, want database unavailable", body["error"])
+	}
+}
+
+func TestRouterExposesSwaggerDocs(t *testing.T) {
+	router := NewRouter(RouterOptions{})
+
+	spec := assertJSONStatus(t, router, "http://localhost:8090/swagger/doc.json", http.StatusOK, "swagger", "2.0")
+	if spec["info"] == nil {
+		t.Fatal("/swagger/doc.json missing info section")
+	}
+	if spec["host"] != "localhost:8090" {
+		t.Fatalf("/swagger/doc.json host = %v, want localhost:8090", spec["host"])
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "/swagger/index.html", nil)
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("/swagger/index.html status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	if contentType := response.Header().Get("Content-Type"); !strings.HasPrefix(contentType, "text/html") {
+		t.Fatalf("/swagger/index.html Content-Type = %q, want text/html", contentType)
+	}
+	body := response.Body.String()
+	for _, want := range []string{"SwaggerUIBundle", "/swagger/doc.json"} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("/swagger/index.html missing %q", want)
+		}
 	}
 }
 
