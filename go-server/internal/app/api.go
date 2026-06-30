@@ -15,6 +15,7 @@ import (
 	"ai.ro/syncra/dms/internal/config"
 	"ai.ro/syncra/dms/internal/database"
 	"ai.ro/syncra/dms/internal/logging"
+	"ai.ro/syncra/dms/internal/rbac"
 )
 
 func RunAPI(cfg config.Config) error {
@@ -27,6 +28,11 @@ func RunAPI(cfg config.Config) error {
 		return err
 	}
 	defer closeGormDB(db)
+
+	if err := rbac.SeedDefaults(db); err != nil {
+		logger.Error("api.rbac_seed_failed", "error", err)
+		return err
+	}
 
 	router := api.NewRouter(api.RouterOptions{
 		Version: api.VersionInfo{
