@@ -407,6 +407,10 @@ func (h *authHandler) sendVerificationOTP(c *gin.Context) {
 		c.JSON(http.StatusOK, sendVerificationOTPResponse{OK: true})
 		return
 	}
+	if !authUserCanUseCredentialLifecycle(user) {
+		c.JSON(http.StatusOK, sendVerificationOTPResponse{OK: true})
+		return
+	}
 
 	var code string
 	var expiresAt time.Time

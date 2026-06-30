@@ -71,6 +71,85 @@ func TestSignUpReturnsVerificationCodeOnlyForTrustedDelivery(t *testing.T) {
 	}
 }
 
+func TestSendVerificationOTPDoesNotRotateForNonActiveUsers(t *testing.T) {
+	tests := []struct {
+		name       string
+		status     string
+		softDelete bool
+	}{
+		{name: "inactive", status: "inactive"},
+		{name: "suspended", status: "suspended"},
+		{name: "deleted status", status: "deleted"},
+		{name: "soft deleted active", status: "active", softDelete: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name+" does not create", func(t *testing.T) {
+			router, db := newAuthTestRouter(t)
+			createStatusUser(t, db, "ada@example.com", tc.status, false, tc.softDelete)
+
+			response := authJSON(t, router, http.MethodPost, "/api/auth/email-otp/send-verification-otp", `{
+				"email":"ada@example.com",
+				"type":"email-verification"
+			}`, trustedAuthHeaders())
+			if response.Code != http.StatusOK {
+				t.Fatalf("send verification status = %d body=%s, want ok", response.Code, response.Body.String())
+			}
+			var body map[string]any
+			decodeJSON(t, response, &body)
+			if _, ok := body["verificationCode"]; ok {
+				t.Fatalf("response leaked verificationCode for non-active user: %s", response.Body.String())
+			}
+			assertVerificationCount(t, db, verificationIdentifier("ada@example.com"), 0)
+		})
+
+		t.Run(tc.name+" does not update", func(t *testing.T) {
+			router, db := newAuthTestRouter(t)
+			createStatusUser(t, db, "ada@example.com", tc.status, false, tc.softDelete)
+			createEmailVerification(t, db, "ada@example.com")
+			before := captureVerificationState(t, db, verificationIdentifier("ada@example.com"))
+
+			response := authJSON(t, router, http.MethodPost, "/api/auth/email-otp/send-verification-otp", `{
+				"email":"ada@example.com",
+				"type":"email-verification"
+			}`, trustedAuthHeaders())
+			if response.Code != http.StatusOK {
+				t.Fatalf("send verification status = %d body=%s, want ok", response.Code, response.Body.String())
+			}
+			var body map[string]any
+			decodeJSON(t, response, &body)
+			if _, ok := body["verificationCode"]; ok {
+				t.Fatalf("response leaked verificationCode for non-active user: %s", response.Body.String())
+			}
+			assertVerificationCount(t, db, verificationIdentifier("ada@example.com"), 1)
+			after := captureVerificationState(t, db, verificationIdentifier("ada@example.com"))
+			assertVerificationStateUnchanged(t, before, after)
+		})
+	}
+}
+
+func TestSendVerificationOTPRotatesForInvitedUser(t *testing.T) {
+	router, db := newAuthTestRouter(t)
+	createInvitedUser(t, db, "ada@example.com")
+
+	response := authJSON(t, router, http.MethodPost, "/api/auth/email-otp/send-verification-otp", `{
+		"email":"ada@example.com",
+		"type":"email-verification"
+	}`, trustedAuthHeaders())
+	if response.Code != http.StatusOK {
+		t.Fatalf("send verification status = %d body=%s, want ok", response.Code, response.Body.String())
+	}
+	var body struct {
+		VerificationCode      string `json:"verificationCode"`
+		VerificationExpiresAt string `json:"verificationExpiresAt"`
+	}
+	decodeJSON(t, response, &body)
+	if len(body.VerificationCode) != 6 || body.VerificationExpiresAt == "" {
+		t.Fatalf("unexpected verification response: %#v", body)
+	}
+	assertVerificationCount(t, db, verificationIdentifier("ada@example.com"), 1)
+}
+
 func TestEmailSignupVerifyLoginSessionAndSignOut(t *testing.T) {
 	router, db := newAuthTestRouter(t)
 	headers := trustedAuthHeaders()
@@ -1260,6 +1339,32 @@ func createVerification(t *testing.T, db *gorm.DB, identifier string, plaintext 
 	}
 	if err := db.Create(&verification).Error; err != nil {
 		t.Fatalf("create verification: %v", err)
+	}
+}
+
+type verificationState struct {
+	Value     string
+	ExpiresAt time.Time
+	UpdatedAt time.Time
+}
+
+func captureVerificationState(t *testing.T, db *gorm.DB, identifier string) verificationState {
+	t.Helper()
+	var verification auth.Verification
+	if err := db.First(&verification, "identifier = ?", identifier).Error; err != nil {
+		t.Fatalf("load verification state: %v", err)
+	}
+	return verificationState{
+		Value:     verification.Value,
+		ExpiresAt: verification.ExpiresAt,
+		UpdatedAt: verification.UpdatedAt,
+	}
+}
+
+func assertVerificationStateUnchanged(t *testing.T, before verificationState, after verificationState) {
+	t.Helper()
+	if before.Value != after.Value || !before.ExpiresAt.Equal(after.ExpiresAt) || !before.UpdatedAt.Equal(after.UpdatedAt) {
+		t.Fatalf("verification state changed\nbefore=%#v\nafter=%#v", before, after)
 	}
 }
 
