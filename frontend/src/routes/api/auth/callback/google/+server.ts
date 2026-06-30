@@ -19,7 +19,7 @@ export const GET: RequestHandler = async ({ cookies, fetch, locals, url }) => {
 		const auth = await signInGoogleOAuth(fetch, {
 			code,
 			state,
-			redirectURI: `${appOrigin(url)}/api/auth/google/callback`
+			redirectURI: `${appOrigin(url)}/api/auth/callback/google`
 		});
 		setSessionCookie(cookies, auth.session, true);
 		setPreferredLanguageCookie(cookies, auth.user.preferredLanguage);

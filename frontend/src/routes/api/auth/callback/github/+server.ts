@@ -19,7 +19,7 @@ export const GET: RequestHandler = async ({ cookies, fetch, locals, url }) => {
 		const auth = await signInGitHubOAuth(fetch, {
 			code,
 			state,
-			redirectURI: `${appOrigin(url)}/api/auth/github/callback`
+			redirectURI: `${appOrigin(url)}/api/auth/callback/github`
 		});
 		setSessionCookie(cookies, auth.session, true);
 		setPreferredLanguageCookie(cookies, auth.user.preferredLanguage);
