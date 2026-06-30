@@ -1523,6 +1523,87 @@ func TestOAuthCallbackConsumesStateAndRejectsReplayBeforeProfileFetch(t *testing
 	assertOAuthAccountCount(t, db, auth.GoogleProviderID, "google-replay-second", 0)
 }
 
+func TestOAuthCallbackRejectsDifferentRedirectURIWithoutConsumingState(t *testing.T) {
+	fetchCalls := 0
+	router, db := newAuthTestRouterWithOptions(t, RouterOptions{
+		GoogleClientID:     "google-client",
+		GoogleClientSecret: "google-secret",
+		OAuthProfileFetcher: func(_ context.Context, providerID string, code string, redirectURI string) (OAuthProfile, error) {
+			fetchCalls++
+			return OAuthProfile{
+				ProviderID: providerID,
+				AccountID:  "google-redirect-bound",
+				Email:      "ada@example.com",
+				Name:       "Ada Lovelace",
+				Verified:   true,
+			}, nil
+		},
+	})
+	user := createInvitedUser(t, db, "ada@example.com")
+	before := captureAuthUserState(t, db, user.ID)
+	state := startOAuthStateWithRedirectURI(t, router, "/api/auth/oauth/google/start", "http://localhost:5173/api/auth/google/callback")
+
+	wrongRedirect := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
+		"code":"oauth-code",
+		"state":"`+state+`",
+		"redirectURI":"http://localhost:5173/api/auth/google/callback/other"
+	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+	if wrongRedirect.Code != http.StatusUnauthorized {
+		t.Fatalf("wrong redirect callback status = %d body=%s, want unauthorized", wrongRedirect.Code, wrongRedirect.Body.String())
+	}
+	if fetchCalls != 0 {
+		t.Fatalf("fetch calls after wrong redirect = %d, want 0", fetchCalls)
+	}
+	assertSessionCount(t, db, 0)
+	assertOAuthAccountCount(t, db, auth.GoogleProviderID, "google-redirect-bound", 0)
+	assertOAuthStateCount(t, db, auth.GoogleProviderID, 1)
+	afterWrongRedirect := captureAuthUserState(t, db, user.ID)
+	assertAuthUserStateUnchanged(t, before, afterWrongRedirect)
+
+	correctRedirect := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
+		"code":"oauth-code",
+		"state":"`+state+`",
+		"redirectURI":"http://localhost:5173/api/auth/google/callback"
+	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+	if correctRedirect.Code != http.StatusOK {
+		t.Fatalf("correct redirect callback status = %d body=%s, want ok", correctRedirect.Code, correctRedirect.Body.String())
+	}
+	if fetchCalls != 1 {
+		t.Fatalf("fetch calls after correct redirect = %d, want 1", fetchCalls)
+	}
+	assertSessionCount(t, db, 1)
+	assertOAuthAccountCount(t, db, auth.GoogleProviderID, "google-redirect-bound", 1)
+	assertOAuthStateCount(t, db, auth.GoogleProviderID, 0)
+}
+
+func TestOAuthStartCleansOnlyExpiredOAuthStates(t *testing.T) {
+	router, db := newAuthTestRouterWithOptions(t, RouterOptions{
+		GoogleClientID:     "google-client",
+		GoogleClientSecret: "google-secret",
+	})
+	now := time.Now().UTC()
+	expiredOAuthIdentifier := "oauth-state:google:expired"
+	activeOAuthIdentifier := "oauth-state:google:active"
+	expiredEmailIdentifier := verificationIdentifier("expired-verification@example.com")
+	expiredResetIdentifier := passwordResetIdentifier("expired-reset@example.com")
+	createVerificationWithExpiresAt(t, db, expiredOAuthIdentifier, "expired-oauth-state", now.Add(-time.Hour))
+	createVerificationWithExpiresAt(t, db, activeOAuthIdentifier, "active-oauth-state", now.Add(time.Hour))
+	createVerificationWithExpiresAt(t, db, expiredEmailIdentifier, "expired-email-code", now.Add(-time.Hour))
+	createVerificationWithExpiresAt(t, db, expiredResetIdentifier, "expired-reset-token", now.Add(-time.Hour))
+
+	response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/start", `{
+		"redirectURI":"http://localhost:5173/api/auth/google/callback"
+	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+	if response.Code != http.StatusOK {
+		t.Fatalf("oauth start status = %d body=%s, want ok", response.Code, response.Body.String())
+	}
+	assertVerificationCount(t, db, expiredOAuthIdentifier, 0)
+	assertVerificationCount(t, db, activeOAuthIdentifier, 1)
+	assertVerificationCount(t, db, expiredEmailIdentifier, 1)
+	assertVerificationCount(t, db, expiredResetIdentifier, 1)
+	assertOAuthStateCount(t, db, auth.GoogleProviderID, 2)
+}
+
 func TestOAuthCallbackReturnsUnauthorizedOnProviderFailure(t *testing.T) {
 	router, _ := newAuthTestRouterWithOptions(t, RouterOptions{
 		GoogleClientID:     "google-client",
@@ -1854,8 +1935,13 @@ func newAuthTestRouterWithOptions(t *testing.T, options RouterOptions) (http.Han
 
 func startOAuthState(t *testing.T, router http.Handler, path string) string {
 	t.Helper()
+	return startOAuthStateWithRedirectURI(t, router, path, "http://localhost:5173/api/auth/google/callback")
+}
+
+func startOAuthStateWithRedirectURI(t *testing.T, router http.Handler, path string, redirectURI string) string {
+	t.Helper()
 	response := authJSON(t, router, http.MethodPost, path, `{
-		"redirectURI":"http://localhost:5173/api/auth/oauth/callback"
+		"redirectURI":"`+redirectURI+`"
 	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
 	if response.Code != http.StatusOK {
 		t.Fatalf("oauth start status = %d body=%s, want ok", response.Code, response.Body.String())
@@ -2152,10 +2238,16 @@ func createPasswordResetVerification(t *testing.T, db *gorm.DB, email string) st
 func createVerification(t *testing.T, db *gorm.DB, identifier string, plaintext string) {
 	t.Helper()
 	now := time.Now().UTC()
+	createVerificationWithExpiresAt(t, db, identifier, plaintext, now.Add(5*time.Minute))
+}
+
+func createVerificationWithExpiresAt(t *testing.T, db *gorm.DB, identifier string, plaintext string, expiresAt time.Time) {
+	t.Helper()
+	now := time.Now().UTC()
 	verification := auth.Verification{
 		Identifier: identifier,
 		Value:      auth.HashCode(testBetterAuthSecret, identifier, plaintext),
-		ExpiresAt:  now.Add(5 * time.Minute),
+		ExpiresAt:  expiresAt,
 		CreatedAt:  now,
 		UpdatedAt:  now,
 	}

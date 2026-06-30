@@ -658,11 +658,12 @@ func (h *authHandler) startOAuth(c *gin.Context, provider string) {
 		writeError(c, http.StatusBadRequest, "invalid JSON body")
 		return
 	}
-	redirectURI := strings.TrimSpace(req.RedirectURI)
+	redirectURI := normalizeOAuthRedirectURI(req.RedirectURI)
 	if redirectURI == "" {
 		writeError(c, http.StatusBadRequest, "redirectURI is required")
 		return
 	}
+	_ = h.cleanupExpiredOAuthStates()
 	state, err := auth.GenerateSessionToken()
 	if err != nil {
 		writeError(c, http.StatusInternalServerError, "failed to create oauth state")
@@ -702,7 +703,7 @@ func (h *authHandler) startOAuth(c *gin.Context, provider string) {
 		writeError(c, http.StatusBadRequest, "unsupported oauth provider")
 		return
 	}
-	if err := h.persistOAuthState(provider, state, expiresAt); err != nil {
+	if err := h.persistOAuthState(provider, redirectURI, state, expiresAt); err != nil {
 		writeError(c, http.StatusInternalServerError, "failed to create oauth state")
 		return
 	}
@@ -730,7 +731,8 @@ func (h *authHandler) signInOAuth(c *gin.Context, providerID string) {
 		writeError(c, http.StatusBadRequest, "invalid JSON body")
 		return
 	}
-	if strings.TrimSpace(req.Code) == "" || strings.TrimSpace(req.RedirectURI) == "" {
+	redirectURI := normalizeOAuthRedirectURI(req.RedirectURI)
+	if strings.TrimSpace(req.Code) == "" || redirectURI == "" {
 		writeError(c, http.StatusBadRequest, "code and redirectURI are required")
 		return
 	}
@@ -739,7 +741,7 @@ func (h *authHandler) signInOAuth(c *gin.Context, providerID string) {
 		writeError(c, http.StatusBadRequest, "state is required")
 		return
 	}
-	if err := h.consumeOAuthState(providerID, state); err != nil {
+	if err := h.consumeOAuthState(providerID, redirectURI, state); err != nil {
 		if errors.Is(err, errOAuthStateInvalid) {
 			writeError(c, http.StatusUnauthorized, errOAuthStateInvalid.Error())
 			return
@@ -748,7 +750,7 @@ func (h *authHandler) signInOAuth(c *gin.Context, providerID string) {
 		return
 	}
 
-	profile, err := h.fetchOAuthProfile(c.Request.Context(), providerID, req.Code, req.RedirectURI)
+	profile, err := h.fetchOAuthProfile(c.Request.Context(), providerID, req.Code, redirectURI)
 	if err != nil {
 		writeError(c, http.StatusUnauthorized, "oauth sign-in failed")
 		return
@@ -874,9 +876,9 @@ func (h *authHandler) rotatePasswordResetVerification(tx *gorm.DB, email string,
 	return h.rotateVerification(tx, identifier, token, tokenOut, expiresOut)
 }
 
-func (h *authHandler) persistOAuthState(providerID string, state string, expiresAt time.Time) error {
+func (h *authHandler) persistOAuthState(providerID string, redirectURI string, state string, expiresAt time.Time) error {
 	now := time.Now().UTC()
-	identifier := h.oauthStateIdentifier(providerID, state)
+	identifier := h.oauthStateIdentifier(providerID, redirectURI, state)
 	return h.db.Create(&auth.Verification{
 		Identifier: identifier,
 		Value:      auth.HashCode(h.betterAuthSecret, identifier, state),
@@ -886,28 +888,43 @@ func (h *authHandler) persistOAuthState(providerID string, state string, expires
 	}).Error
 }
 
-func (h *authHandler) consumeOAuthState(providerID string, state string) error {
+func (h *authHandler) consumeOAuthState(providerID string, redirectURI string, state string) error {
 	return h.db.Transaction(func(tx *gorm.DB) error {
-		identifier := h.oauthStateIdentifier(providerID, state)
-		verification, ok, err := h.loadVerification(tx, identifier)
-		if err != nil {
-			return err
+		identifier := h.oauthStateIdentifier(providerID, redirectURI, state)
+		var verification auth.Verification
+		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("identifier = ?", identifier).Limit(1).Find(&verification)
+		if result.Error != nil {
+			return result.Error
 		}
-		if !ok {
+		if result.RowsAffected == 0 {
 			return errOAuthStateInvalid
 		}
 		now := time.Now().UTC()
 		if !verification.ExpiresAt.After(now) {
-			if err := tx.Delete(&verification).Error; err != nil {
-				return err
+			deleteResult := tx.Where("id = ?", verification.ID).Delete(&auth.Verification{})
+			if deleteResult.Error != nil {
+				return deleteResult.Error
 			}
 			return errOAuthStateInvalid
 		}
 		if !auth.VerifyCode(h.betterAuthSecret, identifier, state, verification.Value) {
 			return errOAuthStateInvalid
 		}
-		return tx.Delete(&verification).Error
+		deleteResult := tx.Where("id = ?", verification.ID).Delete(&auth.Verification{})
+		if deleteResult.Error != nil {
+			return deleteResult.Error
+		}
+		if deleteResult.RowsAffected != 1 {
+			return errOAuthStateInvalid
+		}
+		return nil
 	})
+}
+
+func (h *authHandler) cleanupExpiredOAuthStates() error {
+	return h.db.
+		Where("identifier LIKE ? AND expires_at <= ?", "oauth-state:%", time.Now().UTC()).
+		Delete(&auth.Verification{}).Error
 }
 
 func (h *authHandler) rotateVerification(tx *gorm.DB, identifier string, plaintext string, plaintextOut *string, expiresOut *time.Time) error {
@@ -1226,9 +1243,13 @@ func passwordResetIdentifier(email string) string {
 	return "password-reset:" + normalizeEmail(email)
 }
 
-func (h *authHandler) oauthStateIdentifier(providerID string, state string) string {
-	stateHash := auth.HashCode(h.betterAuthSecret, "oauth-state:"+providerID, state)
+func (h *authHandler) oauthStateIdentifier(providerID string, redirectURI string, state string) string {
+	stateHash := auth.HashCode(h.betterAuthSecret, "oauth-state:"+providerID+":"+normalizeOAuthRedirectURI(redirectURI), state)
 	return "oauth-state:" + providerID + ":" + stateHash
+}
+
+func normalizeOAuthRedirectURI(redirectURI string) string {
+	return strings.TrimSpace(redirectURI)
 }
 
 func validateSignupInput(name string, email string, password string) error {
