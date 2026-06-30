@@ -1,0 +1,1212 @@
+{
+  "/Users/radu/Projects/syncra-dms/frontend/components.json": {
+    "mtime": 1782842818.5899935,
+    "ast_hash": "85bef933f86ce7ca09609926233aba4c",
+    "semantic_hash": "85bef933f86ce7ca09609926233aba4c"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/messages/en.json": {
+    "mtime": 1782829092.314545,
+    "ast_hash": "f163a87736e20f9de56bd9542920cd09",
+    "semantic_hash": "f163a87736e20f9de56bd9542920cd09"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/messages/ro.json": {
+    "mtime": 1782829092.3146193,
+    "ast_hash": "b9f305094f5d107d64f922a70ed39482",
+    "semantic_hash": "b9f305094f5d107d64f922a70ed39482"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/package.json": {
+    "mtime": 1782842818.5908284,
+    "ast_hash": "114965cfb69979c0e1302cf7eed6c083",
+    "semantic_hash": "114965cfb69979c0e1302cf7eed6c083"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/project.inlang/.meta.json": {
+    "mtime": 1782830385.5868962,
+    "ast_hash": "20c845f06f9d5e50f10b7358b405c06a",
+    "semantic_hash": "20c845f06f9d5e50f10b7358b405c06a"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/project.inlang/settings.json": {
+    "mtime": 1782830385.5863996,
+    "ast_hash": "87452d40f793f6773b24f627dc0ffde7",
+    "semantic_hash": "87452d40f793f6773b24f627dc0ffde7"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/scripts/normalize-paraglide.mjs": {
+    "mtime": 1782829092.3153296,
+    "ast_hash": "0a63d7273ed461d1e6e2b045c43cca2d",
+    "semantic_hash": "0a63d7273ed461d1e6e2b045c43cca2d"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/scripts/run-and-normalize-paraglide.mjs": {
+    "mtime": 1782829092.315407,
+    "ast_hash": "fe181eb0f7559246684dbaa299b21ad5",
+    "semantic_hash": "fe181eb0f7559246684dbaa299b21ad5"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/app.d.ts": {
+    "mtime": 1782829092.3155994,
+    "ast_hash": "d8db5c436bc495b1a05c65817dbd1f56",
+    "semantic_hash": "d8db5c436bc495b1a05c65817dbd1f56"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/hooks.server.test.ts": {
+    "mtime": 1782829092.315741,
+    "ast_hash": "55e8702a3ab785ccaa436f006fd61b23",
+    "semantic_hash": "55e8702a3ab785ccaa436f006fd61b23"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/hooks.server.ts": {
+    "mtime": 1782829092.3158343,
+    "ast_hash": "9cf2e2242e6d4a6e997b80d1299803a4",
+    "semantic_hash": "9cf2e2242e6d4a6e997b80d1299803a4"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/client/api-errors.ts": {
+    "mtime": 1782842818.5925124,
+    "ast_hash": "709373487d69c18c2f7b5b66d4b71886",
+    "semantic_hash": "709373487d69c18c2f7b5b66d4b71886"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/app-sidebar.svelte": {
+    "mtime": 1782842818.592842,
+    "ast_hash": "0bf063cf6e444eb63de0ca8bcb1bac72",
+    "semantic_hash": "0bf063cf6e444eb63de0ca8bcb1bac72"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/nav-main.svelte": {
+    "mtime": 1782842818.5931234,
+    "ast_hash": "14ba927eca67ef179b25cb8cca236d09",
+    "semantic_hash": "14ba927eca67ef179b25cb8cca236d09"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/nav-secondary.svelte": {
+    "mtime": 1782842818.5934298,
+    "ast_hash": "66636d597bc641be4e2a5eda96cfc221",
+    "semantic_hash": "66636d597bc641be4e2a5eda96cfc221"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/nav-user.svelte": {
+    "mtime": 1782842818.5937865,
+    "ast_hash": "c74bb6951b4487fdee39ab566f96e9fc",
+    "semantic_hash": "c74bb6951b4487fdee39ab566f96e9fc"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/sidebar-space-switcher.svelte": {
+    "mtime": 1782842818.5940876,
+    "ast_hash": "03f3b86a9b66b85161503783a4f8a10b",
+    "semantic_hash": "03f3b86a9b66b85161503783a4f8a10b"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/site-header.svelte": {
+    "mtime": 1782842818.5944223,
+    "ast_hash": "2acf0689621753bf78f9bcdaeac6e48f",
+    "semantic_hash": "2acf0689621753bf78f9bcdaeac6e48f"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/alert-dialog/alert-dialog-action.svelte": {
+    "mtime": 1782842818.594644,
+    "ast_hash": "16dbfa542c6c5a6215911a6af3104209",
+    "semantic_hash": "16dbfa542c6c5a6215911a6af3104209"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/alert-dialog/alert-dialog-cancel.svelte": {
+    "mtime": 1782842818.5947616,
+    "ast_hash": "becbb66b52f982f14e8586b769f3dbbc",
+    "semantic_hash": "becbb66b52f982f14e8586b769f3dbbc"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/alert-dialog/alert-dialog-content.svelte": {
+    "mtime": 1782842818.5948915,
+    "ast_hash": "85c89519e071f1cd1e1e1d66df0311c3",
+    "semantic_hash": "85c89519e071f1cd1e1e1d66df0311c3"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/alert-dialog/alert-dialog-description.svelte": {
+    "mtime": 1782842818.5949934,
+    "ast_hash": "635b593415fbfe7d42330f8c16c1e7de",
+    "semantic_hash": "635b593415fbfe7d42330f8c16c1e7de"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/alert-dialog/alert-dialog-footer.svelte": {
+    "mtime": 1782842818.595093,
+    "ast_hash": "b8b0478215ee97d01edf7b8f9f36d98c",
+    "semantic_hash": "b8b0478215ee97d01edf7b8f9f36d98c"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/alert-dialog/alert-dialog-header.svelte": {
+    "mtime": 1782842818.5951917,
+    "ast_hash": "2469423ee2286cac845bb399223e0d24",
+    "semantic_hash": "2469423ee2286cac845bb399223e0d24"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/alert-dialog/alert-dialog-media.svelte": {
+    "mtime": 1782842818.5952852,
+    "ast_hash": "57a5afc00b28b65069bb05eb3aff27ec",
+    "semantic_hash": "57a5afc00b28b65069bb05eb3aff27ec"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/alert-dialog/alert-dialog-overlay.svelte": {
+    "mtime": 1782842818.5953681,
+    "ast_hash": "6fac2ba4e9624270ec1b3a02422f7e97",
+    "semantic_hash": "6fac2ba4e9624270ec1b3a02422f7e97"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/alert-dialog/alert-dialog-portal.svelte": {
+    "mtime": 1782842818.5954561,
+    "ast_hash": "4cf688c06984c3b1bf31970951f955a0",
+    "semantic_hash": "4cf688c06984c3b1bf31970951f955a0"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/alert-dialog/alert-dialog-title.svelte": {
+    "mtime": 1782842818.59555,
+    "ast_hash": "33aae537122f9037c660abc109c9b6c4",
+    "semantic_hash": "33aae537122f9037c660abc109c9b6c4"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/alert-dialog/alert-dialog-trigger.svelte": {
+    "mtime": 1782842818.5956476,
+    "ast_hash": "90fea2404ee830a85b18fd6dfe89d272",
+    "semantic_hash": "90fea2404ee830a85b18fd6dfe89d272"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/alert-dialog/alert-dialog.svelte": {
+    "mtime": 1782842818.595741,
+    "ast_hash": "b4eb21a1cb27c741d3c01e1908e512f4",
+    "semantic_hash": "b4eb21a1cb27c741d3c01e1908e512f4"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/alert-dialog/index.ts": {
+    "mtime": 1782842818.5958326,
+    "ast_hash": "adda5323ffe6dce67f2d2664b85ce4d6",
+    "semantic_hash": "adda5323ffe6dce67f2d2664b85ce4d6"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/avatar/avatar-badge.svelte": {
+    "mtime": 1782842818.5959747,
+    "ast_hash": "f17579665915c5e46bb20010f325ea7b",
+    "semantic_hash": "f17579665915c5e46bb20010f325ea7b"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/avatar/avatar-fallback.svelte": {
+    "mtime": 1782842818.5960662,
+    "ast_hash": "2870005e2e7f136bdf1b4b0a5bfe4712",
+    "semantic_hash": "2870005e2e7f136bdf1b4b0a5bfe4712"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/avatar/avatar-group-count.svelte": {
+    "mtime": 1782842818.5961602,
+    "ast_hash": "838af018fc4b169c0d91060929aa2c4d",
+    "semantic_hash": "838af018fc4b169c0d91060929aa2c4d"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/avatar/avatar-group.svelte": {
+    "mtime": 1782842818.5962715,
+    "ast_hash": "2c78b315cd204a7107dccc2c4a61ec5a",
+    "semantic_hash": "2c78b315cd204a7107dccc2c4a61ec5a"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/avatar/avatar-image.svelte": {
+    "mtime": 1782842818.596364,
+    "ast_hash": "b9080974281e794d4125471f60248212",
+    "semantic_hash": "b9080974281e794d4125471f60248212"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/avatar/avatar.svelte": {
+    "mtime": 1782842818.5964658,
+    "ast_hash": "d006aef9a4214dabfd0aecbb7f9ac608",
+    "semantic_hash": "d006aef9a4214dabfd0aecbb7f9ac608"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/avatar/index.ts": {
+    "mtime": 1782842818.5965593,
+    "ast_hash": "9083e96a6b80d17d0b82ed8f0a3c3628",
+    "semantic_hash": "9083e96a6b80d17d0b82ed8f0a3c3628"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/badge/badge.svelte": {
+    "mtime": 1782829092.3160741,
+    "ast_hash": "d11aec8343b3e1a68e693f75f520dfa5",
+    "semantic_hash": "d11aec8343b3e1a68e693f75f520dfa5"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/badge/index.ts": {
+    "mtime": 1782829092.316138,
+    "ast_hash": "fe7dff095705e85deca7949ee3b4a476",
+    "semantic_hash": "fe7dff095705e85deca7949ee3b4a476"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/button/button.svelte": {
+    "mtime": 1782829092.3162541,
+    "ast_hash": "e1f0a7331bdcdcf31ec518ba829324b6",
+    "semantic_hash": "e1f0a7331bdcdcf31ec518ba829324b6"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/button/index.ts": {
+    "mtime": 1782829092.3163202,
+    "ast_hash": "59143d39d776902c8d62e3731c32cf63",
+    "semantic_hash": "59143d39d776902c8d62e3731c32cf63"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/card/card-action.svelte": {
+    "mtime": 1782829092.3164291,
+    "ast_hash": "b24dfacff48b906d020ef7f16f91c20b",
+    "semantic_hash": "b24dfacff48b906d020ef7f16f91c20b"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/card/card-content.svelte": {
+    "mtime": 1782829092.316496,
+    "ast_hash": "a96908bd2d3e8adb06fcf4a36507d507",
+    "semantic_hash": "a96908bd2d3e8adb06fcf4a36507d507"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/card/card-description.svelte": {
+    "mtime": 1782829092.316565,
+    "ast_hash": "0120729ce21f65d12680bfdc6b0ae3a4",
+    "semantic_hash": "0120729ce21f65d12680bfdc6b0ae3a4"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/card/card-footer.svelte": {
+    "mtime": 1782829092.316638,
+    "ast_hash": "898f4e5cf99838efa67e9942e7c6cb8f",
+    "semantic_hash": "898f4e5cf99838efa67e9942e7c6cb8f"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/card/card-header.svelte": {
+    "mtime": 1782829092.3167005,
+    "ast_hash": "3ac594dfe8feec41fd37c1ba338427c1",
+    "semantic_hash": "3ac594dfe8feec41fd37c1ba338427c1"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/card/card-title.svelte": {
+    "mtime": 1782829092.3167644,
+    "ast_hash": "a5ff2338d741eb4b3c2ef6a90db12920",
+    "semantic_hash": "a5ff2338d741eb4b3c2ef6a90db12920"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/card/card.svelte": {
+    "mtime": 1782829092.3168318,
+    "ast_hash": "4c9a5e0ba6596f19fe20e398e80775da",
+    "semantic_hash": "4c9a5e0ba6596f19fe20e398e80775da"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/card/index.ts": {
+    "mtime": 1782829092.316896,
+    "ast_hash": "a303302a4d9e73b05695720f01775947",
+    "semantic_hash": "a303302a4d9e73b05695720f01775947"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/confirm-delete-dialog/confirm-delete-dialog.svelte": {
+    "mtime": 1782842818.596735,
+    "ast_hash": "ca86d07e73eb5982a35fdb6879e119f3",
+    "semantic_hash": "ca86d07e73eb5982a35fdb6879e119f3"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/confirm-delete-dialog/index.ts": {
+    "mtime": 1782842818.5968287,
+    "ast_hash": "dec07923cfc74dabf9f1582292cd96dc",
+    "semantic_hash": "dec07923cfc74dabf9f1582292cd96dc"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/dropdown-menu/dropdown-menu-checkbox-group.svelte": {
+    "mtime": 1782842818.5969946,
+    "ast_hash": "d68a73b28683910747c9b7b18b223b1a",
+    "semantic_hash": "d68a73b28683910747c9b7b18b223b1a"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/dropdown-menu/dropdown-menu-checkbox-item.svelte": {
+    "mtime": 1782842818.5970914,
+    "ast_hash": "3a27690bb68f3cb4c6193d131c5bb0fd",
+    "semantic_hash": "3a27690bb68f3cb4c6193d131c5bb0fd"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/dropdown-menu/dropdown-menu-content.svelte": {
+    "mtime": 1782842818.5971918,
+    "ast_hash": "20633726b93f93d939c7698a28f0dcdc",
+    "semantic_hash": "20633726b93f93d939c7698a28f0dcdc"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/dropdown-menu/dropdown-menu-group-heading.svelte": {
+    "mtime": 1782842818.5972886,
+    "ast_hash": "0bc3e338460216f977c04d4d1d57ba4e",
+    "semantic_hash": "0bc3e338460216f977c04d4d1d57ba4e"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/dropdown-menu/dropdown-menu-group.svelte": {
+    "mtime": 1782842818.5973756,
+    "ast_hash": "f2403c751816ba9a1274619ec68321a3",
+    "semantic_hash": "f2403c751816ba9a1274619ec68321a3"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/dropdown-menu/dropdown-menu-item.svelte": {
+    "mtime": 1782842818.5974903,
+    "ast_hash": "20c5d6b19cc5d3051959ee14321b6651",
+    "semantic_hash": "20c5d6b19cc5d3051959ee14321b6651"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/dropdown-menu/dropdown-menu-label.svelte": {
+    "mtime": 1782842818.5975907,
+    "ast_hash": "5a13b6b7dc2995543e5d67179b4ee62c",
+    "semantic_hash": "5a13b6b7dc2995543e5d67179b4ee62c"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/dropdown-menu/dropdown-menu-portal.svelte": {
+    "mtime": 1782842818.5977013,
+    "ast_hash": "ec2488b6a321270803ecb8662c3f79ca",
+    "semantic_hash": "ec2488b6a321270803ecb8662c3f79ca"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/dropdown-menu/dropdown-menu-radio-group.svelte": {
+    "mtime": 1782842818.5978372,
+    "ast_hash": "72f41cf60e2a353b355a875c8d8aa8c9",
+    "semantic_hash": "72f41cf60e2a353b355a875c8d8aa8c9"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/dropdown-menu/dropdown-menu-radio-item.svelte": {
+    "mtime": 1782842818.5979857,
+    "ast_hash": "cd0d0bd613a069f27bbfd9ab62b2c58c",
+    "semantic_hash": "cd0d0bd613a069f27bbfd9ab62b2c58c"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/dropdown-menu/dropdown-menu-separator.svelte": {
+    "mtime": 1782842818.5980744,
+    "ast_hash": "b20c7f37af7d983ab44f18fa7bac69a9",
+    "semantic_hash": "b20c7f37af7d983ab44f18fa7bac69a9"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/dropdown-menu/dropdown-menu-shortcut.svelte": {
+    "mtime": 1782842818.5981734,
+    "ast_hash": "0e0c3da854d6a21b8b73942be8aa961e",
+    "semantic_hash": "0e0c3da854d6a21b8b73942be8aa961e"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/dropdown-menu/dropdown-menu-sub-content.svelte": {
+    "mtime": 1782842818.5982676,
+    "ast_hash": "3296a0cfd133921620d3f01e5a845db9",
+    "semantic_hash": "3296a0cfd133921620d3f01e5a845db9"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/dropdown-menu/dropdown-menu-sub-trigger.svelte": {
+    "mtime": 1782842818.5983703,
+    "ast_hash": "5e86ec94c05655dfba69e3055d7a77b9",
+    "semantic_hash": "5e86ec94c05655dfba69e3055d7a77b9"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/dropdown-menu/dropdown-menu-sub.svelte": {
+    "mtime": 1782842818.5984669,
+    "ast_hash": "0e221b768ccd6dcd8ac18690851e70e2",
+    "semantic_hash": "0e221b768ccd6dcd8ac18690851e70e2"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/dropdown-menu/dropdown-menu-trigger.svelte": {
+    "mtime": 1782842818.5985637,
+    "ast_hash": "8a6eb53b8bddc9ef4bd5af6b627639cb",
+    "semantic_hash": "8a6eb53b8bddc9ef4bd5af6b627639cb"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/dropdown-menu/dropdown-menu.svelte": {
+    "mtime": 1782842818.5986576,
+    "ast_hash": "efb7008936c0d4d8a76c41a1947597f1",
+    "semantic_hash": "efb7008936c0d4d8a76c41a1947597f1"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/dropdown-menu/index.ts": {
+    "mtime": 1782842818.5987518,
+    "ast_hash": "a80b7e74400afce699ddfa22498a9817",
+    "semantic_hash": "a80b7e74400afce699ddfa22498a9817"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/input/index.ts": {
+    "mtime": 1782842818.598905,
+    "ast_hash": "ba7a581e74e84348490af625602bb9f5",
+    "semantic_hash": "ba7a581e74e84348490af625602bb9f5"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/input/input.svelte": {
+    "mtime": 1782842818.5990028,
+    "ast_hash": "c3c8ba9106828d194ec472c6a8e4d7c1",
+    "semantic_hash": "c3c8ba9106828d194ec472c6a8e4d7c1"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/separator/index.ts": {
+    "mtime": 1782829092.3170037,
+    "ast_hash": "d7c3fca4cfab4a73aee220b902cd8861",
+    "semantic_hash": "d7c3fca4cfab4a73aee220b902cd8861"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/separator/separator.svelte": {
+    "mtime": 1782829092.317069,
+    "ast_hash": "4c4886e44f1a38574832816a413bbc79",
+    "semantic_hash": "4c4886e44f1a38574832816a413bbc79"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sheet/index.ts": {
+    "mtime": 1782842818.599153,
+    "ast_hash": "8032331721666d89f26c3f618c2d1a1a",
+    "semantic_hash": "8032331721666d89f26c3f618c2d1a1a"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sheet/sheet-close.svelte": {
+    "mtime": 1782842818.5992494,
+    "ast_hash": "86e444bdcb221da6c3113c5aecdc6a54",
+    "semantic_hash": "86e444bdcb221da6c3113c5aecdc6a54"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sheet/sheet-content.svelte": {
+    "mtime": 1782842818.5993328,
+    "ast_hash": "f4ba0b3abee6f1ffedbb2901e1869bf7",
+    "semantic_hash": "f4ba0b3abee6f1ffedbb2901e1869bf7"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sheet/sheet-description.svelte": {
+    "mtime": 1782842818.599432,
+    "ast_hash": "e22f6b717031e38bcf0b8f06865c7b75",
+    "semantic_hash": "e22f6b717031e38bcf0b8f06865c7b75"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sheet/sheet-footer.svelte": {
+    "mtime": 1782842818.5995274,
+    "ast_hash": "ef5d060d9e384fce5a081cd00d70f99f",
+    "semantic_hash": "ef5d060d9e384fce5a081cd00d70f99f"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sheet/sheet-header.svelte": {
+    "mtime": 1782842818.5996256,
+    "ast_hash": "6e9eebaf22e6375cc0c9b650019be178",
+    "semantic_hash": "6e9eebaf22e6375cc0c9b650019be178"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sheet/sheet-overlay.svelte": {
+    "mtime": 1782842818.5997176,
+    "ast_hash": "e73c6724d3fa337b86322aeda3e89a3f",
+    "semantic_hash": "e73c6724d3fa337b86322aeda3e89a3f"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sheet/sheet-portal.svelte": {
+    "mtime": 1782842818.5998118,
+    "ast_hash": "6a3933b275fa2d31022b03409c3178f3",
+    "semantic_hash": "6a3933b275fa2d31022b03409c3178f3"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sheet/sheet-title.svelte": {
+    "mtime": 1782842818.5999079,
+    "ast_hash": "fb4756fd3dca95f80c6fc65483df0a32",
+    "semantic_hash": "fb4756fd3dca95f80c6fc65483df0a32"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sheet/sheet-trigger.svelte": {
+    "mtime": 1782842818.6000068,
+    "ast_hash": "b52c920d6d956324501c87a5ffd683e3",
+    "semantic_hash": "b52c920d6d956324501c87a5ffd683e3"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sheet/sheet.svelte": {
+    "mtime": 1782842818.6000938,
+    "ast_hash": "a2f461e3f676fc2163fafafb310638e9",
+    "semantic_hash": "a2f461e3f676fc2163fafafb310638e9"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/constants.ts": {
+    "mtime": 1782842818.6002696,
+    "ast_hash": "1d8c430cae57758306d7bde4e47dbe56",
+    "semantic_hash": "1d8c430cae57758306d7bde4e47dbe56"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/context.svelte.ts": {
+    "mtime": 1782842818.6003716,
+    "ast_hash": "56c2c5f199a8069a1200667ec4f54285",
+    "semantic_hash": "56c2c5f199a8069a1200667ec4f54285"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/index.ts": {
+    "mtime": 1782842818.6004627,
+    "ast_hash": "8ddf2ffe8e07adc8b69761787cdc4c15",
+    "semantic_hash": "8ddf2ffe8e07adc8b69761787cdc4c15"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar-content.svelte": {
+    "mtime": 1782842818.6005588,
+    "ast_hash": "223a3750e61db939c3feefb3aa4c537c",
+    "semantic_hash": "223a3750e61db939c3feefb3aa4c537c"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar-footer.svelte": {
+    "mtime": 1782842818.6006513,
+    "ast_hash": "061898cbcfed7d21ecd51e563b0aceef",
+    "semantic_hash": "061898cbcfed7d21ecd51e563b0aceef"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar-group-action.svelte": {
+    "mtime": 1782842818.600763,
+    "ast_hash": "72bf7b5469e40cef32da92fd435466f2",
+    "semantic_hash": "72bf7b5469e40cef32da92fd435466f2"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar-group-content.svelte": {
+    "mtime": 1782842818.6008575,
+    "ast_hash": "a7164fcb1ba43d73860a3d31b44fe13c",
+    "semantic_hash": "a7164fcb1ba43d73860a3d31b44fe13c"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar-group-label.svelte": {
+    "mtime": 1782842818.600953,
+    "ast_hash": "dd3a5ba61d308eccee4f887986069992",
+    "semantic_hash": "dd3a5ba61d308eccee4f887986069992"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar-group.svelte": {
+    "mtime": 1782842818.6010594,
+    "ast_hash": "6fef8417a4b8df7310d4f345c905b447",
+    "semantic_hash": "6fef8417a4b8df7310d4f345c905b447"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar-header.svelte": {
+    "mtime": 1782842818.601151,
+    "ast_hash": "0db264f38660e8991f9cae5c232e9189",
+    "semantic_hash": "0db264f38660e8991f9cae5c232e9189"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar-input.svelte": {
+    "mtime": 1782842818.6012502,
+    "ast_hash": "9093b630bc99bcfb4f7542969e378f06",
+    "semantic_hash": "9093b630bc99bcfb4f7542969e378f06"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar-inset.svelte": {
+    "mtime": 1782842818.6013427,
+    "ast_hash": "210223adc79f577d71b1e87d0d1c1683",
+    "semantic_hash": "210223adc79f577d71b1e87d0d1c1683"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar-menu-action.svelte": {
+    "mtime": 1782842818.6014247,
+    "ast_hash": "8df401fb29b92689e2e98d7ef022d4c6",
+    "semantic_hash": "8df401fb29b92689e2e98d7ef022d4c6"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar-menu-badge.svelte": {
+    "mtime": 1782842818.6015222,
+    "ast_hash": "ec3784e441efacc18b3221aaf468930e",
+    "semantic_hash": "ec3784e441efacc18b3221aaf468930e"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar-menu-button.svelte": {
+    "mtime": 1782842818.6016257,
+    "ast_hash": "c6a7b5efebe39f94e74d632617a3b34b",
+    "semantic_hash": "c6a7b5efebe39f94e74d632617a3b34b"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar-menu-item.svelte": {
+    "mtime": 1782842818.6017337,
+    "ast_hash": "2f77ad4e5daa6e01e17c1a26502f2579",
+    "semantic_hash": "2f77ad4e5daa6e01e17c1a26502f2579"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar-menu-skeleton.svelte": {
+    "mtime": 1782842818.601827,
+    "ast_hash": "7c539a21422289c473db2f70a032fd9d",
+    "semantic_hash": "7c539a21422289c473db2f70a032fd9d"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar-menu-sub-button.svelte": {
+    "mtime": 1782842818.6019318,
+    "ast_hash": "5a0298e434fb8ec8e9fdde0045024a2a",
+    "semantic_hash": "5a0298e434fb8ec8e9fdde0045024a2a"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar-menu-sub-item.svelte": {
+    "mtime": 1782842818.602025,
+    "ast_hash": "398bc4eba44bb31e1626926f35d82a18",
+    "semantic_hash": "398bc4eba44bb31e1626926f35d82a18"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar-menu-sub.svelte": {
+    "mtime": 1782842818.602116,
+    "ast_hash": "8d5db4dc609b3e2db004e3740b147631",
+    "semantic_hash": "8d5db4dc609b3e2db004e3740b147631"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar-menu.svelte": {
+    "mtime": 1782842818.6022117,
+    "ast_hash": "a4e0f16765549adcb11efc75b1b78c76",
+    "semantic_hash": "a4e0f16765549adcb11efc75b1b78c76"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar-provider.svelte": {
+    "mtime": 1782842818.6023118,
+    "ast_hash": "6604fa9b7e1af5a6d6cab7a33e1d0b3d",
+    "semantic_hash": "6604fa9b7e1af5a6d6cab7a33e1d0b3d"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar-rail.svelte": {
+    "mtime": 1782842818.6024053,
+    "ast_hash": "fe38aca6d5eb4bbdf3030ac9f1d7a3e9",
+    "semantic_hash": "fe38aca6d5eb4bbdf3030ac9f1d7a3e9"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar-separator.svelte": {
+    "mtime": 1782842818.6025043,
+    "ast_hash": "f6463dbef61f7cc8200259e984196817",
+    "semantic_hash": "f6463dbef61f7cc8200259e984196817"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar-trigger.svelte": {
+    "mtime": 1782842818.602612,
+    "ast_hash": "9ef4a0da5b61019b3becf79b97592b65",
+    "semantic_hash": "9ef4a0da5b61019b3becf79b97592b65"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sidebar/sidebar.svelte": {
+    "mtime": 1782842818.602709,
+    "ast_hash": "47f201351dd174e4c7216757d68512f7",
+    "semantic_hash": "47f201351dd174e4c7216757d68512f7"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/skeleton/index.ts": {
+    "mtime": 1782842818.6028717,
+    "ast_hash": "1af3f040f68dff4a56175d8f67cf4e13",
+    "semantic_hash": "1af3f040f68dff4a56175d8f67cf4e13"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/skeleton/skeleton.svelte": {
+    "mtime": 1782842818.6029627,
+    "ast_hash": "238f6c2e3b1c02a1f9f84532f98be98b",
+    "semantic_hash": "238f6c2e3b1c02a1f9f84532f98be98b"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sonner/index.ts": {
+    "mtime": 1782842818.603111,
+    "ast_hash": "4058a9fb83f46b78ea2fedb2dd1d7a31",
+    "semantic_hash": "4058a9fb83f46b78ea2fedb2dd1d7a31"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/sonner/sonner.svelte": {
+    "mtime": 1782842818.6031978,
+    "ast_hash": "102220d5bf1d866e5b17135b1f0f46cb",
+    "semantic_hash": "102220d5bf1d866e5b17135b1f0f46cb"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/spinner/index.ts": {
+    "mtime": 1782842818.6033301,
+    "ast_hash": "1b63265b737f2a60cee6f1cf66193db0",
+    "semantic_hash": "1b63265b737f2a60cee6f1cf66193db0"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/spinner/spinner.svelte": {
+    "mtime": 1782842818.6034217,
+    "ast_hash": "d97790f33bb10a2e9aba0b5abe066368",
+    "semantic_hash": "d97790f33bb10a2e9aba0b5abe066368"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/tooltip/index.ts": {
+    "mtime": 1782842818.6035812,
+    "ast_hash": "0cc663afea300a3da501974569ec5f0d",
+    "semantic_hash": "0cc663afea300a3da501974569ec5f0d"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/tooltip/tooltip-content.svelte": {
+    "mtime": 1782842818.6036742,
+    "ast_hash": "f3c315d4df5b7ce4eaea57f946bfb24e",
+    "semantic_hash": "f3c315d4df5b7ce4eaea57f946bfb24e"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/tooltip/tooltip-portal.svelte": {
+    "mtime": 1782842818.603755,
+    "ast_hash": "39d0129988c6e6665c38a5dc2033622e",
+    "semantic_hash": "39d0129988c6e6665c38a5dc2033622e"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/tooltip/tooltip-provider.svelte": {
+    "mtime": 1782842818.6038432,
+    "ast_hash": "1554e236658af62272f3193574c00637",
+    "semantic_hash": "1554e236658af62272f3193574c00637"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/tooltip/tooltip-trigger.svelte": {
+    "mtime": 1782842818.6039243,
+    "ast_hash": "2da3034e8ca921e35b4427042f187b73",
+    "semantic_hash": "2da3034e8ca921e35b4427042f187b73"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/components/ui/tooltip/tooltip.svelte": {
+    "mtime": 1782842818.6040556,
+    "ast_hash": "a7377254e584390fff2552bff7dfb3ca",
+    "semantic_hash": "a7377254e584390fff2552bff7dfb3ca"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/hooks/is-mobile.svelte.ts": {
+    "mtime": 1782842818.604437,
+    "ast_hash": "92682ae86064979913c33250e4664890",
+    "semantic_hash": "92682ae86064979913c33250e4664890"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/paraglide/messages.d.ts": {
+    "mtime": 1782830385.9430842,
+    "ast_hash": "ad6a988fd9ae24a008fe9eedf0934c5f",
+    "semantic_hash": "ad6a988fd9ae24a008fe9eedf0934c5f"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/paraglide/messages.js": {
+    "mtime": 1782842854.0660427,
+    "ast_hash": "da92f92d210184e1f88420625b41a1dd",
+    "semantic_hash": "da92f92d210184e1f88420625b41a1dd"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/paraglide/messages/_index.d.ts": {
+    "mtime": 1782830385.9401445,
+    "ast_hash": "ec0b254149508e5b1245ad72da59cf0b",
+    "semantic_hash": "ec0b254149508e5b1245ad72da59cf0b"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/paraglide/messages/_index.js": {
+    "mtime": 1782842854.0652943,
+    "ast_hash": "514ec27de0d57354e6b60c10d9615c2e",
+    "semantic_hash": "514ec27de0d57354e6b60c10d9615c2e"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/paraglide/messages/en.d.ts": {
+    "mtime": 1782830385.9401135,
+    "ast_hash": "8b1f752a13c3fe1e5d9d783ae7c4f7cc",
+    "semantic_hash": "8b1f752a13c3fe1e5d9d783ae7c4f7cc"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/paraglide/messages/en.js": {
+    "mtime": 1782842854.0655115,
+    "ast_hash": "8c97bfa1213f7b4a73437bc92bdb6755",
+    "semantic_hash": "8c97bfa1213f7b4a73437bc92bdb6755"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/paraglide/messages/ro.d.ts": {
+    "mtime": 1782830385.9401233,
+    "ast_hash": "8b1f752a13c3fe1e5d9d783ae7c4f7cc",
+    "semantic_hash": "8b1f752a13c3fe1e5d9d783ae7c4f7cc"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/paraglide/messages/ro.js": {
+    "mtime": 1782842854.0657578,
+    "ast_hash": "1524a57514d4bffc94f26cc4534ea80f",
+    "semantic_hash": "1524a57514d4bffc94f26cc4534ea80f"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/paraglide/registry.d.ts": {
+    "mtime": 1782830385.9401038,
+    "ast_hash": "e6b9d9dcf432c72019a4fe62ecfd16d2",
+    "semantic_hash": "e6b9d9dcf432c72019a4fe62ecfd16d2"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/paraglide/registry.js": {
+    "mtime": 1782842854.0665116,
+    "ast_hash": "2238d7b65dffb768313a4c2f5f42274e",
+    "semantic_hash": "2238d7b65dffb768313a4c2f5f42274e"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/paraglide/runtime.d.ts": {
+    "mtime": 1782830385.9400847,
+    "ast_hash": "193bd32239c0af8b4b8e91dbff93ba49",
+    "semantic_hash": "193bd32239c0af8b4b8e91dbff93ba49"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/paraglide/runtime.js": {
+    "mtime": 1782830385.9400084,
+    "ast_hash": "85bed2d32025e768fe270fd5fbb9757c",
+    "semantic_hash": "85bed2d32025e768fe270fd5fbb9757c"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/paraglide/server.d.ts": {
+    "mtime": 1782830385.9401217,
+    "ast_hash": "86772a0c3f86751c084aa1bfcb04984b",
+    "semantic_hash": "86772a0c3f86751c084aa1bfcb04984b"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/paraglide/server.js": {
+    "mtime": 1782842854.0675225,
+    "ast_hash": "9e830e6377349f9758a1546ffe6d1948",
+    "semantic_hash": "9e830e6377349f9758a1546ffe6d1948"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/server/auth.test.ts": {
+    "mtime": 1782829092.3186324,
+    "ast_hash": "6b4172f20e61311996eefc6872af38a0",
+    "semantic_hash": "6b4172f20e61311996eefc6872af38a0"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/server/auth.ts": {
+    "mtime": 1782829092.3187745,
+    "ast_hash": "be5e9478ca3b7371833b513c9de720ba",
+    "semantic_hash": "be5e9478ca3b7371833b513c9de720ba"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/server/internal-api.ts": {
+    "mtime": 1782829092.3188472,
+    "ast_hash": "03d6a64fbe1cf4a39807d1eab1b0810e",
+    "semantic_hash": "03d6a64fbe1cf4a39807d1eab1b0810e"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/server/mail.ts": {
+    "mtime": 1782829092.318943,
+    "ast_hash": "6c61a88c80c46ecfbb52fc0338fc8c1d",
+    "semantic_hash": "6c61a88c80c46ecfbb52fc0338fc8c1d"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/server/organization-units.test.ts": {
+    "mtime": 1782831321.5505564,
+    "ast_hash": "452cff4c4784706a02f1cb022c57b485",
+    "semantic_hash": "452cff4c4784706a02f1cb022c57b485"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/server/organization-units.ts": {
+    "mtime": 1782831321.5507398,
+    "ast_hash": "b77b8cd2636811dbc128e0685b29e52d",
+    "semantic_hash": "b77b8cd2636811dbc128e0685b29e52d"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/server/public-errors.ts": {
+    "mtime": 1782829092.3190186,
+    "ast_hash": "7f70ad8e9a51993f39b25a13f815f0e3",
+    "semantic_hash": "7f70ad8e9a51993f39b25a13f815f0e3"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/server/syncra-api.test.ts": {
+    "mtime": 1782829092.3190973,
+    "ast_hash": "9f765854b5b5ffac312093099eb4d40a",
+    "semantic_hash": "9f765854b5b5ffac312093099eb4d40a"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/server/syncra-api.ts": {
+    "mtime": 1782829092.3191736,
+    "ast_hash": "2f1d38aabc9726c543e327198715cadd",
+    "semantic_hash": "2f1d38aabc9726c543e327198715cadd"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/utils.ts": {
+    "mtime": 1782829092.3192456,
+    "ast_hash": "a7f98512fb5e09a5dfa971570c0e46e2",
+    "semantic_hash": "a7f98512fb5e09a5dfa971570c0e46e2"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/+layout.svelte": {
+    "mtime": 1782842818.6048353,
+    "ast_hash": "3852209cf74f3f8fab92cb5ee3b3e0c3",
+    "semantic_hash": "3852209cf74f3f8fab92cb5ee3b3e0c3"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/+page.server.ts": {
+    "mtime": 1782829092.3194225,
+    "ast_hash": "00aced3cee05586bf71983be6c124925",
+    "semantic_hash": "00aced3cee05586bf71983be6c124925"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/+page.svelte": {
+    "mtime": 1782829092.3195002,
+    "ast_hash": "a331cd233854f54e394b879e0ff74709",
+    "semantic_hash": "a331cd233854f54e394b879e0ff74709"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/api/auth/callback/github/+server.ts": {
+    "mtime": 1782829092.3197505,
+    "ast_hash": "191e0b94c2717ee8196a8940dd03fc1c",
+    "semantic_hash": "191e0b94c2717ee8196a8940dd03fc1c"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/api/auth/callback/github/server.test.ts": {
+    "mtime": 1782829092.3198216,
+    "ast_hash": "b7df3f14a7a5cfed54c70dd214f90035",
+    "semantic_hash": "b7df3f14a7a5cfed54c70dd214f90035"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/api/auth/callback/google/+server.ts": {
+    "mtime": 1782829092.3199332,
+    "ast_hash": "7619a748f477727afeb49925a99971dc",
+    "semantic_hash": "7619a748f477727afeb49925a99971dc"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/api/auth/callback/google/server.test.ts": {
+    "mtime": 1782829092.3200128,
+    "ast_hash": "fca234a32dbd3f5b46693bad3ccd611f",
+    "semantic_hash": "fca234a32dbd3f5b46693bad3ccd611f"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/api/auth/github/+server.ts": {
+    "mtime": 1782829092.3201284,
+    "ast_hash": "b470cb42b50e4dc1fcdfe35f8cc503ef",
+    "semantic_hash": "b470cb42b50e4dc1fcdfe35f8cc503ef"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/api/auth/github/server.test.ts": {
+    "mtime": 1782829092.3201954,
+    "ast_hash": "f7ce2af64a79adb80ef604d9a07536be",
+    "semantic_hash": "f7ce2af64a79adb80ef604d9a07536be"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/api/auth/google/+server.ts": {
+    "mtime": 1782829092.3202958,
+    "ast_hash": "2c8dc460b40ef5dcb4baf138532038d7",
+    "semantic_hash": "2c8dc460b40ef5dcb4baf138532038d7"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/api/auth/google/server.test.ts": {
+    "mtime": 1782829092.3203673,
+    "ast_hash": "a1f270316d38b48573e782e251b4d6df",
+    "semantic_hash": "a1f270316d38b48573e782e251b4d6df"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/api/organization-units/+server.ts": {
+    "mtime": 1782842818.605179,
+    "ast_hash": "3389bc0ffca2d5dacb17a980fac74bf8",
+    "semantic_hash": "3389bc0ffca2d5dacb17a980fac74bf8"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/api/organization-units/[id]/+server.ts": {
+    "mtime": 1782842818.605496,
+    "ast_hash": "34fd4ce61ad972c35102e90d17c3ae78",
+    "semantic_hash": "34fd4ce61ad972c35102e90d17c3ae78"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/api/organization-units/[id]/archive/+server.ts": {
+    "mtime": 1782842818.6058207,
+    "ast_hash": "fdf395fcecb4415ab2cf06faf43639d6",
+    "semantic_hash": "fdf395fcecb4415ab2cf06faf43639d6"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/api/organization-units/[id]/parent/+server.ts": {
+    "mtime": 1782842818.6061218,
+    "ast_hash": "7f07975df0acce74f1f7f5abb1dd709e",
+    "semantic_hash": "7f07975df0acce74f1f7f5abb1dd709e"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/api/organization-units/api.server.ts": {
+    "mtime": 1782842818.6063793,
+    "ast_hash": "c7fbdda5d6e01c031cb5a1a56f33c602",
+    "semantic_hash": "c7fbdda5d6e01c031cb5a1a56f33c602"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/api/organization-units/server.test.ts": {
+    "mtime": 1782842818.6066947,
+    "ast_hash": "2b24bc52c90a1d51b6e98e39da943551",
+    "semantic_hash": "2b24bc52c90a1d51b6e98e39da943551"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/api/organization-units/tree/+server.ts": {
+    "mtime": 1782842818.6070485,
+    "ast_hash": "c355f20984d66b28f9f3c52bebd6354d",
+    "semantic_hash": "c355f20984d66b28f9f3c52bebd6354d"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/app/+layout.server.ts": {
+    "mtime": 1782842818.6073759,
+    "ast_hash": "9b3453cd2842cced726f86369b76198f",
+    "semantic_hash": "9b3453cd2842cced726f86369b76198f"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/app/+layout.svelte": {
+    "mtime": 1782842818.6077561,
+    "ast_hash": "8175ba302609e0b6ebaa48be99b58a52",
+    "semantic_hash": "8175ba302609e0b6ebaa48be99b58a52"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/app/+page.server.ts": {
+    "mtime": 1782831321.551509,
+    "ast_hash": "cd35eaf00ac4e2edfb99829a66dbfbef",
+    "semantic_hash": "cd35eaf00ac4e2edfb99829a66dbfbef"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/app/+page.svelte": {
+    "mtime": 1782831321.5516958,
+    "ast_hash": "3ecb11aee19d13b495b9281fde5caaa7",
+    "semantic_hash": "3ecb11aee19d13b495b9281fde5caaa7"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/app/organization-units/+page.server.ts": {
+    "mtime": 1782842818.6081393,
+    "ast_hash": "7aa3899c7dd83b55cc0ae967f3f0be7f",
+    "semantic_hash": "7aa3899c7dd83b55cc0ae967f3f0be7f"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/app/organization-units/+page.svelte": {
+    "mtime": 1782842818.6084874,
+    "ast_hash": "e1f549e7b6ff5b714f9dde45e4613b09",
+    "semantic_hash": "e1f549e7b6ff5b714f9dde45e4613b09"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/app/organization-units/api.test.ts": {
+    "mtime": 1782842818.6088254,
+    "ast_hash": "f94d3019139181804e89a43863b3a9fd",
+    "semantic_hash": "f94d3019139181804e89a43863b3a9fd"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/app/organization-units/api.ts": {
+    "mtime": 1782842818.609108,
+    "ast_hash": "0fe85d82ec74dd290e2819171a17f117",
+    "semantic_hash": "0fe85d82ec74dd290e2819171a17f117"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/app/organization-units/page.server.test.ts": {
+    "mtime": 1782842818.6093957,
+    "ast_hash": "6a9a38a20f7a5739f4ced80d320856dd",
+    "semantic_hash": "6a9a38a20f7a5739f4ced80d320856dd"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/app/organization-units/tree.test.ts": {
+    "mtime": 1782831321.5524137,
+    "ast_hash": "43cfe2fc20c94bfa984b9086b5053861",
+    "semantic_hash": "43cfe2fc20c94bfa984b9086b5053861"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/app/organization-units/tree.ts": {
+    "mtime": 1782842818.609717,
+    "ast_hash": "4ff171dd21067da89778cda6fa883632",
+    "semantic_hash": "4ff171dd21067da89778cda6fa883632"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/app/organization-units/unit-details-panel.svelte": {
+    "mtime": 1782842818.6101043,
+    "ast_hash": "6c40e4ae86f620e389c453f8b51dea07",
+    "semantic_hash": "6c40e4ae86f620e389c453f8b51dea07"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/app/organization-units/unit-tree.svelte": {
+    "mtime": 1782831321.5529714,
+    "ast_hash": "4ab4d503775db6dcd639043963ec4aea",
+    "semantic_hash": "4ab4d503775db6dcd639043963ec4aea"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/layout-source.test.ts": {
+    "mtime": 1782842818.6103406,
+    "ast_hash": "6f29ad7322625f06d1e3761b7db385fb",
+    "semantic_hash": "6f29ad7322625f06d1e3761b7db385fb"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/login/+page.server.ts": {
+    "mtime": 1782829092.3206844,
+    "ast_hash": "1d1b50abd366875b6d9a58539035e426",
+    "semantic_hash": "1d1b50abd366875b6d9a58539035e426"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/login/+page.svelte": {
+    "mtime": 1782829092.3207734,
+    "ast_hash": "1a6b5edc26cf104f6a22367ac5282cd8",
+    "semantic_hash": "1a6b5edc26cf104f6a22367ac5282cd8"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/login/page.server.test.ts": {
+    "mtime": 1782829092.3208442,
+    "ast_hash": "7e30877a1936d13a8ccbee98992ec63d",
+    "semantic_hash": "7e30877a1936d13a8ccbee98992ec63d"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/logout/+server.ts": {
+    "mtime": 1782829092.3209538,
+    "ast_hash": "acf612b48e699475352dd7fced5cdd50",
+    "semantic_hash": "acf612b48e699475352dd7fced5cdd50"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/page.server.test.ts": {
+    "mtime": 1782829092.3210237,
+    "ast_hash": "c415c8ba1d2cdca064a1c252a8e6a373",
+    "semantic_hash": "c415c8ba1d2cdca064a1c252a8e6a373"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/recover-password/+page.server.ts": {
+    "mtime": 1782829092.321151,
+    "ast_hash": "812a8b337e150857adbd8dc34b68ba93",
+    "semantic_hash": "812a8b337e150857adbd8dc34b68ba93"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/recover-password/+page.svelte": {
+    "mtime": 1782829092.3212295,
+    "ast_hash": "ba3bf782031d4313391d7297f4ae0d9c",
+    "semantic_hash": "ba3bf782031d4313391d7297f4ae0d9c"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/recover-password/page.server.test.ts": {
+    "mtime": 1782829092.3212965,
+    "ast_hash": "13fc9327732bb067a3580dcfcd4ac119",
+    "semantic_hash": "13fc9327732bb067a3580dcfcd4ac119"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/signup-confirmation/+page.server.ts": {
+    "mtime": 1782829092.3214185,
+    "ast_hash": "6400088466d064b3f348390dba537273",
+    "semantic_hash": "6400088466d064b3f348390dba537273"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/signup-confirmation/+page.svelte": {
+    "mtime": 1782829092.3214896,
+    "ast_hash": "5137e0a5f5e939ef654a593c4b34e6d7",
+    "semantic_hash": "5137e0a5f5e939ef654a593c4b34e6d7"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/signup-confirmation/page.server.test.ts": {
+    "mtime": 1782829092.321572,
+    "ast_hash": "4b891608b0f26a3e5ad64e4fefeac122",
+    "semantic_hash": "4b891608b0f26a3e5ad64e4fefeac122"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/signup/+page.server.ts": {
+    "mtime": 1782829092.3216884,
+    "ast_hash": "e07b828637582d4628a355a2b4f3f7c6",
+    "semantic_hash": "e07b828637582d4628a355a2b4f3f7c6"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/signup/+page.svelte": {
+    "mtime": 1782829092.3217504,
+    "ast_hash": "2f227fbf8d186d5a3be79a98422f4b0d",
+    "semantic_hash": "2f227fbf8d186d5a3be79a98422f4b0d"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/routes/signup/page.server.test.ts": {
+    "mtime": 1782829092.3218238,
+    "ast_hash": "e93e72db484322b9540cc00dd0138551",
+    "semantic_hash": "e93e72db484322b9540cc00dd0138551"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/svelte.config.js": {
+    "mtime": 1782829092.3219938,
+    "ast_hash": "909dee29a822e3a40ee14a4bc89b1c6c",
+    "semantic_hash": "909dee29a822e3a40ee14a4bc89b1c6c"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/tsconfig.json": {
+    "mtime": 1782829092.322067,
+    "ast_hash": "f3c932bad3567c3063e11c45b945e726",
+    "semantic_hash": "f3c932bad3567c3063e11c45b945e726"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/vite.config.ts": {
+    "mtime": 1782829092.3221323,
+    "ast_hash": "363a79553834007d4c256722ea5bf00d",
+    "semantic_hash": "363a79553834007d4c256722ea5bf00d"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/atlas.hcl": {
+    "mtime": 1782829092.322525,
+    "ast_hash": "7458c9cddf4d252f2e8f8ae4a07804a0",
+    "semantic_hash": "7458c9cddf4d252f2e8f8ae4a07804a0"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/cmd/api/main.go": {
+    "mtime": 1782829092.3226817,
+    "ast_hash": "4ea6daedab369690ceb59733ecf9488f",
+    "semantic_hash": "4ea6daedab369690ceb59733ecf9488f"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/cmd/atlas-loader/main.go": {
+    "mtime": 1782829092.3227925,
+    "ast_hash": "6835098e1c6971b9033f41d76b95a140",
+    "semantic_hash": "6835098e1c6971b9033f41d76b95a140"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/cmd/atlas-loader/main_test.go": {
+    "mtime": 1782829092.3228655,
+    "ast_hash": "63dfb650a11cb160b742d3e269ef5c07",
+    "semantic_hash": "63dfb650a11cb160b742d3e269ef5c07"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/cmd/syncra/main.go": {
+    "mtime": 1782829092.3230069,
+    "ast_hash": "30e243e01cd516ef672fca262188fd96",
+    "semantic_hash": "30e243e01cd516ef672fca262188fd96"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/cmd/syncra/main_test.go": {
+    "mtime": 1782829092.3231668,
+    "ast_hash": "b806e096902cf45e87e7b693ebfba2f9",
+    "semantic_hash": "b806e096902cf45e87e7b693ebfba2f9"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/docs/docs.go": {
+    "mtime": 1782829092.3232832,
+    "ast_hash": "9a3ab36e5703a0c3769d05898d228a3d",
+    "semantic_hash": "9a3ab36e5703a0c3769d05898d228a3d"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/docs/swagger.json": {
+    "mtime": 1782831378.3205535,
+    "ast_hash": "eecbcedc1ed17a978e468c2b9d4214d5",
+    "semantic_hash": "eecbcedc1ed17a978e468c2b9d4214d5"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/go.mod": {
+    "mtime": 1782829092.3235114,
+    "ast_hash": "7335359deaa614beea069c935feffad1",
+    "semantic_hash": "7335359deaa614beea069c935feffad1"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/internal/api/auth_handlers.go": {
+    "mtime": 1782829092.3243108,
+    "ast_hash": "cf639e55f0016b379a2a0739d6c2acaf",
+    "semantic_hash": "cf639e55f0016b379a2a0739d6c2acaf"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/internal/api/auth_handlers_test.go": {
+    "mtime": 1782831321.553816,
+    "ast_hash": "994f590c856640d5f11a86efac78fed4",
+    "semantic_hash": "994f590c856640d5f11a86efac78fed4"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/internal/api/organization_units.go": {
+    "mtime": 1782831321.5540652,
+    "ast_hash": "ebdb0f9284b25a9a5f41b7a5dd202c26",
+    "semantic_hash": "ebdb0f9284b25a9a5f41b7a5dd202c26"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/internal/api/organization_units_test.go": {
+    "mtime": 1782831321.554238,
+    "ast_hash": "687322c11f848c8e542f8d4c58fb6682",
+    "semantic_hash": "687322c11f848c8e542f8d4c58fb6682"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/internal/api/responses.go": {
+    "mtime": 1782829092.324522,
+    "ast_hash": "a576fa893ce34bca161a6766256a3cbd",
+    "semantic_hash": "a576fa893ce34bca161a6766256a3cbd"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/internal/api/router.go": {
+    "mtime": 1782831764.660652,
+    "ast_hash": "83aba98aa901764da49f878744b6ea2e",
+    "semantic_hash": "83aba98aa901764da49f878744b6ea2e"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/internal/api/router_test.go": {
+    "mtime": 1782831836.863043,
+    "ast_hash": "498a36dd5dea6e430791a4605c31c8ea",
+    "semantic_hash": "498a36dd5dea6e430791a4605c31c8ea"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/internal/api/swagger.go": {
+    "mtime": 1782831829.5844147,
+    "ast_hash": "ad63bc9c6b9395987b7d730be68676b9",
+    "semantic_hash": "ad63bc9c6b9395987b7d730be68676b9"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/internal/api/swagger_doc.go": {
+    "mtime": 1782831321.5548003,
+    "ast_hash": "a69328082a6824e04d2dfae07faae9f7",
+    "semantic_hash": "a69328082a6824e04d2dfae07faae9f7"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/internal/api/swagger_doc_test.go": {
+    "mtime": 1782829092.3248153,
+    "ast_hash": "a14944e57b1895293438538204a9031a",
+    "semantic_hash": "a14944e57b1895293438538204a9031a"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/internal/app/api.go": {
+    "mtime": 1782829092.3249507,
+    "ast_hash": "d59b6a5cfd61fbc8f9f4a571a6b8338a",
+    "semantic_hash": "d59b6a5cfd61fbc8f9f4a571a6b8338a"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/internal/auth/user.go": {
+    "mtime": 1782829092.3253815,
+    "ast_hash": "2b263eeb74f48ed895ee949ca74794bc",
+    "semantic_hash": "2b263eeb74f48ed895ee949ca74794bc"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/internal/auth/user_models_test.go": {
+    "mtime": 1782829092.3254523,
+    "ast_hash": "68fdff4d85c4a2a0668251211fb3af8f",
+    "semantic_hash": "68fdff4d85c4a2a0668251211fb3af8f"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/internal/config/config.go": {
+    "mtime": 1782829092.3255913,
+    "ast_hash": "0b7c2be590df8557a15a677a5a9b4e0c",
+    "semantic_hash": "0b7c2be590df8557a15a677a5a9b4e0c"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/internal/config/config_test.go": {
+    "mtime": 1782829092.325671,
+    "ast_hash": "c7552766eb119289f814e4a5a242f87d",
+    "semantic_hash": "c7552766eb119289f814e4a5a242f87d"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/internal/database/database.go": {
+    "mtime": 1782831321.5549922,
+    "ast_hash": "7dd0708082bb3412186ee94f25a1de83",
+    "semantic_hash": "7dd0708082bb3412186ee94f25a1de83"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/internal/database/database_test.go": {
+    "mtime": 1782831321.555192,
+    "ast_hash": "b228e657b1ae9f8a6ecb864797e91f36",
+    "semantic_hash": "b228e657b1ae9f8a6ecb864797e91f36"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/internal/dbschema/schema.go": {
+    "mtime": 1782829092.3259695,
+    "ast_hash": "9fece23572397dedcda182f351716e98",
+    "semantic_hash": "9fece23572397dedcda182f351716e98"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/internal/logging/logger.go": {
+    "mtime": 1782829092.326082,
+    "ast_hash": "3e543413a6c4f566cf352b0d34cf00cc",
+    "semantic_hash": "3e543413a6c4f566cf352b0d34cf00cc"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/internal/orgunits/tree.go": {
+    "mtime": 1782831321.555393,
+    "ast_hash": "658d1383f0787955c3118a8a26631a26",
+    "semantic_hash": "658d1383f0787955c3118a8a26631a26"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/internal/orgunits/tree_test.go": {
+    "mtime": 1782831321.5555847,
+    "ast_hash": "bc4d64dcff510cccd6d7cfd8dd470801",
+    "semantic_hash": "bc4d64dcff510cccd6d7cfd8dd470801"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/internal/orgunits/unit.go": {
+    "mtime": 1782831321.5557332,
+    "ast_hash": "149825ef00545c539f583ee1900a0fe2",
+    "semantic_hash": "149825ef00545c539f583ee1900a0fe2"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/migrations/20260630090000_add_auth_tables.sql": {
+    "mtime": 1782829092.326267,
+    "ast_hash": "6c7639db0ad70ede8320c6ad428615bf",
+    "semantic_hash": "6c7639db0ad70ede8320c6ad428615bf"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/migrations/20260630120000_add_organization_units.sql": {
+    "mtime": 1782831321.555887,
+    "ast_hash": "6ee9b4b6bf5528ec2cfb0c244d35aafb",
+    "semantic_hash": "6ee9b4b6bf5528ec2cfb0c244d35aafb"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/AGENT.md": {
+    "mtime": 1782829092.314292,
+    "ast_hash": "d2c117be3d5aa2fea9a3e23bba63a949",
+    "semantic_hash": "d2c117be3d5aa2fea9a3e23bba63a949"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/README.md": {
+    "mtime": 1782829092.3143604,
+    "ast_hash": "d83d4130bc785cc0cb1d6cfa51e8a0a4",
+    "semantic_hash": "d83d4130bc785cc0cb1d6cfa51e8a0a4"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/pnpm-workspace.yaml": {
+    "mtime": 1782829092.3151128,
+    "ast_hash": "cb99c58fa07c0f29efd37c5b15b56380",
+    "semantic_hash": "cb99c58fa07c0f29efd37c5b15b56380"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/project.inlang/README.md": {
+    "mtime": 1782830385.586788,
+    "ast_hash": "7b5c87cb9564717735fb9f4a95c16f02",
+    "semantic_hash": "7b5c87cb9564717735fb9f4a95c16f02"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/app.html": {
+    "mtime": 1782829092.3156679,
+    "ast_hash": "fdc4ee78aca1bc648fe626f6fb7290a7",
+    "semantic_hash": "fdc4ee78aca1bc648fe626f6fb7290a7"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/src/lib/paraglide/README.md": {
+    "mtime": 1782830385.940065,
+    "ast_hash": "baf1945e38b3dec89a2ba2f2b6ace088",
+    "semantic_hash": "baf1945e38b3dec89a2ba2f2b6ace088"
+  },
+  "/Users/radu/Projects/syncra-dms/frontend/static/robots.txt": {
+    "mtime": 1782829092.3219285,
+    "ast_hash": "b6216d61c03e6ce0c9aea6ca7808f7ca",
+    "semantic_hash": "b6216d61c03e6ce0c9aea6ca7808f7ca"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/AGENT.md": {
+    "mtime": 1782829092.3223834,
+    "ast_hash": "6c05a69af52e16d71b94e9b443418649",
+    "semantic_hash": "6c05a69af52e16d71b94e9b443418649"
+  },
+  "/Users/radu/Projects/syncra-dms/go-server/README.md": {
+    "mtime": 1782831853.3025758,
+    "ast_hash": "4d8814165740384f5415d1ac9e05aaa7",
+    "semantic_hash": "4d8814165740384f5415d1ac9e05aaa7"
+  },
+  "/Users/radu/Projects/syncra-dms/docs/superpowers/plans/2026-06-30-organization-units.md": {
+    "mtime": 1782831321.549301,
+    "ast_hash": "2f8f93e2315af4f5a77c811438b0b191",
+    "semantic_hash": "2f8f93e2315af4f5a77c811438b0b191"
+  },
+  "/Users/radu/Projects/syncra-dms/docs/superpowers/specs/2026-06-30-organization-units-design.md": {
+    "mtime": 1782829092.1309044,
+    "ast_hash": "917b70e6317523b6d52cdb2c898a5de0",
+    "semantic_hash": "917b70e6317523b6d52cdb2c898a5de0"
+  },
+  "/Users/radu/Projects/syncra-dms/docs/superpowers/specs/2026-06-30-syncra-dms-work-environment-design.md": {
+    "mtime": 1782829092.131037,
+    "ast_hash": "719f5c2b9eaeac0e80754005ecbdac49",
+    "semantic_hash": "719f5c2b9eaeac0e80754005ecbdac49"
+  }
+}

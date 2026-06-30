@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>syncra-dms — graphify tree viewer</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f9f9f9;
+      color: #333;
+    }
+    h1 {
+      margin: 20px 0 0 24px;
+      font-size: 2.2rem;
+      font-weight: bold;
+      color: #1e3a56;
+    }
+    .controls {
+      margin: 20px 0 15px 24px;
+    }
+    button {
+      margin-right: 10px;
+      padding: 8px 18px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.2s ease-in-out;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    button:active {
+      background: #004085;
+    }
+    #tree-container {
+      width: calc(100vw - 48px); /* Adjust for body margin/padding */
+      height: 85vh;
+      overflow: auto;
+      border-radius: 8px;
+      background: #fff;
+      margin-left: 24px;
+      margin-right: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      border: 1px solid #ddd;
+    }
+    svg {
+      background: #fff;
+      border-radius: 8px;
+      display: block; /* Important for D3 */
+    }
+    .node circle {
+      stroke-width: 2.5px;
+    }
+    .node text { /* Base style for the <text> container */
+      font: 13px 'Segoe UI', sans-serif;
+      paint-order: stroke fill; /* Ensures text is readable over lines */
+      stroke: #fff; /* White halo */
+      stroke-width: 3px; /* Halo thickness */
+      stroke-linejoin: round;
+      stroke-opacity: 0.85; /* Halo opacity */
+    }
+    .link {
+      fill: none;
+      stroke-opacity: 0.7;
+      stroke-width: 2px;
+    }
+  </style>
+</head>
+<body>
+  <h1>syncra-dms — Knowledge Graph</h1>
+  <div class="controls">
+    <button onclick="expandAll()">Expand All</button>
+    <button onclick="collapseAll()">Collapse All</button>
+    <button onclick="resetView()">Reset View</button>
+  </div>
+  <div id="tree-container">
+    <svg id="tree-svg" width="6000" height="8000"></svg>
+  </div>
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+    const initialJsonData = {"name":"syncra-dms","total_count":241,"children":[{"name":"+page.server.ts","total_count":1,"children":[{"name":"load","total_count":1,"children":[]}]},{"name":"2026-06-30-organization-units-design.md","total_count":10,"children":[{"name":"Active Code Uniqueness","total_count":1,"children":[]},{"name":"Adjacency List Data Model","total_count":1,"children":[]},{"name":"Admin Mutation and Read Only Access","total_count":1,"children":[]},{"name":"Archive Instead of Delete","total_count":1,"children":[]},{"name":"Global Organization Unit Hierarchy","total_count":1,"children":[]},{"name":"Internal Organization Units API Contract","total_count":1,"children":[]},{"name":"Organization Units Design","total_count":1,"children":[]},{"name":"Organization Units Error Handling Contract","total_count":1,"children":[]},{"name":"Organization Units Testing Strategy","total_count":1,"children":[]},{"name":"Tree and Details Split UI","total_count":1,"children":[]}]},{"name":"2026-06-30-organization-units.md","total_count":12,"children":[{"name":"App Layout and UI Components","total_count":1,"children":[]},{"name":"Backend orgunits Domain Package","total_count":1,"children":[]},{"name":"Behavior Tests Before Production Code","total_count":1,"children":[]},{"name":"Frontend Organization Units Route","total_count":1,"children":[]},{"name":"Organization Unit Model","total_count":1,"children":[]},{"name":"Organization Unit Tree Helpers","total_count":1,"children":[]},{"name":"Organization Units Feature Goal","total_count":1,"children":[]},{"name":"Organization Units Implementation Plan","total_count":1,"children":[]},{"name":"Organization Units Migration","total_count":1,"children":[]},{"name":"Organization Units Verification Workflow","total_count":1,"children":[]},{"name":"Swagger Route Documentation","total_count":1,"children":[]},{"name":"Trusted Internal Organization Units API","total_count":1,"children":[]}]},{"name":"2026-06-30-syncra-dms-work-environment-design.md","total_count":8,"children":[{"name":"Go Backend Scaffold","total_count":1,"children":[]},{"name":"Lean Workspace Boundaries","total_count":1,"children":[]},{"name":"Local PostgreSQL Expectation","total_count":1,"children":[]},{"name":"Operational Endpoints Only","total_count":1,"children":[]},{"name":"Organization Units Later First Feature","total_count":1,"children":[]},{"name":"Server Side Status Surface","total_count":1,"children":[]},{"name":"SvelteKit Frontend Scaffold","total_count":1,"children":[]},{"name":"Syncra DMS Work Environment Scaffold","total_count":1,"children":[]}]},{"name":"_index.d.ts","total_count":10,"children":[{"name":"App_NameInputs","total_count":1,"children":[]},{"name":"App_StatusInputs","total_count":1,"children":[]},{"name":"Backend_ApiInputs","total_count":1,"children":[]},{"name":"ConnectedInputs","total_count":1,"children":[]},{"name":"DatabaseInputs","total_count":1,"children":[]},{"name":"LocalizedString","total_count":1,"children":[]},{"name":"Not_ReadyInputs","total_count":1,"children":[]},{"name":"ReadyInputs","total_count":1,"children":[]},{"name":"UnavailableInputs","total_count":1,"children":[]},{"name":"VersionInputs","total_count":1,"children":[]}]},{"name":"AGENT.md","total_count":8,"children":[{"name":"Dense Operational Screens","total_count":1,"children":[]},{"name":"Frontend Agent Conventions","total_count":1,"children":[]},{"name":"Paraglide Inlang Localization","total_count":1,"children":[]},{"name":"pnpm Package Manager","total_count":1,"children":[]},{"name":"Server Only Environment Boundary","total_count":1,"children":[]},{"name":"Svelte Runes Conventions","total_count":1,"children":[]},{"name":"SvelteKit Svelte 5 TypeScript Stack","total_count":1,"children":[]},{"name":"Tailwind CSS UI Primitives","total_count":1,"children":[]}]},{"name":"AGENT.md","total_count":8,"children":[{"name":"Atlas Migrations","total_count":1,"children":[]},{"name":"Database DSN Rules","total_count":1,"children":[]},{"name":"Domain Package Approval Rule","total_count":1,"children":[]},{"name":"Gin GORM PostgreSQL Stack","total_count":1,"children":[]},{"name":"Go Module ai.ro/syncra/dms","total_count":1,"children":[]},{"name":"Go Server Agent Conventions","total_count":1,"children":[]},{"name":"Operational Endpoints Guardrail","total_count":1,"children":[]},{"name":"Swagger Generation","total_count":1,"children":[]}]},{"name":"api-errors.ts","total_count":2,"children":[{"name":"apiErrorMessage","total_count":1,"children":[]},{"name":"publicApiErrorMessage","total_count":1,"children":[]}]},{"name":"api.server.ts","total_count":6,"children":[{"name":"cookieHeader","total_count":1,"children":[]},{"name":"organizationUnitAPIErrorResponse","total_count":1,"children":[]},{"name":"readMoveParentId","total_count":1,"children":[]},{"name":"readOrganizationUnitInput","total_count":1,"children":[]},{"name":"requireAdminUser","total_count":1,"children":[]},{"name":"requireAuthenticatedUser","total_count":1,"children":[]}]},{"name":"api.ts","total_count":12,"children":[{"name":"archiveOrganizationUnit","total_count":1,"children":[]},{"name":"ArchiveOrganizationUnitResponse","total_count":1,"children":[]},{"name":"ArchiveOrganizationUnitVariables","total_count":1,"children":[]},{"name":"createOrganizationUnit","total_count":1,"children":[]},{"name":"fetchOrganizationUnitTree","total_count":1,"children":[]},{"name":"isOrganizationUnitListResponse","total_count":1,"children":[]},{"name":"moveOrganizationUnit","total_count":1,"children":[]},{"name":"MoveOrganizationUnitVariables","total_count":1,"children":[]},{"name":"OrganizationUnitInput","total_count":1,"children":[]},{"name":"OrganizationUnitListResponse","total_count":1,"children":[]},{"name":"updateOrganizationUnit","total_count":1,"children":[]},{"name":"UpdateOrganizationUnitVariables","total_count":1,"children":[]}]},{"name":"app.html","total_count":2,"children":[{"name":"Localized lang and dir Placeholders","total_count":1,"children":[]},{"name":"SvelteKit HTML Shell","total_count":1,"children":[]}]},{"name":"auth.ts","total_count":30,"children":[{"name":"AuthApiError","total_count":1,"children":[]},{"name":"AuthSession","total_count":1,"children":[]},{"name":"AuthSessionPayload","total_count":1,"children":[]},{"name":"AuthUser","total_count":1,"children":[]},{"name":"clearGitHubOAuthStateCookie","total_count":1,"children":[]},{"name":"clearGoogleOAuthStateCookie","total_count":1,"children":[]},{"name":"clearSessionCookie","total_count":1,"children":[]},{"name":"getSession","total_count":1,"children":[]},{"name":"hasSessionCookie","total_count":1,"children":[]},{"name":"isAuthApiError","total_count":1,"children":[]},{"name":"OAuthStartResponse","total_count":1,"children":[]},{"name":"PreferredLanguage","total_count":1,"children":[]},{"name":"requestPasswordReset","total_count":1,"children":[]},{"name":"RequestPasswordResetResponse","total_count":1,"children":[]},{"name":"resetPassword","total_count":1,"children":[]},{"name":"sendVerificationOTP","total_count":1,"children":[]},{"name":"SendVerificationOTPResponse","total_count":1,"children":[]},{"name":"setGitHubOAuthStateCookie","total_count":1,"children":[]},{"name":"setGoogleOAuthStateCookie","total_count":1,"children":[]},{"name":"setPreferredLanguageCookie","total_count":1,"children":[]},{"name":"setSessionCookie","total_count":1,"children":[]},{"name":"signInEmail","total_count":1,"children":[]},{"name":"signInGitHubOAuth","total_count":1,"children":[]},{"name":"signInGoogleOAuth","total_count":1,"children":[]},{"name":"signOut","total_count":1,"children":[]},{"name":"signUpEmail","total_count":1,"children":[]},{"name":"SignUpEmailResponse","total_count":1,"children":[]},{"name":"startGitHubOAuth","total_count":1,"children":[]},{"name":"startGoogleOAuth","total_count":1,"children":[]},{"name":"verifyEmailOTP","total_count":1,"children":[]}]},{"name":"context.svelte.ts","total_count":3,"children":[{"name":"setSidebar","total_count":1,"children":[]},{"name":"SidebarStateProps","total_count":1,"children":[]},{"name":"useSidebar","total_count":1,"children":[]}]},{"name":"en.d.ts","total_count":10,"children":[{"name":"App_NameInputs","total_count":1,"children":[]},{"name":"App_StatusInputs","total_count":1,"children":[]},{"name":"Backend_ApiInputs","total_count":1,"children":[]},{"name":"ConnectedInputs","total_count":1,"children":[]},{"name":"DatabaseInputs","total_count":1,"children":[]},{"name":"LocalizedString","total_count":1,"children":[]},{"name":"Not_ReadyInputs","total_count":1,"children":[]},{"name":"ReadyInputs","total_count":1,"children":[]},{"name":"UnavailableInputs","total_count":1,"children":[]},{"name":"VersionInputs","total_count":1,"children":[]}]},{"name":"hooks.server.ts","total_count":1,"children":[{"name":"localizePageAttributes","total_count":1,"children":[]}]},{"name":"internal-api.ts","total_count":3,"children":[{"name":"apiBaseUrl","total_count":1,"children":[]},{"name":"internalAPIHeaders","total_count":1,"children":[]},{"name":"privateEnv","total_count":1,"children":[]}]},{"name":"is-mobile.svelte.ts","total_count":1,"children":[{"name":"IsMobile","total_count":1,"children":[]}]},{"name":"mail.ts","total_count":2,"children":[{"name":"sendPasswordResetEmail","total_count":1,"children":[]},{"name":"sendVerificationEmail","total_count":1,"children":[]}]},{"name":"normalize-paraglide.mjs","total_count":1,"children":[{"name":"normalizeParaglide","total_count":1,"children":[]}]},{"name":"organization-units.ts","total_count":11,"children":[{"name":"archiveOrganizationUnit","total_count":1,"children":[]},{"name":"createOrganizationUnit","total_count":1,"children":[]},{"name":"getOrganizationUnitTree","total_count":1,"children":[]},{"name":"isOrganizationUnitApiError","total_count":1,"children":[]},{"name":"moveOrganizationUnit","total_count":1,"children":[]},{"name":"OrganizationUnit","total_count":1,"children":[]},{"name":"OrganizationUnitApiError","total_count":1,"children":[]},{"name":"OrganizationUnitInput","total_count":1,"children":[]},{"name":"OrganizationUnitListResponse","total_count":1,"children":[]},{"name":"OrganizationUnitTreeNode","total_count":1,"children":[]},{"name":"updateOrganizationUnit","total_count":1,"children":[]}]},{"name":"pnpm-workspace.yaml","total_count":1,"children":[{"name":"Frontend Workspace Root Package","total_count":1,"children":[]}]},{"name":"public-errors.ts","total_count":2,"children":[{"name":"publicErrorMessage","total_count":1,"children":[]},{"name":"publicErrorStatus","total_count":1,"children":[]}]},{"name":"README.md","total_count":3,"children":[{"name":"Backend Operational Status Load","total_count":1,"children":[]},{"name":"Server Only API Clients","total_count":1,"children":[]},{"name":"Syncra DMS Frontend","total_count":1,"children":[]}]},{"name":"README.md","total_count":4,"children":[{"name":"Generated Cache Guardrails","total_count":1,"children":[]},{"name":"Inlang Project Format","total_count":1,"children":[]},{"name":"Translation Files Outside Project Folder","total_count":1,"children":[]},{"name":"Unpacked Inlang Project","total_count":1,"children":[]}]},{"name":"README.md","total_count":5,"children":[{"name":"Locale Strategy","total_count":1,"children":[]},{"name":"Markup Parts API","total_count":1,"children":[]},{"name":"Messages Runtime Server Exports","total_count":1,"children":[]},{"name":"Paraglide Compiled Output","total_count":1,"children":[]},{"name":"Tree Shakeable Message Functions","total_count":1,"children":[]}]},{"name":"README.md","total_count":2,"children":[{"name":"Operational and Swagger Endpoints","total_count":1,"children":[]},{"name":"Syncra DMS Go Server","total_count":1,"children":[]}]},{"name":"registry.d.ts","total_count":1,"children":[{"name":"RelativeTimeFormatUnit","total_count":1,"children":[]}]},{"name":"registry.js","total_count":4,"children":[{"name":"datetime","total_count":1,"children":[]},{"name":"number","total_count":1,"children":[]},{"name":"plural","total_count":1,"children":[]},{"name":"relativetime","total_count":1,"children":[]}]},{"name":"ro.d.ts","total_count":10,"children":[{"name":"App_NameInputs","total_count":1,"children":[]},{"name":"App_StatusInputs","total_count":1,"children":[]},{"name":"Backend_ApiInputs","total_count":1,"children":[]},{"name":"ConnectedInputs","total_count":1,"children":[]},{"name":"DatabaseInputs","total_count":1,"children":[]},{"name":"LocalizedString","total_count":1,"children":[]},{"name":"Not_ReadyInputs","total_count":1,"children":[]},{"name":"ReadyInputs","total_count":1,"children":[]},{"name":"UnavailableInputs","total_count":1,"children":[]},{"name":"VersionInputs","total_count":1,"children":[]}]},{"name":"robots.txt","total_count":1,"children":[{"name":"Open Crawler Policy","total_count":1,"children":[]}]},{"name":"runtime.d.ts","total_count":25,"children":[{"name":"BuiltInStrategy","total_count":1,"children":[]},{"name":"CustomClientStrategyHandler","total_count":1,"children":[]},{"name":"CustomServerStrategyHandler","total_count":1,"children":[]},{"name":"CustomStrategy","total_count":1,"children":[]},{"name":"ExtractLocaleFromRequestOptions","total_count":1,"children":[]},{"name":"Locale","total_count":1,"children":[]},{"name":"LocalizedString","total_count":1,"children":[]},{"name":"MessageBundleFunction","total_count":1,"children":[]},{"name":"MessageFunction","total_count":1,"children":[]},{"name":"MessageMarkupAttribute","total_count":1,"children":[]},{"name":"MessageMarkupAttributes","total_count":1,"children":[]},{"name":"MessageMarkupOption","total_count":1,"children":[]},{"name":"MessageMarkupOptions","total_count":1,"children":[]},{"name":"MessageMarkupSchema","total_count":1,"children":[]},{"name":"MessageMarkupTag","total_count":1,"children":[]},{"name":"MessageMetadata","total_count":1,"children":[]},{"name":"MessagePart","total_count":1,"children":[]},{"name":"ParaglideAsyncLocalStorage","total_count":1,"children":[]},{"name":"SetLocaleFn","total_count":1,"children":[]},{"name":"ShouldRedirectClientInput","total_count":1,"children":[]},{"name":"ShouldRedirectInput","total_count":1,"children":[]},{"name":"ShouldRedirectResult","total_count":1,"children":[]},{"name":"ShouldRedirectServerInput","total_count":1,"children":[]},{"name":"Strategies","total_count":1,"children":[]},{"name":"Strategy","total_count":1,"children":[]}]},{"name":"runtime.js","total_count":23,"children":[{"name":"aggregateGroups","total_count":1,"children":[]},{"name":"assertIsLocale","total_count":1,"children":[]},{"name":"defineCustomClientStrategy","total_count":1,"children":[]},{"name":"defineCustomServerStrategy","total_count":1,"children":[]},{"name":"deLocalizeHref","total_count":1,"children":[]},{"name":"deLocalizeUrl","total_count":1,"children":[]},{"name":"extractLocaleFromCookie","total_count":1,"children":[]},{"name":"extractLocaleFromHeader","total_count":1,"children":[]},{"name":"extractLocaleFromNavigator","total_count":1,"children":[]},{"name":"extractLocaleFromUrl","total_count":1,"children":[]},{"name":"generateStaticLocalizedUrls","total_count":1,"children":[]},{"name":"getLocaleForUrl","total_count":1,"children":[]},{"name":"getStrategyForUrl","total_count":1,"children":[]},{"name":"getTextDirection","total_count":1,"children":[]},{"name":"isCustomStrategy","total_count":1,"children":[]},{"name":"isExcludedByRouteStrategy","total_count":1,"children":[]},{"name":"isLocale","total_count":1,"children":[]},{"name":"localizeHref","total_count":1,"children":[]},{"name":"localizeUrl","total_count":1,"children":[]},{"name":"overwriteServerAsyncLocalStorage","total_count":1,"children":[]},{"name":"shouldRedirect","total_count":1,"children":[]},{"name":"toLocale","total_count":1,"children":[]},{"name":"trackMessageCall","total_count":1,"children":[]}]},{"name":"server.js","total_count":1,"children":[{"name":"paraglideMiddleware","total_count":1,"children":[]}]},{"name":"syncra-api.ts","total_count":6,"children":[{"name":"BackendReadiness","total_count":1,"children":[]},{"name":"BackendVersion","total_count":1,"children":[]},{"name":"EndpointResult","total_count":1,"children":[]},{"name":"fetchOperationalStatus","total_count":1,"children":[]},{"name":"normalizeApiBaseUrl","total_count":1,"children":[]},{"name":"OperationalStatus","total_count":1,"children":[]}]},{"name":"tree.ts","total_count":7,"children":[{"name":"collectMoveTargets","total_count":1,"children":[]},{"name":"countUnits","total_count":1,"children":[]},{"name":"findUnit","total_count":1,"children":[]},{"name":"FlatOrganizationUnitNode","total_count":1,"children":[]},{"name":"flattenUnitTree","total_count":1,"children":[]},{"name":"OrganizationUnitNode","total_count":1,"children":[]},{"name":"selectInitialUnit","total_count":1,"children":[]}]},{"name":"utils.ts","total_count":5,"children":[{"name":"cn","total_count":1,"children":[]},{"name":"WithElementRef","total_count":1,"children":[]},{"name":"WithoutChild","total_count":1,"children":[]},{"name":"WithoutChildren","total_count":1,"children":[]},{"name":"WithoutChildrenOrChild","total_count":1,"children":[]}]}]};
+
+    function transformData(jsonData) {
+        // Helper function to recursively build the children structure
+        function processNode(node, parentL1StageName) {
+            let displayName = node.name;
+            // Append total_count if it exists and is not already in the name
+            if (node.total_count !== undefined) {
+                if (!/\(Total Count: \d+\)$/.test(displayName)) {
+                    displayName += ` (Total Count: ${node.total_count})`;
+                }
+            }
+
+            const newNode = { name: displayName };
+
+            if (parentL1StageName === "Root") {
+                 newNode.originalStageName = node.name;
+            } else {
+                newNode.originalStageName = parentL1StageName;
+            }
+
+            if (node.children && node.children.length > 0) {
+                const stageNameToPass = (parentL1StageName === "Root") ? node.name : parentL1StageName;
+                newNode.children = node.children.map(child => processNode(child, stageNameToPass));
+            }
+
+            return newNode;
+        }
+
+        let rootDisplayName = jsonData.name;
+        if (jsonData.total_count !== undefined && !/\(Total Count: \d+\)$/.test(rootDisplayName)) {
+            rootDisplayName += ` (Total Count: ${jsonData.total_count})`;
+        }
+
+        return {
+            name: rootDisplayName,
+            originalStageName: "Root",
+            children: (jsonData.children || []).map(child => processNode(child, "Root"))
+        };
+    }
+
+    const treeData = transformData(initialJsonData);
+
+    // Auto-populated phaseColors: every depth-1 child of the root gets
+    // a stable colour from a bigger palette so all top-level dirs are
+    // distinguishable.
+    const PALETTE = [
+      ["#3498DB","#2980B9","#AED6F1"], ["#2ECC71","#27AE60","#A9DFBF"],
+      ["#E74C3C","#C0392B","#F5B7B1"], ["#9B59B6","#8E44AD","#D7BDE2"],
+      ["#F39C12","#D68910","#FAD7A0"], ["#1ABC9C","#117864","#A2D9CE"],
+      ["#34495E","#1B2631","#ABB2B9"], ["#E67E22","#BA4A00","#F5CBA7"],
+      ["#16A085","#0E6655","#A2D9CE"], ["#D35400","#A04000","#EDBB99"],
+      ["#7F8C8D","#566573","#D5DBDB"], ["#C0392B","#7B241C","#F5B7B1"],
+      ["#2E86C1","#1B4F72","#A9CCE3"], ["#28B463","#196F3D","#A9DFBF"],
+      ["#AF7AC5","#6C3483","#D2B4DE"],
+    ];
+    const phaseColors = { "Root": { fill: "#4A4A4A", stroke: "#333333", collapsedFill: "#6C757D" },
+                          "Default": { fill: "#BDC3C7", stroke: "#95A5A6", collapsedFill: "#ECF0F1" } };
+    (initialJsonData.children || []).forEach((c, i) => {
+      const pal = PALETTE[i % PALETTE.length];
+      phaseColors[c.name] = { fill: pal[0], stroke: pal[1], collapsedFill: pal[2] };
+    });
+
+    const levelSpecificPalettes = {
+      0: { fill: "#4A4A4A", stroke: "#333333", collapsedFill: "#6C757D" },
+      2: { fill: "#6ab04c", stroke: "#508a38", collapsedFill: "#a3d391" },
+      3: { fill: "#f0932b", stroke: "#d0730f", collapsedFill: "#f6c07e" },
+      4: { fill: "#be2edd", stroke: "#a01cb3", collapsedFill: "#e08bf2" },
+      5: { fill: "#00a8ff", stroke: "#007ac1", collapsedFill: "#74d2ff" },
+      6: { fill: "#e55039", stroke: "#c23620", collapsedFill: "#f09a8d" },
+      default: { fill: "#747d8c", stroke: "#57606f", collapsedFill: "#a4b0be" }
+    };
+
+    const svgElement = d3.select("#tree-svg");
+    const initialSvgWidth = +svgElement.attr("width");
+    const initialSvgHeight = +svgElement.attr("height");
+    const margin = { top: 40, right: 120, bottom: 80, left: 450 };
+    let width = initialSvgWidth - margin.left - margin.right;
+    let height = initialSvgHeight - margin.top - margin.bottom;
+    const duration = 500;
+    let nodeCounter = 0;
+    const g = svgElement.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+    const treemap = d3.tree().nodeSize([40, 0]);
+    let rootNode = d3.hierarchy(treeData, d => d.children);
+    rootNode.x0 = 0;
+    rootNode.y0 = 0;
+
+    if (rootNode.children) {
+      rootNode.children.forEach(d_child => {
+        if (d_child.children) { collapseBranch(d_child); }
+      });
+    }
+    updateTree(rootNode);
+
+    function collapseBranch(d) { if (d.children) { d._children = d.children; d._children.forEach(collapseBranch); d.children = null; } }
+    function expandBranch(d) { if (d._children) { d.children = d._children; d._children = null; } if (d.children) { d.children.forEach(expandBranch); } }
+    window.expandAll = () => { expandBranch(rootNode); updateTree(rootNode); };
+    window.collapseAll = () => { if (rootNode.children) { rootNode.children.forEach(collapseBranch); } updateTree(rootNode); };
+    window.resetView = () => { if (rootNode.children) { rootNode.children.forEach(d_child => { if (d_child.children || d_child._children) { collapseBranch(d_child); } }); } if (rootNode._children && !rootNode.children) { rootNode.children = rootNode._children; rootNode._children = null; } updateTree(rootNode); };
+
+    function updateTree(source) {
+      const treeLayoutData = treemap(rootNode);
+      let nodes = treeLayoutData.descendants();
+      let links = treeLayoutData.descendants().slice(1);
+
+      let minX = 0;
+      let maxX = 0;
+      if (nodes.length > 0) {
+        minX = d3.min(nodes, d => d.x);
+        maxX = d3.max(nodes, d => d.x);
+      }
+
+      let neededHeight = Math.max(initialSvgHeight, maxX - minX + margin.top + margin.bottom + 100);
+      svgElement.transition().duration(duration / 2).attr("height", neededHeight);
+      g.transition().duration(duration / 2).attr("transform", `translate(${margin.left},${margin.top - minX + 40})`);
+
+      nodes.forEach(d => { d.y = d.depth * 400; }); // Adjust horizontal separation if needed
+
+      const node = g.selectAll('g.node').data(nodes, d => d.id || (d.id = ++nodeCounter));
+      const nodeEnter = node.enter().append('g')
+        .attr('class', d => "node" + (d.children || d._children ? " node--internal" : " node--leaf") + (d._children ? " _children" : ""))
+        .attr('transform', d => `translate(${source.y0},${source.x0})`)
+        .on('click', (event, d) => { if (d.children) { d._children = d.children; d.children = null; } else if (d._children) { d.children = d._children; d._children = null; } updateTree(d); })
+        .style('cursor', d => (d.children || d._children) ? 'pointer' : 'default');
+
+      nodeEnter.append('circle').attr('r', 1e-6);
+
+      nodeEnter.append('text')
+        .attr('dy', '.35em')
+        .attr('x', d => d.children || d._children ? -14 : 14)
+        .attr('text-anchor', d => d.children || d._children ? 'end' : 'start')
+        .style("fill-opacity", 1e-6)
+        .call(wrapText, 380);
+
+      const nodeUpdate = nodeEnter.merge(node);
+      nodeUpdate.transition().duration(duration)
+        .attr('transform', d => `translate(${d.y},${d.x})`)
+        .attr('class', d => "node" + (d.children ? " node--internal" : " node--leaf") + (d._children ? " node--internal _children" : ""));
+
+      nodeUpdate.select('circle').attr('r', 8.5)
+        .style('fill', d => {
+            let palette;
+            if (d.depth === 0) {
+                palette = levelSpecificPalettes[0];
+            } else if (d.depth === 1) {
+                palette = phaseColors[d.data.originalStageName] || phaseColors.Default;
+            } else {
+                palette = levelSpecificPalettes[d.depth] || levelSpecificPalettes.default;
+            }
+            if (d._children) return palette.collapsedFill;
+            if (d.children) return palette.fill;
+            return "#fff";
+        })
+        .style('stroke', d => {
+            let palette;
+            if (d.depth === 0) {
+                palette = levelSpecificPalettes[0];
+            } else if (d.depth === 1) {
+                palette = phaseColors[d.data.originalStageName] || phaseColors.Default;
+            } else {
+                palette = levelSpecificPalettes[d.depth] || levelSpecificPalettes.default;
+            }
+            return palette.stroke;
+        });
+      nodeUpdate.select('text').style("fill-opacity", 1).call(wrapText, 380);
+
+      const nodeExit = node.exit().transition().duration(duration).attr('transform', d => `translate(${source.y},${source.x})`).remove();
+      nodeExit.select('circle').attr('r', 1e-6);
+      nodeExit.select('text').style('fill-opacity', 1e-6);
+
+      const link = g.selectAll('path.link').data(links, d => d.id);
+      const linkEnter = link.enter().insert('path', "g").attr('class', 'link').attr('d', d => { const o = { x: source.x0, y: source.y0 }; return diagonal(o, o); });
+
+      linkEnter.merge(link).transition().duration(duration).attr('d', d => diagonal(d, d.parent))
+        .style('stroke', d => {
+            const sourceNode = d.parent;
+            if (!sourceNode) return phaseColors.Default.stroke;
+            const l1AncestorName = sourceNode.data.originalStageName;
+            const colorPalette = phaseColors[l1AncestorName] || phaseColors.Default;
+            return colorPalette.stroke;
+        });
+      link.exit().transition().duration(duration).attr('d', d => { const o = { x: source.x, y: source.y }; return diagonal(o, o); }).remove();
+      nodes.forEach(d => { d.x0 = d.x; d.y0 = d.y; });
+    }
+
+    function diagonal(s, d) { return `M ${s.y} ${s.x} C ${(s.y + d.y) / 2} ${s.x}, ${(s.y + d.y) / 2} ${d.x}, ${d.y} ${d.x}`; }
+
+    function wrapText(textElements, maxWidth) {
+        const textPartColors = {
+            name: '#343a40',
+            count: '#0056b3'
+        };
+        const countRegex = /(\s\(Total Count: \d+\))$/;
+
+        textElements.each(function () {
+            const textD3 = d3.select(this);
+            const originalNodeText = textD3.datum().data.name;
+            const x = parseFloat(textD3.attr("x") || 0);
+            const initialDy = textD3.attr("dy");
+            const textAnchor = textD3.attr("text-anchor");
+            const lineHeight = 1.1;
+
+            textD3.text(null);
+
+            let namePart = originalNodeText;
+            let countPartText = "";
+
+            const countMatch = originalNodeText.match(countRegex);
+            if (countMatch && originalNodeText.endsWith(countMatch[0])) {
+                namePart = originalNodeText.substring(0, originalNodeText.length - countMatch[0].length).trim();
+                countPartText = countMatch[0].trim();
+            }
+
+            const tokens = [];
+            namePart.split(/\s+/).filter(Boolean).forEach(word => {
+                tokens.push({ text: word, type: 'name' });
+            });
+            if (countPartText) {
+                tokens.push({ text: countPartText, type: 'count' });
+            }
+
+            if (tokens.length === 0 && originalNodeText) {
+                tokens.push({ text: originalNodeText, type: 'name' });
+            }
+
+            let currentTspan = textD3.append("tspan").attr("x", x).attr("dy", initialDy);
+            if (textAnchor === "end") currentTspan.attr("text-anchor", "end");
+
+            let lineTokens = [];
+
+            for (let i = 0; i < tokens.length; i++) {
+                const tokenObj = tokens[i];
+
+                lineTokens.push(tokenObj);
+                currentTspan.text(lineTokens.map(t => t.text).join(" "));
+
+                if (currentTspan.node().getComputedTextLength() > maxWidth && lineTokens.length > 1) {
+                    lineTokens.pop();
+
+                    currentTspan.text(null);
+                    lineTokens.forEach((prevToken, idx) => {
+                        currentTspan.append("tspan")
+                            .text((idx > 0 ? " " : "") + prevToken.text)
+                            .style("fill", textPartColors[prevToken.type] || textPartColors.name)
+                            .style("font-weight", prevToken.type === 'count' ? "bold" : "normal");
+                    });
+
+                    lineTokens = [tokenObj];
+                    currentTspan = textD3.append("tspan").attr("x", x).attr("dy", lineHeight + "em");
+                    if (textAnchor === "end") currentTspan.attr("text-anchor", "end");
+                }
+            }
+
+            currentTspan.text(null);
+            lineTokens.forEach((token, idx) => {
+                currentTspan.append("tspan")
+                    .text((idx > 0 ? " " : "") + token.text)
+                    .style("fill", textPartColors[token.type] || textPartColors.name)
+                    .style("font-weight", token.type === 'count' ? "bold" : "normal");
+            });
+
+            if (textD3.selectAll("tspan > tspan").empty() && textD3.select("tspan").text().length === 0 && originalNodeText) {
+                let t = textD3.select("tspan");
+                let displayText = originalNodeText;
+                t.text(displayText).style("fill", textPartColors.name);
+                if (t.node() && t.node().getComputedTextLength() > maxWidth && displayText.length > 20) {
+                    let estimatedChars = Math.floor(maxWidth / (t.node().getComputedTextLength()/displayText.length) );
+                    displayText = displayText.substring(0, Math.max(0, estimatedChars - 3)) + "...";
+                    t.text(displayText);
+                }
+            }
+        });
+    }
+  </script>
+</body>
+</html>
