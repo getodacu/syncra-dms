@@ -1,0 +1,12 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"app_name": "Syncra DMS",
+	"app_status": "Environment status",
+	"backend_api": "Backend API",
+	"database": "Database",
+	"version": "Version",
+	"ready": "Ready",
+	"not_ready": "Not ready",
+	"connected": "Connected",
+	"unavailable": "Unavailable"
+}
