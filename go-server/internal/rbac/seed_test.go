@@ -1,7 +1,10 @@
 package rbac
 
 import (
+	"sort"
+	"strings"
 	"testing"
+	"time"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -39,6 +42,102 @@ func TestSeedDefaultsIsIdempotent(t *testing.T) {
 	}
 }
 
+func TestSeedDefaultsReconcilesDefaultRolePermissions(t *testing.T) {
+	db := newSeedTestDB(t)
+	if err := SeedDefaults(db); err != nil {
+		t.Fatalf("SeedDefaults first: %v", err)
+	}
+
+	var orgAdmin Role
+	if err := db.First(&orgAdmin, "code = ?", OrganizationAdministratorRoleCode).Error; err != nil {
+		t.Fatalf("load organization administrator role: %v", err)
+	}
+	var systemAdmin Permission
+	if err := db.First(&systemAdmin, "code = ?", "system.admin").Error; err != nil {
+		t.Fatalf("load system admin permission: %v", err)
+	}
+	extra := RolePermission{
+		RoleID:       orgAdmin.ID,
+		PermissionID: systemAdmin.ID,
+		CreatedAt:    time.Now().UTC(),
+	}
+	if err := db.Create(&extra).Error; err != nil {
+		t.Fatalf("create extra role permission: %v", err)
+	}
+
+	if err := SeedDefaults(db); err != nil {
+		t.Fatalf("SeedDefaults second: %v", err)
+	}
+
+	assertRolePermissionCodes(t, db, OrganizationAdministratorRoleCode, nonSystemPermissionCodes())
+}
+
+func TestSeedDefaultsFailsForUnknownRolePermissionCode(t *testing.T) {
+	originalRegistry := PermissionRegistry
+	PermissionRegistry = []PermissionDefinition{
+		{Code: "system.admin", Name: "System administration", Category: "System"},
+		{Code: "organization_unit.view", Name: "View organization units", Category: "Organization Unit Management"},
+		{Code: "organization_unit.update", Name: "Update organization units", Category: "Organization Unit Management"},
+	}
+	t.Cleanup(func() {
+		PermissionRegistry = originalRegistry
+	})
+
+	err := SeedDefaults(newSeedTestDB(t))
+	if err == nil {
+		t.Fatal("SeedDefaults error = nil, want unknown permission code error")
+	}
+	if !strings.Contains(err.Error(), "unknown permission code") || !strings.Contains(err.Error(), "organization_unit.manage_users") {
+		t.Fatalf("SeedDefaults error = %q, want unknown permission code details", err)
+	}
+}
+
+func TestSeedDefaultsAssignsExactDefaultRolePermissions(t *testing.T) {
+	db := newSeedTestDB(t)
+	if err := SeedDefaults(db); err != nil {
+		t.Fatalf("SeedDefaults: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		roleCode string
+		want     []string
+	}{
+		{
+			name:     "system administrator",
+			roleCode: SystemAdministratorRoleCode,
+			want:     PermissionCodes(),
+		},
+		{
+			name:     "organization administrator",
+			roleCode: OrganizationAdministratorRoleCode,
+			want:     nonSystemPermissionCodes(),
+		},
+		{
+			name:     "unit manager",
+			roleCode: UnitManagerRoleCode,
+			want: []string{
+				"organization_unit.view",
+				"organization_unit.update",
+				"organization_unit.manage_users",
+			},
+		},
+		{
+			name:     "viewer",
+			roleCode: ViewerRoleCode,
+			want: []string{
+				"organization_unit.view",
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assertRolePermissionCodes(t, db, tc.roleCode, tc.want)
+		})
+	}
+}
+
 func newSeedTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	db, err := gorm.Open(sqlite.Open("file:"+t.Name()+"?mode=memory&cache=shared"), &gorm.Config{})
@@ -49,4 +148,47 @@ func newSeedTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("auto migrate: %v", err)
 	}
 	return db
+}
+
+func nonSystemPermissionCodes() []string {
+	codes := make([]string, 0, len(PermissionRegistry)-1)
+	for _, definition := range PermissionRegistry {
+		if definition.Code == "system.admin" {
+			continue
+		}
+		codes = append(codes, definition.Code)
+	}
+	return codes
+}
+
+func assertRolePermissionCodes(t *testing.T, db *gorm.DB, roleCode string, want []string) {
+	t.Helper()
+	var got []string
+	if err := db.Table("role_permissions").
+		Select("permissions.code").
+		Joins("JOIN roles ON roles.id = role_permissions.role_id").
+		Joins("JOIN permissions ON permissions.id = role_permissions.permission_id").
+		Where("roles.code = ?", roleCode).
+		Order("permissions.code").
+		Scan(&got).Error; err != nil {
+		t.Fatalf("load role permission codes: %v", err)
+	}
+
+	want = append([]string(nil), want...)
+	sort.Strings(want)
+	if !sameStrings(got, want) {
+		t.Fatalf("%s permissions = %v, want %v", roleCode, got, want)
+	}
+}
+
+func sameStrings(left, right []string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for i := range left {
+		if left[i] != right[i] {
+			return false
+		}
+	}
+	return true
 }

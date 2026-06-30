@@ -1,10 +1,10 @@
 package rbac
 
 const (
-	SystemAdministratorRoleCode   = "system_administrator"
-	OrganizationAdministratorCode = "organization_administrator"
-	UnitManagerRoleCode           = "unit_manager"
-	ViewerRoleCode                = "viewer"
+	SystemAdministratorRoleCode       = "system_administrator"
+	OrganizationAdministratorRoleCode = "organization_administrator"
+	UnitManagerRoleCode               = "unit_manager"
+	ViewerRoleCode                    = "viewer"
 )
 
 type PermissionDefinition struct {
@@ -90,7 +90,7 @@ func DefaultRoles() []RoleDefinition {
 			PermissionCodes: allPermissions,
 		},
 		{
-			Code:            OrganizationAdministratorCode,
+			Code:            OrganizationAdministratorRoleCode,
 			Name:            "Organization Administrator",
 			Description:     "Administrative access within the organization.",
 			PermissionCodes: organizationAdministratorPermissions,
