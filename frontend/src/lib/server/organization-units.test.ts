@@ -94,6 +94,7 @@ describe('server organization unit client', () => {
 
 	it('throws clear boundary errors for missing config, network failures, and invalid success responses', async () => {
 		vi.stubEnv('SYNCRA_API_BASE_URL', 'http://api.test');
+		vi.stubEnv('SYNCRA_INTERNAL_API_TOKEN', ' ');
 		await expect(getOrganizationUnitTree(vi.fn(), 'auth.session_token=abc')).rejects.toMatchObject(
 			new OrganizationUnitApiError(500, 'Organization Unit service is not configured')
 		);
