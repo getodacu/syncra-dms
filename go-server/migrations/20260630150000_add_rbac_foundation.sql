@@ -65,12 +65,16 @@ CREATE TABLE "user_roles" (
   "created_at" timestamptz NOT NULL,
   "updated_at" timestamptz NOT NULL,
   PRIMARY KEY ("id"),
-  CONSTRAINT "chk_user_roles_scope_type" CHECK (scope_type IN ('global','organization_unit','organization_unit_and_children'))
+  CONSTRAINT "chk_user_roles_scope_organization_unit" CHECK (
+    (scope_type = 'global' AND organization_unit_id IS NULL)
+    OR (scope_type IN ('organization_unit','organization_unit_and_children') AND organization_unit_id IS NOT NULL)
+  )
 );
 
 CREATE INDEX "idx_user_roles_user_id" ON "user_roles" ("user_id");
 CREATE INDEX "idx_user_roles_role_id" ON "user_roles" ("role_id");
-CREATE UNIQUE INDEX "idx_user_role_scope_unique" ON "user_roles" ("user_id", "role_id", "scope_type", "organization_unit_id") NULLS NOT DISTINCT;
+CREATE UNIQUE INDEX "idx_user_role_scope_global_unique" ON "user_roles" ("user_id", "role_id", "scope_type") WHERE "organization_unit_id" IS NULL;
+CREATE UNIQUE INDEX "idx_user_role_scope_unit_unique" ON "user_roles" ("user_id", "role_id", "scope_type", "organization_unit_id") WHERE "organization_unit_id" IS NOT NULL;
 
 CREATE TABLE "groups" (
   "id" uuid,
@@ -106,10 +110,14 @@ CREATE TABLE "group_roles" (
   "organization_unit_id" uuid,
   "created_at" timestamptz NOT NULL,
   PRIMARY KEY ("id"),
-  CONSTRAINT "chk_group_roles_scope_type" CHECK (scope_type IN ('global','organization_unit','organization_unit_and_children'))
+  CONSTRAINT "chk_group_roles_scope_organization_unit" CHECK (
+    (scope_type = 'global' AND organization_unit_id IS NULL)
+    OR (scope_type IN ('organization_unit','organization_unit_and_children') AND organization_unit_id IS NOT NULL)
+  )
 );
 
-CREATE UNIQUE INDEX "idx_group_role_scope_unique" ON "group_roles" ("group_id", "role_id", "scope_type", "organization_unit_id") NULLS NOT DISTINCT;
+CREATE UNIQUE INDEX "idx_group_role_scope_global_unique" ON "group_roles" ("group_id", "role_id", "scope_type") WHERE "organization_unit_id" IS NULL;
+CREATE UNIQUE INDEX "idx_group_role_scope_unit_unique" ON "group_roles" ("group_id", "role_id", "scope_type", "organization_unit_id") WHERE "organization_unit_id" IS NOT NULL;
 
 CREATE TABLE "organization_unit_roles" (
   "id" uuid,

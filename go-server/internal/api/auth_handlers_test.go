@@ -72,7 +72,7 @@ func TestSignUpReturnsVerificationCodeOnlyForTrustedDelivery(t *testing.T) {
 }
 
 func TestEmailSignupVerifyLoginSessionAndSignOut(t *testing.T) {
-	router, _ := newAuthTestRouter(t)
+	router, db := newAuthTestRouter(t)
 	headers := trustedAuthHeaders()
 
 	signup := authJSON(t, router, http.MethodPost, "/api/auth/sign-up/email", `{
@@ -97,6 +97,13 @@ func TestEmailSignupVerifyLoginSessionAndSignOut(t *testing.T) {
 	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
 	if verify.Code != http.StatusOK {
 		t.Fatalf("verify status = %d body=%s", verify.Code, verify.Body.String())
+	}
+	var verifiedUser auth.User
+	if err := db.First(&verifiedUser, "email = ?", "ada@example.com").Error; err != nil {
+		t.Fatalf("load verified user: %v", err)
+	}
+	if verifiedUser.Status != "active" {
+		t.Fatalf("verified user status = %q, want active", verifiedUser.Status)
 	}
 
 	login := authJSON(t, router, http.MethodPost, "/api/auth/sign-in/email", `{
@@ -319,6 +326,56 @@ func TestOAuthCallbackCreatesSessionAndProviderAccount(t *testing.T) {
 	}
 	if account.UserID == "" {
 		t.Fatal("oauth account user id was empty")
+	}
+}
+
+func TestOAuthCallbackPromotesExistingInvitedVerifiedEmailUser(t *testing.T) {
+	router, db := newAuthTestRouterWithOptions(t, RouterOptions{
+		GoogleClientID:     "google-client",
+		GoogleClientSecret: "google-secret",
+		OAuthProfileFetcher: func(_ context.Context, providerID string, code string, redirectURI string) (OAuthProfile, error) {
+			return OAuthProfile{
+				ProviderID: providerID,
+				AccountID:  "google-account-2",
+				Email:      "ada@example.com",
+				Name:       "Ada Lovelace",
+				Verified:   true,
+			}, nil
+		},
+	})
+	now := time.Now().UTC()
+	user := auth.User{
+		Name:          "Ada Lovelace",
+		Email:         "ada@example.com",
+		EmailVerified: false,
+		CreatedAt:     now,
+		UpdatedAt:     now,
+	}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatalf("create invited user: %v", err)
+	}
+	if user.Status != "invited" {
+		t.Fatalf("created user status = %q, want invited", user.Status)
+	}
+
+	response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
+		"code":"oauth-code",
+		"state":"state",
+		"redirectURI":"http://localhost:5173/api/auth/google/callback"
+	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+	if response.Code != http.StatusOK {
+		t.Fatalf("oauth callback status = %d body=%s", response.Code, response.Body.String())
+	}
+
+	var promoted auth.User
+	if err := db.First(&promoted, "id = ?", user.ID).Error; err != nil {
+		t.Fatalf("load promoted user: %v", err)
+	}
+	if !promoted.EmailVerified {
+		t.Fatal("oauth callback did not mark user email verified")
+	}
+	if promoted.Status != "active" {
+		t.Fatalf("oauth promoted user status = %q, want active", promoted.Status)
 	}
 }
 

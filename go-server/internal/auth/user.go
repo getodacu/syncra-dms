@@ -3,6 +3,7 @@ package auth
 import (
 	"time"
 
+	"ai.ro/syncra/dms/internal/orgunits"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -19,22 +20,24 @@ const (
 )
 
 type User struct {
-	ID                        string     `gorm:"type:uuid;primaryKey;index:idx_user_created_id,priority:2;index:idx_user_last_login_id,priority:2" json:"id"`
-	Name                      string     `gorm:"not null;size:255" json:"name"`
-	Email                     string     `gorm:"not null;size:320;uniqueIndex" json:"email"`
-	EmailVerified             bool       `gorm:"column:email_verified;not null;default:false" json:"emailVerified"`
-	Image                     *string    `gorm:"type:text" json:"image,omitempty"`
-	PreferredLanguage         string     `gorm:"column:preferred_language;not null;size:5;default:en;check:chk_user_preferred_language,preferred_language IN ('en','ro')" json:"preferredLanguage"`
-	Role                      UserRole   `gorm:"not null;size:40;default:user;index;check:chk_user_role,role IN ('user','admin')" json:"role"`
-	Status                    string     `gorm:"not null;size:40;default:active;index;check:chk_user_status,status IN ('invited','active','inactive','suspended','deleted')" json:"status"`
-	PrimaryOrganizationUnitID *string    `gorm:"column:primary_organization_unit_id;type:uuid;index" json:"primaryOrganizationUnitId,omitempty"`
-	ManagerUserID             *string    `gorm:"column:manager_user_id;type:uuid;index" json:"managerUserId,omitempty"`
-	JobTitle                  *string    `gorm:"column:job_title;size:160" json:"jobTitle,omitempty"`
-	Phone                     *string    `gorm:"size:80" json:"phone,omitempty"`
-	LastLoginAt               *time.Time `gorm:"column:last_login_at;index:idx_user_last_login_id,priority:1" json:"lastLoginAt,omitempty"`
-	DeletedAt                 *time.Time `gorm:"column:deleted_at;index" json:"deletedAt,omitempty"`
-	CreatedAt                 time.Time  `gorm:"column:created_at;not null;index:idx_user_created_id,priority:1" json:"createdAt"`
-	UpdatedAt                 time.Time  `gorm:"column:updated_at;not null" json:"updatedAt"`
+	ID                        string         `gorm:"type:uuid;primaryKey;index:idx_user_created_id,priority:2;index:idx_user_last_login_id,priority:2" json:"id"`
+	Name                      string         `gorm:"not null;size:255" json:"name"`
+	Email                     string         `gorm:"not null;size:320;uniqueIndex" json:"email"`
+	EmailVerified             bool           `gorm:"column:email_verified;not null;default:false" json:"emailVerified"`
+	Image                     *string        `gorm:"type:text" json:"image,omitempty"`
+	PreferredLanguage         string         `gorm:"column:preferred_language;not null;size:5;default:en;check:chk_user_preferred_language,preferred_language IN ('en','ro')" json:"preferredLanguage"`
+	Role                      UserRole       `gorm:"not null;size:40;default:user;index;check:chk_user_role,role IN ('user','admin')" json:"role"`
+	Status                    string         `gorm:"not null;size:40;default:active;index;check:chk_user_status,status IN ('invited','active','inactive','suspended','deleted')" json:"status"`
+	PrimaryOrganizationUnitID *string        `gorm:"column:primary_organization_unit_id;type:uuid;index" json:"primaryOrganizationUnitId,omitempty"`
+	PrimaryOrganizationUnit   *orgunits.Unit `gorm:"foreignKey:PrimaryOrganizationUnitID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL" json:"-"`
+	ManagerUserID             *string        `gorm:"column:manager_user_id;type:uuid;index" json:"managerUserId,omitempty"`
+	ManagerUser               *User          `gorm:"foreignKey:ManagerUserID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL" json:"-"`
+	JobTitle                  *string        `gorm:"column:job_title;size:160" json:"jobTitle,omitempty"`
+	Phone                     *string        `gorm:"size:80" json:"phone,omitempty"`
+	LastLoginAt               *time.Time     `gorm:"column:last_login_at;index:idx_user_last_login_id,priority:1" json:"lastLoginAt,omitempty"`
+	DeletedAt                 *time.Time     `gorm:"column:deleted_at;index" json:"deletedAt,omitempty"`
+	CreatedAt                 time.Time      `gorm:"column:created_at;not null;index:idx_user_created_id,priority:1" json:"createdAt"`
+	UpdatedAt                 time.Time      `gorm:"column:updated_at;not null" json:"updatedAt"`
 }
 
 func (u *User) BeforeCreate(_ *gorm.DB) error {

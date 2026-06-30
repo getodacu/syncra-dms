@@ -99,15 +99,19 @@ func (RolePermission) TableName() string { return "role_permissions" }
 
 type UserRole struct {
 	ID                 string         `gorm:"type:uuid;primaryKey" json:"id"`
-	UserID             string         `gorm:"column:user_id;type:uuid;not null;index;uniqueIndex:idx_user_role_scope_unique,priority:1" json:"userId"`
+	UserID             string         `gorm:"column:user_id;type:uuid;not null;index;uniqueIndex:idx_user_role_scope_global_unique,priority:1,where:organization_unit_id IS NULL;uniqueIndex:idx_user_role_scope_unit_unique,priority:1,where:organization_unit_id IS NOT NULL" json:"userId"`
 	User               auth.User      `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"-"`
-	RoleID             string         `gorm:"column:role_id;type:uuid;not null;index;uniqueIndex:idx_user_role_scope_unique,priority:2" json:"roleId"`
+	RoleID             string         `gorm:"column:role_id;type:uuid;not null;index;uniqueIndex:idx_user_role_scope_global_unique,priority:2,where:organization_unit_id IS NULL;uniqueIndex:idx_user_role_scope_unit_unique,priority:2,where:organization_unit_id IS NOT NULL" json:"roleId"`
 	Role               Role           `gorm:"foreignKey:RoleID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"-"`
-	ScopeType          ScopeType      `gorm:"column:scope_type;not null;size:40;uniqueIndex:idx_user_role_scope_unique,priority:3" json:"scopeType"`
-	OrganizationUnitID *string        `gorm:"column:organization_unit_id;type:uuid;uniqueIndex:idx_user_role_scope_unique,priority:4" json:"organizationUnitId,omitempty"`
+	ScopeType          ScopeType      `gorm:"column:scope_type;not null;size:40;check:chk_user_roles_scope_type,scope_type IN ('global','organization_unit','organization_unit_and_children');check:chk_user_roles_scope_organization_unit,(scope_type = 'global' AND organization_unit_id IS NULL) OR (scope_type IN ('organization_unit','organization_unit_and_children') AND organization_unit_id IS NOT NULL);uniqueIndex:idx_user_role_scope_global_unique,priority:3,where:organization_unit_id IS NULL;uniqueIndex:idx_user_role_scope_unit_unique,priority:3,where:organization_unit_id IS NOT NULL" json:"scopeType"`
+	OrganizationUnitID *string        `gorm:"column:organization_unit_id;type:uuid;uniqueIndex:idx_user_role_scope_unit_unique,priority:4,where:organization_unit_id IS NOT NULL" json:"organizationUnitId,omitempty"`
 	OrganizationUnit   *orgunits.Unit `gorm:"foreignKey:OrganizationUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT" json:"-"`
 	CreatedAt          time.Time      `gorm:"column:created_at;not null" json:"createdAt"`
 	UpdatedAt          time.Time      `gorm:"column:updated_at;not null" json:"updatedAt"`
+}
+
+func (r *UserRole) BeforeSave(_ *gorm.DB) error {
+	return validateScopedOrganizationUnit(r.ScopeType, r.OrganizationUnitID)
 }
 
 func (r *UserRole) BeforeCreate(_ *gorm.DB) error {
@@ -160,14 +164,18 @@ func (GroupUser) TableName() string { return "group_users" }
 
 type GroupRole struct {
 	ID                 string         `gorm:"type:uuid;primaryKey" json:"id"`
-	GroupID            string         `gorm:"column:group_id;type:uuid;not null;uniqueIndex:idx_group_role_scope_unique,priority:1" json:"groupId"`
+	GroupID            string         `gorm:"column:group_id;type:uuid;not null;uniqueIndex:idx_group_role_scope_global_unique,priority:1,where:organization_unit_id IS NULL;uniqueIndex:idx_group_role_scope_unit_unique,priority:1,where:organization_unit_id IS NOT NULL" json:"groupId"`
 	Group              Group          `gorm:"foreignKey:GroupID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"-"`
-	RoleID             string         `gorm:"column:role_id;type:uuid;not null;uniqueIndex:idx_group_role_scope_unique,priority:2" json:"roleId"`
+	RoleID             string         `gorm:"column:role_id;type:uuid;not null;uniqueIndex:idx_group_role_scope_global_unique,priority:2,where:organization_unit_id IS NULL;uniqueIndex:idx_group_role_scope_unit_unique,priority:2,where:organization_unit_id IS NOT NULL" json:"roleId"`
 	Role               Role           `gorm:"foreignKey:RoleID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"-"`
-	ScopeType          ScopeType      `gorm:"column:scope_type;not null;size:40;uniqueIndex:idx_group_role_scope_unique,priority:3" json:"scopeType"`
-	OrganizationUnitID *string        `gorm:"column:organization_unit_id;type:uuid;uniqueIndex:idx_group_role_scope_unique,priority:4" json:"organizationUnitId,omitempty"`
+	ScopeType          ScopeType      `gorm:"column:scope_type;not null;size:40;check:chk_group_roles_scope_type,scope_type IN ('global','organization_unit','organization_unit_and_children');check:chk_group_roles_scope_organization_unit,(scope_type = 'global' AND organization_unit_id IS NULL) OR (scope_type IN ('organization_unit','organization_unit_and_children') AND organization_unit_id IS NOT NULL);uniqueIndex:idx_group_role_scope_global_unique,priority:3,where:organization_unit_id IS NULL;uniqueIndex:idx_group_role_scope_unit_unique,priority:3,where:organization_unit_id IS NOT NULL" json:"scopeType"`
+	OrganizationUnitID *string        `gorm:"column:organization_unit_id;type:uuid;uniqueIndex:idx_group_role_scope_unit_unique,priority:4,where:organization_unit_id IS NOT NULL" json:"organizationUnitId,omitempty"`
 	OrganizationUnit   *orgunits.Unit `gorm:"foreignKey:OrganizationUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT" json:"-"`
 	CreatedAt          time.Time      `gorm:"column:created_at;not null" json:"createdAt"`
+}
+
+func (g *GroupRole) BeforeSave(_ *gorm.DB) error {
+	return validateScopedOrganizationUnit(g.ScopeType, g.OrganizationUnitID)
 }
 
 func (g *GroupRole) BeforeCreate(_ *gorm.DB) error {
@@ -185,8 +193,12 @@ type OrganizationUnitRole struct {
 	OrganizationUnit   orgunits.Unit `gorm:"foreignKey:OrganizationUnitID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"-"`
 	RoleID             string        `gorm:"column:role_id;type:uuid;not null;uniqueIndex:idx_organization_unit_role_unique,priority:2" json:"roleId"`
 	Role               Role          `gorm:"foreignKey:RoleID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"-"`
-	ScopeType          ScopeType     `gorm:"column:scope_type;not null;size:40;uniqueIndex:idx_organization_unit_role_unique,priority:3" json:"scopeType"`
+	ScopeType          ScopeType     `gorm:"column:scope_type;not null;size:40;check:chk_organization_unit_roles_scope_type,scope_type IN ('global','organization_unit','organization_unit_and_children');uniqueIndex:idx_organization_unit_role_unique,priority:3" json:"scopeType"`
 	CreatedAt          time.Time     `gorm:"column:created_at;not null" json:"createdAt"`
+}
+
+func (o *OrganizationUnitRole) BeforeSave(_ *gorm.DB) error {
+	return validateScopeType(o.ScopeType)
 }
 
 func (o *OrganizationUnitRole) BeforeCreate(_ *gorm.DB) error {
@@ -197,6 +209,29 @@ func (o *OrganizationUnitRole) BeforeCreate(_ *gorm.DB) error {
 }
 
 func (OrganizationUnitRole) TableName() string { return "organization_unit_roles" }
+
+func validateScopeType(scope ScopeType) error {
+	if !scope.Valid() {
+		return errors.New("scope_type is invalid")
+	}
+	return nil
+}
+
+func validateScopedOrganizationUnit(scope ScopeType, organizationUnitID *string) error {
+	if err := validateScopeType(scope); err != nil {
+		return err
+	}
+	if scope == ScopeGlobal {
+		if organizationUnitID != nil {
+			return errors.New("global scope must not include an organization unit")
+		}
+		return nil
+	}
+	if organizationUnitID == nil {
+		return errors.New("organization unit scope requires an organization unit")
+	}
+	return nil
+}
 
 var codeNonAlnum = regexp.MustCompile(`[^a-z0-9]+`)
 

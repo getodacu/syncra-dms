@@ -466,7 +466,7 @@ func (h *authHandler) verifyEmailOTP(c *gin.Context) {
 		if err := tx.Delete(&verification).Error; err != nil {
 			return err
 		}
-		if err := tx.Model(&auth.User{}).Where("id = ?", user.ID).Update("email_verified", true).Error; err != nil {
+		if err := markEmailVerified(tx, user.ID, time.Now().UTC()); err != nil {
 			return err
 		}
 		return tx.First(&user, "id = ?", user.ID).Error
@@ -880,10 +880,12 @@ func (h *authHandler) upsertOAuthUser(profile OAuthProfile) (auth.User, error) {
 				return err
 			}
 		} else if !user.EmailVerified && profile.Verified {
-			if err := tx.Model(&auth.User{}).Where("id = ?", user.ID).Update("email_verified", true).Error; err != nil {
+			if err := markEmailVerified(tx, user.ID, now); err != nil {
 				return err
 			}
-			user.EmailVerified = true
+			if err := tx.First(&user, "id = ?", user.ID).Error; err != nil {
+				return err
+			}
 		}
 		account = auth.AuthAccount{
 			AccountID:  profile.AccountID,
@@ -908,6 +910,14 @@ func upsertAccount(tx *gorm.DB, account auth.AuthAccount) error {
 			"updated_at": account.UpdatedAt,
 		}),
 	}).Create(&account).Error
+}
+
+func markEmailVerified(tx *gorm.DB, userID string, now time.Time) error {
+	return tx.Model(&auth.User{}).Where("id = ?", userID).Updates(map[string]any{
+		"email_verified": true,
+		"status":         gorm.Expr("CASE WHEN status = ? THEN ? ELSE status END", "invited", "active"),
+		"updated_at":     now,
+	}).Error
 }
 
 func (h *authHandler) fetchOAuthProfile(ctx context.Context, providerID string, code string, redirectURI string) (OAuthProfile, error) {
