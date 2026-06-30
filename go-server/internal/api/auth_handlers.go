@@ -592,7 +592,7 @@ func (h *authHandler) confirmPasswordReset(c *gin.Context) {
 		if err := upsertAccount(tx, account); err != nil {
 			return err
 		}
-		if err := tx.Model(&auth.User{}).Where("id = ?", user.ID).Update("email_verified", true).Error; err != nil {
+		if err := markEmailVerified(tx, user.ID, now); err != nil {
 			return err
 		}
 		return tx.Where("user_id = ?", user.ID).Delete(&auth.Session{}).Error
@@ -856,6 +856,12 @@ func (h *authHandler) upsertOAuthUser(profile OAuthProfile) (auth.User, error) {
 			user = account.User
 			if user.ID == "" {
 				return errors.New("oauth account has no user")
+			}
+			if !user.EmailVerified && profile.Verified {
+				if err := markEmailVerified(tx, user.ID, now); err != nil {
+					return err
+				}
+				return tx.First(&user, "id = ?", user.ID).Error
 			}
 			return nil
 		}
