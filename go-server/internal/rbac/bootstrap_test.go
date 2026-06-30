@@ -20,6 +20,10 @@ func TestBootstrapLegacyAdminsAssignsSystemAdministratorRole(t *testing.T) {
 	if err := db.Create(&admin).Error; err != nil {
 		t.Fatalf("create admin: %v", err)
 	}
+	var adminRole Role
+	if err := db.First(&adminRole, "code = ?", SystemAdministratorRoleCode).Error; err != nil {
+		t.Fatalf("load system administrator role: %v", err)
+	}
 
 	if err := BootstrapLegacyAdmins(db); err != nil {
 		t.Fatalf("bootstrap: %v", err)
@@ -29,7 +33,40 @@ func TestBootstrapLegacyAdminsAssignsSystemAdministratorRole(t *testing.T) {
 	}
 
 	var count int64
-	if err := db.Model(&UserRole{}).Where("user_id = ? AND scope_type = ?", admin.ID, ScopeGlobal).Count(&count).Error; err != nil {
+	if err := db.Model(&UserRole{}).Where("user_id = ? AND role_id = ? AND scope_type = ?", admin.ID, adminRole.ID, ScopeGlobal).Count(&count).Error; err != nil {
+		t.Fatalf("count user roles: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("user role count = %d, want 1", count)
+	}
+}
+
+func TestBootstrapLegacyAdminsAssignsEmptyStatusLegacyAdmin(t *testing.T) {
+	db := newBootstrapTestDB(t)
+	if err := SeedDefaults(db); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	admin := auth.User{Name: "Legacy Admin", Email: "legacy-admin@example.com", EmailVerified: true, Role: auth.UserRoleAdmin, Status: string(UserStatusActive), CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	if err := db.Create(&admin).Error; err != nil {
+		t.Fatalf("create admin: %v", err)
+	}
+	if err := db.Exec("PRAGMA ignore_check_constraints = ON").Error; err != nil {
+		t.Fatalf("disable sqlite check constraints: %v", err)
+	}
+	if err := db.Model(&auth.User{}).Where("id = ?", admin.ID).Update("status", "").Error; err != nil {
+		t.Fatalf("clear admin status: %v", err)
+	}
+	var adminRole Role
+	if err := db.First(&adminRole, "code = ?", SystemAdministratorRoleCode).Error; err != nil {
+		t.Fatalf("load system administrator role: %v", err)
+	}
+
+	if err := BootstrapLegacyAdmins(db); err != nil {
+		t.Fatalf("bootstrap: %v", err)
+	}
+
+	var count int64
+	if err := db.Model(&UserRole{}).Where("user_id = ? AND role_id = ? AND scope_type = ?", admin.ID, adminRole.ID, ScopeGlobal).Count(&count).Error; err != nil {
 		t.Fatalf("count user roles: %v", err)
 	}
 	if count != 1 {

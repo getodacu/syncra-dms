@@ -30,6 +30,8 @@ const (
 	oauthStateTTL         = 10 * time.Minute
 )
 
+var errAuthUserInactive = errors.New("user account is not active")
+
 type authHandler struct {
 	db                  *gorm.DB
 	betterAuthSecret    string
@@ -454,6 +456,9 @@ func (h *authHandler) verifyEmailOTP(c *gin.Context) {
 			invalid = true
 			return nil
 		}
+		if !authUserCanUseCredentialLifecycle(user) {
+			return errAuthUserInactive
+		}
 		verification, ok, err := h.loadVerification(tx, verificationIdentifier(email))
 		if err != nil {
 			return err
@@ -475,6 +480,10 @@ func (h *authHandler) verifyEmailOTP(c *gin.Context) {
 		}
 		return tx.First(&user, "id = ?", user.ID).Error
 	}); err != nil {
+		if errors.Is(err, errAuthUserInactive) {
+			writeError(c, http.StatusForbidden, errAuthUserInactive.Error())
+			return
+		}
 		writeError(c, http.StatusInternalServerError, "failed to verify email")
 		return
 	}
@@ -508,6 +517,10 @@ func (h *authHandler) requestPasswordReset(c *gin.Context) {
 	}
 	if result.RowsAffected == 0 {
 		c.JSON(http.StatusOK, requestPasswordResetResponse{OK: true})
+		return
+	}
+	if !authUserCanUseCredentialLifecycle(user) {
+		writeError(c, http.StatusForbidden, errAuthUserInactive.Error())
 		return
 	}
 
@@ -568,6 +581,9 @@ func (h *authHandler) confirmPasswordReset(c *gin.Context) {
 			invalid = true
 			return nil
 		}
+		if !authUserCanUseCredentialLifecycle(user) {
+			return errAuthUserInactive
+		}
 		verification, ok, err := h.loadVerification(tx, passwordResetIdentifier(email))
 		if err != nil {
 			return err
@@ -601,6 +617,10 @@ func (h *authHandler) confirmPasswordReset(c *gin.Context) {
 		}
 		return tx.Where("user_id = ?", user.ID).Delete(&auth.Session{}).Error
 	}); err != nil {
+		if errors.Is(err, errAuthUserInactive) {
+			writeError(c, http.StatusForbidden, errAuthUserInactive.Error())
+			return
+		}
 		writeError(c, http.StatusInternalServerError, "failed to reset password")
 		return
 	}
@@ -705,6 +725,10 @@ func (h *authHandler) signInOAuth(c *gin.Context, providerID string) {
 	}
 	user, err := h.upsertOAuthUser(profile)
 	if err != nil {
+		if errors.Is(err, errAuthUserInactive) {
+			writeError(c, http.StatusForbidden, errAuthUserInactive.Error())
+			return
+		}
 		writeError(c, http.StatusInternalServerError, "failed to save oauth user")
 		return
 	}
@@ -872,6 +896,9 @@ func (h *authHandler) upsertOAuthUser(profile OAuthProfile) (auth.User, error) {
 			if user.ID == "" {
 				return errors.New("oauth account has no user")
 			}
+			if !authUserCanUseOAuthProfile(user, profile) {
+				return errAuthUserInactive
+			}
 			if shouldPromoteOAuthVerifiedUser(user, profile) {
 				if err := markEmailVerified(tx, user.ID, now); err != nil {
 					return err
@@ -885,6 +912,9 @@ func (h *authHandler) upsertOAuthUser(profile OAuthProfile) (auth.User, error) {
 			return result.Error
 		}
 		if result.RowsAffected == 0 {
+			if !profile.Verified {
+				return errAuthUserInactive
+			}
 			name := strings.TrimSpace(profile.Name)
 			if name == "" {
 				name = email
@@ -900,12 +930,17 @@ func (h *authHandler) upsertOAuthUser(profile OAuthProfile) (auth.User, error) {
 			if err := tx.Create(&user).Error; err != nil {
 				return err
 			}
-		} else if shouldPromoteOAuthVerifiedUser(user, profile) {
-			if err := markEmailVerified(tx, user.ID, now); err != nil {
-				return err
+		} else {
+			if !authUserCanUseOAuthProfile(user, profile) {
+				return errAuthUserInactive
 			}
-			if err := tx.First(&user, "id = ?", user.ID).Error; err != nil {
-				return err
+			if shouldPromoteOAuthVerifiedUser(user, profile) {
+				if err := markEmailVerified(tx, user.ID, now); err != nil {
+					return err
+				}
+				if err := tx.First(&user, "id = ?", user.ID).Error; err != nil {
+					return err
+				}
 			}
 		}
 		account = auth.AuthAccount{
@@ -945,8 +980,20 @@ func shouldPromoteOAuthVerifiedUser(user auth.User, profile OAuthProfile) bool {
 	return profile.Verified && (!user.EmailVerified || user.Status == "invited")
 }
 
+func authUserCanUseOAuthProfile(user auth.User, profile OAuthProfile) bool {
+	return authUserActive(user) || (authUserInvited(user) && shouldPromoteOAuthVerifiedUser(user, profile))
+}
+
+func authUserCanUseCredentialLifecycle(user auth.User) bool {
+	return authUserActive(user) || authUserInvited(user)
+}
+
 func authUserActive(user auth.User) bool {
-	return user.Status == "" || user.Status == "active"
+	return (user.Status == "" || user.Status == "active") && user.DeletedAt == nil
+}
+
+func authUserInvited(user auth.User) bool {
+	return user.Status == "invited" && user.DeletedAt == nil
 }
 
 func (h *authHandler) fetchOAuthProfile(ctx context.Context, providerID string, code string, redirectURI string) (OAuthProfile, error) {

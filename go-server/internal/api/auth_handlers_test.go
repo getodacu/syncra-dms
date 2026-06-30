@@ -209,6 +209,20 @@ func TestDeletedUserCannotSignIn(t *testing.T) {
 	}
 }
 
+func TestSoftDeletedActiveUserCannotSignIn(t *testing.T) {
+	router, db := newAuthTestRouter(t)
+	user := createVerifiedUser(t, db, "soft-deleted@example.com", "password123")
+	softDeleteUser(t, db, user.ID)
+
+	response := authJSON(t, router, http.MethodPost, "/api/auth/sign-in/email", `{
+		"email":"soft-deleted@example.com",
+		"password":"password123"
+	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("status = %d body=%s, want forbidden", response.Code, response.Body.String())
+	}
+}
+
 func TestSuspendedUserSessionIsRejected(t *testing.T) {
 	router, db := newAuthTestRouter(t)
 	user := createVerifiedUser(t, db, "ada@example.com", "password123")
@@ -216,6 +230,32 @@ func TestSuspendedUserSessionIsRejected(t *testing.T) {
 	if err := db.Model(&auth.User{}).Where("id = ?", user.ID).Update("status", "suspended").Error; err != nil {
 		t.Fatalf("suspend user: %v", err)
 	}
+
+	response := authJSON(t, router, http.MethodGet, "/api/auth/get-session", "", map[string]string{
+		"X-Syncra-Internal-Token": testInternalToken,
+		"Cookie":                  "auth.session_token=" + token,
+	})
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d body=%s", response.Code, response.Body.String())
+	}
+	if strings.TrimSpace(response.Body.String()) != "null" {
+		t.Fatalf("body = %s, want null", response.Body.String())
+	}
+
+	var sessionCount int64
+	if err := db.Model(&auth.Session{}).Where("token = ?", token).Count(&sessionCount).Error; err != nil {
+		t.Fatalf("count session: %v", err)
+	}
+	if sessionCount != 0 {
+		t.Fatalf("session count = %d, want 0", sessionCount)
+	}
+}
+
+func TestSoftDeletedActiveUserSessionIsRejected(t *testing.T) {
+	router, db := newAuthTestRouter(t)
+	user := createVerifiedUser(t, db, "ada@example.com", "password123")
+	token := loginUser(t, router, user.Email, "password123")
+	softDeleteUser(t, db, user.ID)
 
 	response := authJSON(t, router, http.MethodGet, "/api/auth/get-session", "", map[string]string{
 		"X-Syncra-Internal-Token": testInternalToken,
@@ -277,6 +317,42 @@ func TestOAuthCallbackRejectsInvitedUserThatRemainsInvited(t *testing.T) {
 	if user.Status != "invited" {
 		t.Fatalf("user status = %q, want invited", user.Status)
 	}
+	assertOAuthAccountCount(t, db, auth.GoogleProviderID, "google-invited-account", 0)
+}
+
+func TestOAuthCallbackRejectsNewUnverifiedUserWithoutSideEffects(t *testing.T) {
+	router, db := newAuthTestRouterWithOptions(t, RouterOptions{
+		GoogleClientID:     "google-client",
+		GoogleClientSecret: "google-secret",
+		OAuthProfileFetcher: func(_ context.Context, providerID string, code string, redirectURI string) (OAuthProfile, error) {
+			return OAuthProfile{
+				ProviderID: providerID,
+				AccountID:  "google-new-unverified",
+				Email:      "new-user@example.com",
+				Name:       "New User",
+				Verified:   false,
+			}, nil
+		},
+	})
+
+	response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
+		"code":"oauth-code",
+		"state":"state",
+		"redirectURI":"http://localhost:5173/api/auth/google/callback"
+	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("oauth callback status = %d body=%s, want forbidden", response.Code, response.Body.String())
+	}
+	assertSessionCount(t, db, 0)
+	assertOAuthAccountCount(t, db, auth.GoogleProviderID, "google-new-unverified", 0)
+
+	var userCount int64
+	if err := db.Model(&auth.User{}).Where("email = ?", "new-user@example.com").Count(&userCount).Error; err != nil {
+		t.Fatalf("count users: %v", err)
+	}
+	if userCount != 0 {
+		t.Fatalf("user count = %d, want 0", userCount)
+	}
 }
 
 func TestActiveUserCanSignIn(t *testing.T) {
@@ -290,6 +366,95 @@ func TestActiveUserCanSignIn(t *testing.T) {
 	if response.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s, want ok", response.Code, response.Body.String())
 	}
+}
+
+func TestOAuthCallbackRejectsNonActiveExistingUsersWithoutSideEffects(t *testing.T) {
+	tests := []struct {
+		name       string
+		status     string
+		softDelete bool
+	}{
+		{name: "inactive", status: "inactive"},
+		{name: "suspended", status: "suspended"},
+		{name: "deleted status", status: "deleted"},
+		{name: "soft deleted active", status: "active", softDelete: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			accountID := "google-" + strings.ReplaceAll(tc.name, " ", "-")
+			router, db := newAuthTestRouterWithOptions(t, RouterOptions{
+				GoogleClientID:     "google-client",
+				GoogleClientSecret: "google-secret",
+				OAuthProfileFetcher: func(_ context.Context, providerID string, code string, redirectURI string) (OAuthProfile, error) {
+					return OAuthProfile{
+						ProviderID: providerID,
+						AccountID:  accountID,
+						Email:      "ada@example.com",
+						Name:       "Updated Ada",
+						Verified:   true,
+					}, nil
+				},
+			})
+			user := createStatusUser(t, db, "ada@example.com", tc.status, false, tc.softDelete)
+			before := captureAuthUserState(t, db, user.ID)
+
+			response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
+				"code":"oauth-code",
+				"state":"state",
+				"redirectURI":"http://localhost:5173/api/auth/google/callback"
+			}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+			if response.Code != http.StatusForbidden {
+				t.Fatalf("oauth callback status = %d body=%s, want forbidden", response.Code, response.Body.String())
+			}
+			assertSessionCount(t, db, 0)
+			assertOAuthAccountCount(t, db, auth.GoogleProviderID, accountID, 0)
+			after := captureAuthUserState(t, db, user.ID)
+			assertAuthUserStateUnchanged(t, before, after)
+		})
+	}
+}
+
+func TestOAuthCallbackRejectsLinkedNonActiveUserWithoutMutation(t *testing.T) {
+	router, db := newAuthTestRouterWithOptions(t, RouterOptions{
+		GoogleClientID:     "google-client",
+		GoogleClientSecret: "google-secret",
+		OAuthProfileFetcher: func(_ context.Context, providerID string, code string, redirectURI string) (OAuthProfile, error) {
+			return OAuthProfile{
+				ProviderID: providerID,
+				AccountID:  "google-linked-inactive",
+				Email:      "ada@example.com",
+				Name:       "Updated Ada",
+				Verified:   true,
+			}, nil
+		},
+	})
+	user := createStatusUser(t, db, "ada@example.com", "inactive", false, false)
+	now := time.Now().UTC()
+	account := auth.AuthAccount{
+		AccountID:  "google-linked-inactive",
+		ProviderID: auth.GoogleProviderID,
+		UserID:     user.ID,
+		CreatedAt:  now,
+		UpdatedAt:  now,
+	}
+	if err := db.Create(&account).Error; err != nil {
+		t.Fatalf("create linked oauth account: %v", err)
+	}
+	before := captureAuthUserState(t, db, user.ID)
+
+	response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
+		"code":"oauth-code",
+		"state":"state",
+		"redirectURI":"http://localhost:5173/api/auth/google/callback"
+	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("oauth callback status = %d body=%s, want forbidden", response.Code, response.Body.String())
+	}
+	assertSessionCount(t, db, 0)
+	assertOAuthAccountCount(t, db, auth.GoogleProviderID, "google-linked-inactive", 1)
+	after := captureAuthUserState(t, db, user.ID)
+	assertAuthUserStateUnchanged(t, before, after)
 }
 
 func TestPasswordResetConsumesTokenAndRevokesSessions(t *testing.T) {
@@ -362,6 +527,73 @@ func TestPasswordResetTokenOnlyReturnedForTrustedDelivery(t *testing.T) {
 	}
 }
 
+func TestPasswordResetRequestRejectsNonActiveUsersWithoutToken(t *testing.T) {
+	tests := []struct {
+		name       string
+		status     string
+		softDelete bool
+	}{
+		{name: "inactive", status: "inactive"},
+		{name: "suspended", status: "suspended"},
+		{name: "deleted status", status: "deleted"},
+		{name: "soft deleted active", status: "active", softDelete: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			router, db := newAuthTestRouter(t)
+			user := createStatusUser(t, db, "ada@example.com", tc.status, true, tc.softDelete)
+			before := captureAuthUserState(t, db, user.ID)
+
+			response := authJSON(t, router, http.MethodPost, "/api/auth/password-reset/request", `{
+				"email":"ada@example.com"
+			}`, trustedAuthHeaders())
+			if response.Code != http.StatusForbidden {
+				t.Fatalf("reset request status = %d body=%s, want forbidden", response.Code, response.Body.String())
+			}
+			assertVerificationCount(t, db, passwordResetIdentifier("ada@example.com"), 0)
+			after := captureAuthUserState(t, db, user.ID)
+			assertAuthUserStateUnchanged(t, before, after)
+		})
+	}
+}
+
+func TestPasswordResetConfirmRejectsNonActiveUsersWithoutMutation(t *testing.T) {
+	tests := []struct {
+		name       string
+		status     string
+		softDelete bool
+	}{
+		{name: "inactive", status: "inactive"},
+		{name: "suspended", status: "suspended"},
+		{name: "deleted status", status: "deleted"},
+		{name: "soft deleted active", status: "active", softDelete: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			router, db := newAuthTestRouter(t)
+			user := createVerifiedUser(t, db, "ada@example.com", "old-password")
+			setUserLifecycleState(t, db, user.ID, tc.status, tc.softDelete)
+			token := createPasswordResetVerification(t, db, "ada@example.com")
+			before := captureAuthUserState(t, db, user.ID)
+
+			response := authJSON(t, router, http.MethodPost, "/api/auth/password-reset/confirm", `{
+				"email":"ada@example.com",
+				"token":"`+token+`",
+				"password":"new-password"
+			}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+			if response.Code != http.StatusForbidden {
+				t.Fatalf("reset confirm status = %d body=%s, want forbidden", response.Code, response.Body.String())
+			}
+			assertVerificationCount(t, db, passwordResetIdentifier("ada@example.com"), 1)
+			assertCredentialPassword(t, db, user.ID, "old-password")
+			after := captureAuthUserState(t, db, user.ID)
+			assertAuthUserStateUnchanged(t, before, after)
+		})
+	}
+}
+
 func TestPasswordResetPromotesInvitedUser(t *testing.T) {
 	router, db := newAuthTestRouter(t)
 	user := createInvitedUser(t, db, "ada@example.com")
@@ -398,6 +630,98 @@ func TestPasswordResetPromotesInvitedUser(t *testing.T) {
 	}
 	if promoted.Status != "active" {
 		t.Fatalf("password reset promoted user status = %q, want active", promoted.Status)
+	}
+}
+
+func TestVerifyEmailOTPRejectsNonActiveUsersWithoutMutation(t *testing.T) {
+	tests := []struct {
+		name       string
+		status     string
+		softDelete bool
+	}{
+		{name: "inactive", status: "inactive"},
+		{name: "suspended", status: "suspended"},
+		{name: "deleted status", status: "deleted"},
+		{name: "soft deleted active", status: "active", softDelete: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			router, db := newAuthTestRouter(t)
+			user := createStatusUser(t, db, "ada@example.com", tc.status, false, tc.softDelete)
+			code := createEmailVerification(t, db, "ada@example.com")
+			before := captureAuthUserState(t, db, user.ID)
+
+			response := authJSON(t, router, http.MethodPost, "/api/auth/email-otp/verify-email", `{
+				"email":"ada@example.com",
+				"otp":"`+code+`"
+			}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+			if response.Code != http.StatusForbidden {
+				t.Fatalf("verify status = %d body=%s, want forbidden", response.Code, response.Body.String())
+			}
+			assertVerificationCount(t, db, verificationIdentifier("ada@example.com"), 1)
+			after := captureAuthUserState(t, db, user.ID)
+			assertAuthUserStateUnchanged(t, before, after)
+		})
+	}
+}
+
+func TestVerifyEmailOTPPreservesInvitedAndActivePromotion(t *testing.T) {
+	tests := []struct {
+		name       string
+		createUser func(*testing.T, *gorm.DB) auth.User
+	}{
+		{
+			name: "invited",
+			createUser: func(t *testing.T, db *gorm.DB) auth.User {
+				return createInvitedUser(t, db, "ada@example.com")
+			},
+		},
+		{
+			name: "active",
+			createUser: func(t *testing.T, db *gorm.DB) auth.User {
+				now := time.Now().UTC()
+				user := auth.User{
+					Name:          "Ada Lovelace",
+					Email:         "ada@example.com",
+					EmailVerified: false,
+					Status:        "active",
+					CreatedAt:     now,
+					UpdatedAt:     now,
+				}
+				if err := db.Create(&user).Error; err != nil {
+					t.Fatalf("create active user: %v", err)
+				}
+				return user
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			router, db := newAuthTestRouter(t)
+			user := tc.createUser(t, db)
+			code := createEmailVerification(t, db, "ada@example.com")
+
+			response := authJSON(t, router, http.MethodPost, "/api/auth/email-otp/verify-email", `{
+				"email":"ada@example.com",
+				"otp":"`+code+`"
+			}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+			if response.Code != http.StatusOK {
+				t.Fatalf("verify status = %d body=%s", response.Code, response.Body.String())
+			}
+
+			var verified auth.User
+			if err := db.First(&verified, "id = ?", user.ID).Error; err != nil {
+				t.Fatalf("load verified user: %v", err)
+			}
+			if !verified.EmailVerified {
+				t.Fatal("email verified = false, want true")
+			}
+			if verified.Status != "active" {
+				t.Fatalf("status = %q, want active", verified.Status)
+			}
+		})
 	}
 }
 
@@ -814,6 +1138,173 @@ func createVerifiedInvitedUser(t *testing.T, db *gorm.DB, email string) auth.Use
 		t.Fatalf("created user status = %q, want invited", user.Status)
 	}
 	return user
+}
+
+func createStatusUser(t *testing.T, db *gorm.DB, email string, status string, emailVerified bool, softDelete bool) auth.User {
+	t.Helper()
+	now := time.Now().UTC()
+	user := auth.User{
+		Name:          "Ada Lovelace",
+		Email:         email,
+		EmailVerified: emailVerified,
+		Status:        status,
+		CreatedAt:     now,
+		UpdatedAt:     now,
+	}
+	if softDelete {
+		user.DeletedAt = &now
+	}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatalf("create status user: %v", err)
+	}
+	return user
+}
+
+func softDeleteUser(t *testing.T, db *gorm.DB, userID string) {
+	t.Helper()
+	setUserLifecycleState(t, db, userID, "active", true)
+}
+
+func setUserLifecycleState(t *testing.T, db *gorm.DB, userID string, status string, softDelete bool) {
+	t.Helper()
+	updates := map[string]any{"status": status}
+	if softDelete {
+		now := time.Now().UTC()
+		updates["deleted_at"] = now
+	} else {
+		updates["deleted_at"] = nil
+	}
+	if err := db.Model(&auth.User{}).Where("id = ?", userID).Updates(updates).Error; err != nil {
+		t.Fatalf("set user lifecycle state: %v", err)
+	}
+}
+
+type authUserState struct {
+	Name          string
+	Email         string
+	EmailVerified bool
+	Status        string
+	DeletedAt     *time.Time
+	LastLoginAt   *time.Time
+	UpdatedAt     time.Time
+}
+
+func captureAuthUserState(t *testing.T, db *gorm.DB, userID string) authUserState {
+	t.Helper()
+	var user auth.User
+	if err := db.First(&user, "id = ?", userID).Error; err != nil {
+		t.Fatalf("load user state: %v", err)
+	}
+	return authUserState{
+		Name:          user.Name,
+		Email:         user.Email,
+		EmailVerified: user.EmailVerified,
+		Status:        user.Status,
+		DeletedAt:     cloneTimePtr(user.DeletedAt),
+		LastLoginAt:   cloneTimePtr(user.LastLoginAt),
+		UpdatedAt:     user.UpdatedAt,
+	}
+}
+
+func assertAuthUserStateUnchanged(t *testing.T, before authUserState, after authUserState) {
+	t.Helper()
+	if before.Name != after.Name ||
+		before.Email != after.Email ||
+		before.EmailVerified != after.EmailVerified ||
+		before.Status != after.Status ||
+		!timePtrEqual(before.DeletedAt, after.DeletedAt) ||
+		!timePtrEqual(before.LastLoginAt, after.LastLoginAt) ||
+		!before.UpdatedAt.Equal(after.UpdatedAt) {
+		t.Fatalf("user state changed\nbefore=%#v\nafter=%#v", before, after)
+	}
+}
+
+func cloneTimePtr(value *time.Time) *time.Time {
+	if value == nil {
+		return nil
+	}
+	clone := *value
+	return &clone
+}
+
+func timePtrEqual(left *time.Time, right *time.Time) bool {
+	if left == nil || right == nil {
+		return left == nil && right == nil
+	}
+	return left.Equal(*right)
+}
+
+func createEmailVerification(t *testing.T, db *gorm.DB, email string) string {
+	t.Helper()
+	code := "123456"
+	createVerification(t, db, verificationIdentifier(email), code)
+	return code
+}
+
+func createPasswordResetVerification(t *testing.T, db *gorm.DB, email string) string {
+	t.Helper()
+	token := "reset-token"
+	createVerification(t, db, passwordResetIdentifier(email), token)
+	return token
+}
+
+func createVerification(t *testing.T, db *gorm.DB, identifier string, plaintext string) {
+	t.Helper()
+	now := time.Now().UTC()
+	verification := auth.Verification{
+		Identifier: identifier,
+		Value:      auth.HashCode(testBetterAuthSecret, identifier, plaintext),
+		ExpiresAt:  now.Add(5 * time.Minute),
+		CreatedAt:  now,
+		UpdatedAt:  now,
+	}
+	if err := db.Create(&verification).Error; err != nil {
+		t.Fatalf("create verification: %v", err)
+	}
+}
+
+func assertSessionCount(t *testing.T, db *gorm.DB, want int64) {
+	t.Helper()
+	var count int64
+	if err := db.Model(&auth.Session{}).Count(&count).Error; err != nil {
+		t.Fatalf("count sessions: %v", err)
+	}
+	if count != want {
+		t.Fatalf("session count = %d, want %d", count, want)
+	}
+}
+
+func assertOAuthAccountCount(t *testing.T, db *gorm.DB, providerID string, accountID string, want int64) {
+	t.Helper()
+	var count int64
+	if err := db.Model(&auth.AuthAccount{}).Where("provider_id = ? AND account_id = ?", providerID, accountID).Count(&count).Error; err != nil {
+		t.Fatalf("count oauth accounts: %v", err)
+	}
+	if count != want {
+		t.Fatalf("oauth account count = %d, want %d", count, want)
+	}
+}
+
+func assertVerificationCount(t *testing.T, db *gorm.DB, identifier string, want int64) {
+	t.Helper()
+	var count int64
+	if err := db.Model(&auth.Verification{}).Where("identifier = ?", identifier).Count(&count).Error; err != nil {
+		t.Fatalf("count verifications: %v", err)
+	}
+	if count != want {
+		t.Fatalf("verification count = %d, want %d", count, want)
+	}
+}
+
+func assertCredentialPassword(t *testing.T, db *gorm.DB, userID string, password string) {
+	t.Helper()
+	var account auth.AuthAccount
+	if err := db.First(&account, "user_id = ? AND provider_id = ?", userID, auth.CredentialProviderID).Error; err != nil {
+		t.Fatalf("load credential account: %v", err)
+	}
+	if !auth.VerifyPassword(password, account.Password) {
+		t.Fatal("credential password was changed")
+	}
 }
 
 func loginUser(t *testing.T, router http.Handler, email string, password string) string {

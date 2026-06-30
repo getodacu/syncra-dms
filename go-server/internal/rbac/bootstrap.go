@@ -17,7 +17,7 @@ func BootstrapLegacyAdmins(db *gorm.DB) error {
 
 	var users []auth.User
 	if err := db.
-		Where("role = ? AND status = ? AND deleted_at IS NULL", auth.UserRoleAdmin, string(UserStatusActive)).
+		Where("role = ? AND status IN ? AND deleted_at IS NULL", auth.UserRoleAdmin, []string{string(UserStatusActive), ""}).
 		Find(&users).Error; err != nil {
 		return err
 	}
