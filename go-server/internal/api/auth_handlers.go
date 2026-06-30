@@ -321,6 +321,10 @@ func (h *authHandler) signInEmail(c *gin.Context) {
 		writeError(c, http.StatusForbidden, "email is not verified")
 		return
 	}
+	if !authUserActive(user) {
+		writeError(c, http.StatusForbidden, "user account is not active")
+		return
+	}
 
 	session, err := h.createSession(c, user)
 	if err != nil {
@@ -704,6 +708,10 @@ func (h *authHandler) signInOAuth(c *gin.Context, providerID string) {
 		writeError(c, http.StatusInternalServerError, "failed to save oauth user")
 		return
 	}
+	if !authUserActive(user) {
+		writeError(c, http.StatusForbidden, "user account is not active")
+		return
+	}
 	session, err := h.createSession(c, user)
 	if err != nil {
 		writeError(c, http.StatusInternalServerError, "failed to create session")
@@ -780,6 +788,13 @@ func (h *authHandler) loadAuthenticatedSession(c *gin.Context) (auth.Session, bo
 	if session.User.ID == "" || session.User.Email == "" {
 		if err := h.db.Where("token = ?", token).Delete(&auth.Session{}).Error; err != nil {
 			return auth.Session{}, false, errors.New("failed to delete stale session")
+		}
+		h.clearSessionCookie(c)
+		return auth.Session{}, false, nil
+	}
+	if !authUserActive(session.User) {
+		if err := h.db.Where("token = ?", token).Delete(&auth.Session{}).Error; err != nil {
+			return auth.Session{}, false, errors.New("failed to delete inactive user session")
 		}
 		h.clearSessionCookie(c)
 		return auth.Session{}, false, nil
@@ -928,6 +943,10 @@ func markEmailVerified(tx *gorm.DB, userID string, now time.Time) error {
 
 func shouldPromoteOAuthVerifiedUser(user auth.User, profile OAuthProfile) bool {
 	return profile.Verified && (!user.EmailVerified || user.Status == "invited")
+}
+
+func authUserActive(user auth.User) bool {
+	return user.Status == "" || user.Status == "active"
 }
 
 func (h *authHandler) fetchOAuthProfile(ctx context.Context, providerID string, code string, redirectURI string) (OAuthProfile, error) {

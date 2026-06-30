@@ -160,6 +160,138 @@ func TestEmailSignupVerifyLoginSessionAndSignOut(t *testing.T) {
 	}
 }
 
+func TestInactiveAndSuspendedUsersCannotSignIn(t *testing.T) {
+	tests := []struct {
+		name   string
+		email  string
+		status string
+	}{
+		{name: "inactive", email: "inactive@example.com", status: "inactive"},
+		{name: "suspended", email: "suspended@example.com", status: "suspended"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			router, db := newAuthTestRouter(t)
+			user := createVerifiedUser(t, db, tc.email, "password123")
+			if err := db.Model(&auth.User{}).Where("id = ?", user.ID).Update("status", tc.status).Error; err != nil {
+				t.Fatalf("set %s: %v", tc.status, err)
+			}
+
+			response := authJSON(t, router, http.MethodPost, "/api/auth/sign-in/email", `{
+				"email":"`+tc.email+`",
+				"password":"password123"
+			}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+			if response.Code != http.StatusForbidden {
+				t.Fatalf("status = %d body=%s, want forbidden", response.Code, response.Body.String())
+			}
+		})
+	}
+}
+
+func TestDeletedUserCannotSignIn(t *testing.T) {
+	router, db := newAuthTestRouter(t)
+	user := createVerifiedUser(t, db, "deleted@example.com", "password123")
+	now := time.Now().UTC()
+	if err := db.Model(&auth.User{}).Where("id = ?", user.ID).Updates(map[string]any{
+		"status":     "deleted",
+		"deleted_at": now,
+	}).Error; err != nil {
+		t.Fatalf("delete user: %v", err)
+	}
+
+	response := authJSON(t, router, http.MethodPost, "/api/auth/sign-in/email", `{
+		"email":"deleted@example.com",
+		"password":"password123"
+	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("status = %d body=%s, want forbidden", response.Code, response.Body.String())
+	}
+}
+
+func TestSuspendedUserSessionIsRejected(t *testing.T) {
+	router, db := newAuthTestRouter(t)
+	user := createVerifiedUser(t, db, "ada@example.com", "password123")
+	token := loginUser(t, router, user.Email, "password123")
+	if err := db.Model(&auth.User{}).Where("id = ?", user.ID).Update("status", "suspended").Error; err != nil {
+		t.Fatalf("suspend user: %v", err)
+	}
+
+	response := authJSON(t, router, http.MethodGet, "/api/auth/get-session", "", map[string]string{
+		"X-Syncra-Internal-Token": testInternalToken,
+		"Cookie":                  "auth.session_token=" + token,
+	})
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d body=%s", response.Code, response.Body.String())
+	}
+	if strings.TrimSpace(response.Body.String()) != "null" {
+		t.Fatalf("body = %s, want null", response.Body.String())
+	}
+
+	var sessionCount int64
+	if err := db.Model(&auth.Session{}).Where("token = ?", token).Count(&sessionCount).Error; err != nil {
+		t.Fatalf("count session: %v", err)
+	}
+	if sessionCount != 0 {
+		t.Fatalf("session count = %d, want 0", sessionCount)
+	}
+}
+
+func TestOAuthCallbackRejectsInvitedUserThatRemainsInvited(t *testing.T) {
+	router, db := newAuthTestRouterWithOptions(t, RouterOptions{
+		GoogleClientID:     "google-client",
+		GoogleClientSecret: "google-secret",
+		OAuthProfileFetcher: func(_ context.Context, providerID string, code string, redirectURI string) (OAuthProfile, error) {
+			return OAuthProfile{
+				ProviderID: providerID,
+				AccountID:  "google-invited-account",
+				Email:      "ada@example.com",
+				Name:       "Ada Lovelace",
+				Verified:   false,
+			}, nil
+		},
+	})
+	createInvitedUser(t, db, "ada@example.com")
+
+	response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
+		"code":"oauth-code",
+		"state":"state",
+		"redirectURI":"http://localhost:5173/api/auth/google/callback"
+	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("oauth callback status = %d body=%s, want forbidden", response.Code, response.Body.String())
+	}
+
+	var sessionCount int64
+	if err := db.Model(&auth.Session{}).Count(&sessionCount).Error; err != nil {
+		t.Fatalf("count sessions: %v", err)
+	}
+	if sessionCount != 0 {
+		t.Fatalf("session count = %d, want 0", sessionCount)
+	}
+
+	var user auth.User
+	if err := db.First(&user, "email = ?", "ada@example.com").Error; err != nil {
+		t.Fatalf("load invited user: %v", err)
+	}
+	if user.Status != "invited" {
+		t.Fatalf("user status = %q, want invited", user.Status)
+	}
+}
+
+func TestActiveUserCanSignIn(t *testing.T) {
+	router, db := newAuthTestRouter(t)
+	createVerifiedUser(t, db, "active@example.com", "password123")
+
+	response := authJSON(t, router, http.MethodPost, "/api/auth/sign-in/email", `{
+		"email":"active@example.com",
+		"password":"password123"
+	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d body=%s, want ok", response.Code, response.Body.String())
+	}
+}
+
 func TestPasswordResetConsumesTokenAndRevokesSessions(t *testing.T) {
 	router, db := newAuthTestRouter(t)
 	createVerifiedUser(t, db, "ada@example.com", "old-password")

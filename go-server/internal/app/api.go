@@ -33,6 +33,10 @@ func RunAPI(cfg config.Config) error {
 		logger.Error("api.rbac_seed_failed", "error", err)
 		return err
 	}
+	if err := rbac.BootstrapLegacyAdmins(db); err != nil {
+		logger.Error("api.rbac_bootstrap_failed", "error", err)
+		return err
+	}
 
 	router := api.NewRouter(api.RouterOptions{
 		Version: api.VersionInfo{
