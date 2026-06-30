@@ -5,9 +5,7 @@ import (
 	"io"
 	"os"
 
-	"ariga.io/atlas-provider-gorm/gormschema"
-
-	"ai.ro/syncra/dms/internal/database"
+	"ai.ro/syncra/dms/internal/dbschema"
 )
 
 func main() {
@@ -27,5 +25,5 @@ func run(stdout io.Writer) error {
 }
 
 func loadSchema() (string, error) {
-	return gormschema.New("postgres").Load(database.ApplicationModels()...)
+	return dbschema.LoadPostgresSchema()
 }

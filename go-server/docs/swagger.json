@@ -1,0 +1,306 @@
+{
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "schemes": [
+    "http"
+  ],
+  "swagger": "2.0",
+  "info": {
+    "description": "Syncra DMS backend API.",
+    "title": "Syncra DMS API",
+    "version": "0.1"
+  },
+  "host": "localhost:8080",
+  "basePath": "/",
+  "paths": {
+    "/api/auth/email-otp/send-verification-otp": {
+      "post": {
+        "description": "Trusted SvelteKit server action endpoint.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Send or rotate a six-digit email verification OTP.",
+        "operationId": "sendVerificationOTP",
+        "responses": {
+          "200": {
+            "description": "OTP was created when the account exists and is unverified."
+          },
+          "400": {
+            "description": "Invalid OTP request."
+          },
+          "401": {
+            "description": "Trusted internal request required."
+          }
+        }
+      }
+    },
+    "/api/auth/email-otp/verify-email": {
+      "post": {
+        "description": "Trusted SvelteKit server action endpoint.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Confirm an email address with a six-digit OTP.",
+        "operationId": "verifyEmailOTP",
+        "responses": {
+          "200": {
+            "description": "Email was verified."
+          },
+          "400": {
+            "description": "Invalid or expired verification code."
+          },
+          "401": {
+            "description": "Trusted internal request required."
+          }
+        }
+      }
+    },
+    "/api/auth/get-session": {
+      "get": {
+        "description": "Trusted SvelteKit server hook endpoint.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Load the current session from the auth.session_token cookie.",
+        "operationId": "getSession",
+        "responses": {
+          "200": {
+            "description": "Current authenticated session, or null when no valid session exists."
+          },
+          "401": {
+            "description": "Trusted internal request required."
+          }
+        }
+      }
+    },
+    "/api/auth/oauth/github/callback": {
+      "post": {
+        "description": "Trusted SvelteKit server endpoint.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Complete GitHub OAuth sign-in.",
+        "operationId": "signInGitHubOAuth",
+        "responses": {
+          "200": {
+            "description": "Authenticated session."
+          },
+          "401": {
+            "description": "OAuth sign-in failed or trusted internal request required."
+          }
+        }
+      }
+    },
+    "/api/auth/oauth/github/start": {
+      "post": {
+        "description": "Trusted SvelteKit server endpoint.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Start GitHub OAuth.",
+        "operationId": "startGitHubOAuth",
+        "responses": {
+          "200": {
+            "description": "GitHub authorization URL and state."
+          },
+          "401": {
+            "description": "Trusted internal request required."
+          },
+          "503": {
+            "description": "GitHub OAuth is not configured."
+          }
+        }
+      }
+    },
+    "/api/auth/oauth/google/callback": {
+      "post": {
+        "description": "Trusted SvelteKit server endpoint.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Complete Google OAuth sign-in.",
+        "operationId": "signInGoogleOAuth",
+        "responses": {
+          "200": {
+            "description": "Authenticated session."
+          },
+          "401": {
+            "description": "OAuth sign-in failed or trusted internal request required."
+          }
+        }
+      }
+    },
+    "/api/auth/oauth/google/start": {
+      "post": {
+        "description": "Trusted SvelteKit server endpoint.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Start Google OAuth.",
+        "operationId": "startGoogleOAuth",
+        "responses": {
+          "200": {
+            "description": "Google authorization URL and state."
+          },
+          "401": {
+            "description": "Trusted internal request required."
+          },
+          "503": {
+            "description": "Google OAuth is not configured."
+          }
+        }
+      }
+    },
+    "/api/auth/password-reset/confirm": {
+      "post": {
+        "description": "Trusted SvelteKit server action endpoint.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Confirm password reset with emailed token.",
+        "operationId": "confirmPasswordReset",
+        "responses": {
+          "200": {
+            "description": "Password was reset and existing sessions were revoked."
+          },
+          "400": {
+            "description": "Invalid or expired password reset token."
+          },
+          "401": {
+            "description": "Trusted internal request required."
+          }
+        }
+      }
+    },
+    "/api/auth/password-reset/request": {
+      "post": {
+        "description": "Trusted SvelteKit server action endpoint.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Request a password reset email.",
+        "operationId": "requestPasswordReset",
+        "responses": {
+          "200": {
+            "description": "Reset request accepted."
+          },
+          "400": {
+            "description": "Invalid password reset request."
+          },
+          "401": {
+            "description": "Trusted internal request required."
+          }
+        }
+      }
+    },
+    "/api/auth/sign-in/email": {
+      "post": {
+        "description": "Trusted SvelteKit server action endpoint.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Sign in with email and password.",
+        "operationId": "signInEmail",
+        "responses": {
+          "200": {
+            "description": "Authenticated session."
+          },
+          "401": {
+            "description": "Invalid email or password, or trusted internal request required."
+          },
+          "403": {
+            "description": "Email is not verified."
+          }
+        }
+      }
+    },
+    "/api/auth/sign-out": {
+      "post": {
+        "description": "Trusted SvelteKit server action endpoint.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Sign out the current session.",
+        "operationId": "signOut",
+        "responses": {
+          "200": {
+            "description": "Session was deleted when present."
+          },
+          "401": {
+            "description": "Trusted internal request required."
+          }
+        }
+      }
+    },
+    "/api/auth/sign-up/email": {
+      "post": {
+        "description": "Trusted SvelteKit server action endpoint.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Sign up with email and password.",
+        "operationId": "signUpEmail",
+        "responses": {
+          "200": {
+            "description": "User account was created or already exists and email verification is required."
+          },
+          "400": {
+            "description": "Invalid sign-up request."
+          },
+          "401": {
+            "description": "Trusted internal request required."
+          }
+        }
+      }
+    },
+    "/healthz": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Health check.",
+        "operationId": "getHealth",
+        "responses": {
+          "200": {
+            "description": "API process is running."
+          }
+        }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Readiness check.",
+        "operationId": "getReadiness",
+        "responses": {
+          "200": {
+            "description": "API dependencies are ready."
+          },
+          "503": {
+            "description": "API dependencies are not ready."
+          }
+        }
+      }
+    },
+    "/version": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Version metadata.",
+        "operationId": "getVersion",
+        "responses": {
+          "200": {
+            "description": "API version metadata."
+          }
+        }
+      }
+    }
+  }
+}

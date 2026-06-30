@@ -93,6 +93,25 @@ func TestLoadDoesNotRequireAtlasURLsForAPIRuntime(t *testing.T) {
 	}
 }
 
+func TestLoadMigrationRequiresOnlyAtlasDatabaseURL(t *testing.T) {
+	t.Setenv("ATLAS_DATABASE_URL", "  postgres://syncra:syncra@localhost:5432/syncra_dms?sslmode=disable  ")
+
+	cfg, err := LoadMigration()
+	if err != nil {
+		t.Fatalf("LoadMigration() error = %v", err)
+	}
+	if cfg.AtlasDatabaseURL != "postgres://syncra:syncra@localhost:5432/syncra_dms?sslmode=disable" {
+		t.Fatalf("AtlasDatabaseURL = %q", cfg.AtlasDatabaseURL)
+	}
+}
+
+func TestLoadMigrationRequiresAtlasDatabaseURL(t *testing.T) {
+	_, err := LoadMigration()
+	if err == nil || !strings.Contains(err.Error(), "ATLAS_DATABASE_URL is required") {
+		t.Fatalf("LoadMigration() error = %v, want ATLAS_DATABASE_URL required", err)
+	}
+}
+
 func TestLoadRejectsDSNDevPointingAtAppDatabase(t *testing.T) {
 	t.Setenv("DSN", "host=localhost dbname=syncra_dms")
 	t.Setenv("DSN_DEV", "host=localhost dbname=syncra_dms")

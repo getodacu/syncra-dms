@@ -38,6 +38,20 @@ type Config struct {
 	Version                    string
 }
 
+type MigrationConfig struct {
+	AtlasDatabaseURL string
+}
+
+func LoadMigration() (MigrationConfig, error) {
+	_ = godotenv.Load()
+
+	atlasDatabaseURL := strings.TrimSpace(os.Getenv("ATLAS_DATABASE_URL"))
+	if atlasDatabaseURL == "" {
+		return MigrationConfig{}, errors.New("ATLAS_DATABASE_URL is required")
+	}
+	return MigrationConfig{AtlasDatabaseURL: atlasDatabaseURL}, nil
+}
+
 func Load() (Config, error) {
 	_ = godotenv.Load()
 

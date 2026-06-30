@@ -7,7 +7,8 @@ Lean Go API scaffold for Syncra DMS.
 ```sh
 cp .env.example .env
 rtk go test ./...
-rtk go run ./cmd/api
+rtk go run ./cmd/syncra api
+rtk go run ./cmd/syncra api --port 8090
 ```
 
 `DSN` must target `syncra_dms`. `DSN_DEV` must target `syncra_dms_dev`. `ATLAS_DATABASE_URL` must target `syncra_dms`. `ATLAS_DEV_DATABASE_URL` must target a separate empty scratch database.
@@ -22,8 +23,16 @@ rtk go run ./cmd/api
 ## Atlas
 
 ```sh
-rtk go run ./cmd/atlas-loader
+rtk go run ./cmd/syncra migrate
 rtk atlas migrate validate --dir file://migrations
 ```
 
 Auth models are included in `internal/database.ApplicationModels()` for Atlas migration output. Add future domain models there as feature plans introduce persistent entities.
+
+## Swagger
+
+```sh
+rtk go run ./cmd/syncra swagger
+```
+
+This generates and validates `docs/swagger.json` using the installed `swagger` binary.
