@@ -144,6 +144,39 @@ func TestBootstrapLegacyAdminsSkipsInactiveSuspendedAndDeletedAdmins(t *testing.
 	}
 }
 
+func TestBootstrapLegacyAdminsSkipsSoftDeletedActiveAdmin(t *testing.T) {
+	db := newBootstrapTestDB(t)
+	if err := SeedDefaults(db); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	now := time.Now().UTC()
+	admin := auth.User{
+		Name:          "Soft Deleted Admin",
+		Email:         "soft-deleted-admin@example.com",
+		EmailVerified: true,
+		Role:          auth.UserRoleAdmin,
+		Status:        string(UserStatusActive),
+		DeletedAt:     &now,
+		CreatedAt:     now,
+		UpdatedAt:     now,
+	}
+	if err := db.Create(&admin).Error; err != nil {
+		t.Fatalf("create soft deleted admin: %v", err)
+	}
+
+	if err := BootstrapLegacyAdmins(db); err != nil {
+		t.Fatalf("bootstrap: %v", err)
+	}
+
+	var count int64
+	if err := db.Model(&UserRole{}).Where("user_id = ?", admin.ID).Count(&count).Error; err != nil {
+		t.Fatalf("count user roles: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("user role count = %d, want 0", count)
+	}
+}
+
 func TestBootstrapLegacyAdminsReportsMissingSystemAdministratorRole(t *testing.T) {
 	err := BootstrapLegacyAdmins(newBootstrapTestDB(t))
 	if err == nil {

@@ -455,6 +455,21 @@ func (h *authHandler) verifyEmailOTP(c *gin.Context) {
 	var user auth.User
 	invalid := false
 	if err := h.db.Transaction(func(tx *gorm.DB) error {
+		verification, ok, err := h.loadVerification(tx, verificationIdentifier(email))
+		if err != nil {
+			return err
+		}
+		now := time.Now().UTC()
+		if !ok || !verification.ExpiresAt.After(now) || !auth.VerifyCode(h.betterAuthSecret, verification.Identifier, otp, verification.Value) {
+			if ok && !verification.ExpiresAt.After(now) {
+				if err := tx.Delete(&verification).Error; err != nil {
+					return err
+				}
+			}
+			invalid = true
+			return nil
+		}
+
 		result := tx.Where("email = ?", email).Limit(1).Find(&user)
 		if result.Error != nil {
 			return result.Error
@@ -466,23 +481,10 @@ func (h *authHandler) verifyEmailOTP(c *gin.Context) {
 		if !authUserCanUseCredentialLifecycle(user) {
 			return errAuthUserInactive
 		}
-		verification, ok, err := h.loadVerification(tx, verificationIdentifier(email))
-		if err != nil {
-			return err
-		}
-		if !ok || !verification.ExpiresAt.After(time.Now().UTC()) || !auth.VerifyCode(h.betterAuthSecret, verification.Identifier, otp, verification.Value) {
-			if ok && !verification.ExpiresAt.After(time.Now().UTC()) {
-				if err := tx.Delete(&verification).Error; err != nil {
-					return err
-				}
-			}
-			invalid = true
-			return nil
-		}
 		if err := tx.Delete(&verification).Error; err != nil {
 			return err
 		}
-		if err := markEmailVerified(tx, user.ID, time.Now().UTC()); err != nil {
+		if err := markEmailVerified(tx, user.ID, now); err != nil {
 			return err
 		}
 		return tx.First(&user, "id = ?", user.ID).Error
@@ -580,6 +582,21 @@ func (h *authHandler) confirmPasswordReset(c *gin.Context) {
 	invalid := false
 	if err := h.db.Transaction(func(tx *gorm.DB) error {
 		var user auth.User
+		verification, ok, err := h.loadVerification(tx, passwordResetIdentifier(email))
+		if err != nil {
+			return err
+		}
+		now := time.Now().UTC()
+		if !ok || !verification.ExpiresAt.After(now) || !auth.VerifyCode(h.betterAuthSecret, verification.Identifier, token, verification.Value) {
+			if ok && !verification.ExpiresAt.After(now) {
+				if err := tx.Delete(&verification).Error; err != nil {
+					return err
+				}
+			}
+			invalid = true
+			return nil
+		}
+
 		result := tx.Where("email = ?", email).Limit(1).Find(&user)
 		if result.Error != nil {
 			return result.Error
@@ -591,23 +608,9 @@ func (h *authHandler) confirmPasswordReset(c *gin.Context) {
 		if !authUserCanUseCredentialLifecycle(user) {
 			return errAuthUserInactive
 		}
-		verification, ok, err := h.loadVerification(tx, passwordResetIdentifier(email))
-		if err != nil {
-			return err
-		}
-		if !ok || !verification.ExpiresAt.After(time.Now().UTC()) || !auth.VerifyCode(h.betterAuthSecret, verification.Identifier, token, verification.Value) {
-			if ok && !verification.ExpiresAt.After(time.Now().UTC()) {
-				if err := tx.Delete(&verification).Error; err != nil {
-					return err
-				}
-			}
-			invalid = true
-			return nil
-		}
 		if err := tx.Delete(&verification).Error; err != nil {
 			return err
 		}
-		now := time.Now().UTC()
 		account := auth.AuthAccount{
 			AccountID:  user.ID,
 			ProviderID: auth.CredentialProviderID,
@@ -987,7 +990,7 @@ func markEmailVerified(tx *gorm.DB, userID string, now time.Time) error {
 }
 
 func shouldPromoteOAuthVerifiedUser(user auth.User, profile OAuthProfile) bool {
-	return profile.Verified && (!user.EmailVerified || user.Status == "invited")
+	return profile.Verified && normalizeEmail(profile.Email) == normalizeEmail(user.Email) && (!user.EmailVerified || user.Status == "invited")
 }
 
 func authUserCanUseOAuthProfile(user auth.User, profile OAuthProfile) bool {
@@ -1075,15 +1078,28 @@ func (h *authHandler) fetchGitHubProfile(ctx context.Context, code string, redir
 		ID        int64  `json:"id"`
 		Login     string `json:"login"`
 		Name      string `json:"name"`
-		Email     string `json:"email"`
 		AvatarURL string `json:"avatar_url"`
 	}
 	if err := h.getBearerJSON(ctx, "https://api.github.com/user", tokenBody.AccessToken, &profile); err != nil {
 		return OAuthProfile{}, err
 	}
-	email := profile.Email
+	var emails []struct {
+		Email    string `json:"email"`
+		Primary  bool   `json:"primary"`
+		Verified bool   `json:"verified"`
+	}
+	if err := h.getBearerJSON(ctx, "https://api.github.com/user/emails", tokenBody.AccessToken, &emails); err != nil {
+		return OAuthProfile{}, err
+	}
+	var email string
+	for _, candidate := range emails {
+		if candidate.Primary && candidate.Verified && validEmail(normalizeEmail(candidate.Email)) {
+			email = normalizeEmail(candidate.Email)
+			break
+		}
+	}
 	if email == "" {
-		email = profile.Login + "@users.noreply.github.com"
+		return OAuthProfile{}, errors.New("github account has no verified primary email")
 	}
 	name := profile.Name
 	if strings.TrimSpace(name) == "" {

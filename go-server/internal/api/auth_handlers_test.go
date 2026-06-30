@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -398,6 +399,37 @@ func TestSoftDeletedActiveUserCannotSignIn(t *testing.T) {
 	}
 }
 
+func TestEmptyStatusUserCanSignInUnlessSoftDeleted(t *testing.T) {
+	router, db := newAuthTestRouter(t)
+	user := createVerifiedUser(t, db, "empty-status@example.com", "password123")
+	if err := db.Exec("PRAGMA ignore_check_constraints = ON").Error; err != nil {
+		t.Fatalf("disable sqlite check constraints: %v", err)
+	}
+	if err := db.Model(&auth.User{}).Where("id = ?", user.ID).Update("status", "").Error; err != nil {
+		t.Fatalf("clear status: %v", err)
+	}
+
+	active := authJSON(t, router, http.MethodPost, "/api/auth/sign-in/email", `{
+		"email":"empty-status@example.com",
+		"password":"password123"
+	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+	if active.Code != http.StatusOK {
+		t.Fatalf("active status = %d body=%s, want ok", active.Code, active.Body.String())
+	}
+
+	now := time.Now().UTC()
+	if err := db.Model(&auth.User{}).Where("id = ?", user.ID).Update("deleted_at", now).Error; err != nil {
+		t.Fatalf("soft delete user: %v", err)
+	}
+	softDeleted := authJSON(t, router, http.MethodPost, "/api/auth/sign-in/email", `{
+		"email":"empty-status@example.com",
+		"password":"password123"
+	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+	if softDeleted.Code != http.StatusForbidden {
+		t.Fatalf("soft deleted status = %d body=%s, want forbidden", softDeleted.Code, softDeleted.Body.String())
+	}
+}
+
 func TestSuspendedUserSessionIsRejected(t *testing.T) {
 	router, db := newAuthTestRouter(t)
 	user := createVerifiedUser(t, db, "ada@example.com", "password123")
@@ -713,6 +745,83 @@ func TestOAuthCallbackAllowsLinkedUnverifiedProfileWithoutPromotion(t *testing.T
 	}
 }
 
+func TestOAuthCallbackPromotesLinkedInvitedOnlyWhenVerifiedEmailMatches(t *testing.T) {
+	tests := []struct {
+		name          string
+		profileEmail  string
+		wantStatus    int
+		wantPromoted  bool
+		wantSession   int64
+		wantUnchanged bool
+	}{
+		{
+			name:         "same email",
+			profileEmail: "ada@example.com",
+			wantStatus:   http.StatusOK,
+			wantPromoted: true,
+			wantSession:  1,
+		},
+		{
+			name:          "different email",
+			profileEmail:  "other@example.com",
+			wantStatus:    http.StatusForbidden,
+			wantSession:   0,
+			wantUnchanged: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			accountID := "google-linked-email-" + strings.ReplaceAll(tc.name, " ", "-")
+			router, db := newAuthTestRouterWithOptions(t, RouterOptions{
+				GoogleClientID:     "google-client",
+				GoogleClientSecret: "google-secret",
+				OAuthProfileFetcher: func(_ context.Context, providerID string, code string, redirectURI string) (OAuthProfile, error) {
+					return OAuthProfile{
+						ProviderID: providerID,
+						AccountID:  accountID,
+						Email:      tc.profileEmail,
+						Name:       "Ada Lovelace",
+						Verified:   true,
+					}, nil
+				},
+			})
+			user := createInvitedUser(t, db, "ada@example.com")
+			now := time.Now().UTC()
+			account := auth.AuthAccount{
+				AccountID:  accountID,
+				ProviderID: auth.GoogleProviderID,
+				UserID:     user.ID,
+				CreatedAt:  now,
+				UpdatedAt:  now,
+			}
+			if err := db.Create(&account).Error; err != nil {
+				t.Fatalf("create linked oauth account: %v", err)
+			}
+			before := captureAuthUserState(t, db, user.ID)
+
+			response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
+				"code":"oauth-code",
+				"state":"state",
+				"redirectURI":"http://localhost:5173/api/auth/google/callback"
+			}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+			if response.Code != tc.wantStatus {
+				t.Fatalf("oauth callback status = %d body=%s, want %d", response.Code, response.Body.String(), tc.wantStatus)
+			}
+			assertSessionCount(t, db, tc.wantSession)
+			assertOAuthAccountCount(t, db, auth.GoogleProviderID, accountID, 1)
+
+			after := captureAuthUserState(t, db, user.ID)
+			if tc.wantUnchanged {
+				assertAuthUserStateUnchanged(t, before, after)
+			}
+			if tc.wantPromoted && (!after.EmailVerified || after.Status != "active") {
+				t.Fatalf("after = %#v, want verified active user", after)
+			}
+		})
+	}
+}
+
 func TestPasswordResetConsumesTokenAndRevokesSessions(t *testing.T) {
 	router, db := newAuthTestRouter(t)
 	createVerifiedUser(t, db, "ada@example.com", "old-password")
@@ -844,6 +953,93 @@ func TestPasswordResetRequestDoesNotRotateForNonActiveUsers(t *testing.T) {
 	}
 }
 
+func TestConfirmPasswordResetInvalidTokenDoesNotEnumerateLifecycle(t *testing.T) {
+	tests := []struct {
+		name       string
+		email      string
+		createUser func(*testing.T, *gorm.DB) (auth.User, bool)
+	}{
+		{
+			name:  "active",
+			email: "active@example.com",
+			createUser: func(t *testing.T, db *gorm.DB) (auth.User, bool) {
+				return createVerifiedUser(t, db, "active@example.com", "old-password"), true
+			},
+		},
+		{
+			name:  "missing",
+			email: "missing@example.com",
+			createUser: func(t *testing.T, db *gorm.DB) (auth.User, bool) {
+				return auth.User{}, false
+			},
+		},
+		{
+			name:  "inactive",
+			email: "inactive@example.com",
+			createUser: func(t *testing.T, db *gorm.DB) (auth.User, bool) {
+				user := createVerifiedUser(t, db, "inactive@example.com", "old-password")
+				setUserLifecycleState(t, db, user.ID, "inactive", false)
+				return user, true
+			},
+		},
+		{
+			name:  "suspended",
+			email: "suspended@example.com",
+			createUser: func(t *testing.T, db *gorm.DB) (auth.User, bool) {
+				user := createVerifiedUser(t, db, "suspended@example.com", "old-password")
+				setUserLifecycleState(t, db, user.ID, "suspended", false)
+				return user, true
+			},
+		},
+		{
+			name:  "deleted status",
+			email: "deleted@example.com",
+			createUser: func(t *testing.T, db *gorm.DB) (auth.User, bool) {
+				user := createVerifiedUser(t, db, "deleted@example.com", "old-password")
+				setUserLifecycleState(t, db, user.ID, "deleted", false)
+				return user, true
+			},
+		},
+		{
+			name:  "soft deleted active",
+			email: "soft-deleted@example.com",
+			createUser: func(t *testing.T, db *gorm.DB) (auth.User, bool) {
+				user := createVerifiedUser(t, db, "soft-deleted@example.com", "old-password")
+				setUserLifecycleState(t, db, user.ID, "active", true)
+				return user, true
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			router, db := newAuthTestRouter(t)
+			user, hasUser := tc.createUser(t, db)
+			token := createPasswordResetVerification(t, db, tc.email)
+			if token == "wrong-token" {
+				t.Fatal("test setup used wrong token")
+			}
+			var before authUserState
+			if hasUser {
+				before = captureAuthUserState(t, db, user.ID)
+			}
+
+			response := authJSON(t, router, http.MethodPost, "/api/auth/password-reset/confirm", `{
+				"email":"`+tc.email+`",
+				"token":"wrong-token",
+				"password":"new-password"
+			}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+			assertErrorResponse(t, response, http.StatusBadRequest, "invalid password reset token")
+			assertVerificationCount(t, db, passwordResetIdentifier(tc.email), 1)
+			if hasUser {
+				assertCredentialPassword(t, db, user.ID, "old-password")
+				after := captureAuthUserState(t, db, user.ID)
+				assertAuthUserStateUnchanged(t, before, after)
+			}
+		})
+	}
+}
+
 func TestPasswordResetConfirmRejectsNonActiveUsersWithoutMutation(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -916,6 +1112,83 @@ func TestPasswordResetPromotesInvitedUser(t *testing.T) {
 	}
 	if promoted.Status != "active" {
 		t.Fatalf("password reset promoted user status = %q, want active", promoted.Status)
+	}
+}
+
+func TestVerifyEmailOTPInvalidTokenDoesNotEnumerateLifecycle(t *testing.T) {
+	tests := []struct {
+		name       string
+		email      string
+		createUser func(*testing.T, *gorm.DB) (auth.User, bool)
+	}{
+		{
+			name:  "active",
+			email: "active@example.com",
+			createUser: func(t *testing.T, db *gorm.DB) (auth.User, bool) {
+				return createStatusUser(t, db, "active@example.com", "active", false, false), true
+			},
+		},
+		{
+			name:  "missing",
+			email: "missing@example.com",
+			createUser: func(t *testing.T, db *gorm.DB) (auth.User, bool) {
+				return auth.User{}, false
+			},
+		},
+		{
+			name:  "inactive",
+			email: "inactive@example.com",
+			createUser: func(t *testing.T, db *gorm.DB) (auth.User, bool) {
+				return createStatusUser(t, db, "inactive@example.com", "inactive", false, false), true
+			},
+		},
+		{
+			name:  "suspended",
+			email: "suspended@example.com",
+			createUser: func(t *testing.T, db *gorm.DB) (auth.User, bool) {
+				return createStatusUser(t, db, "suspended@example.com", "suspended", false, false), true
+			},
+		},
+		{
+			name:  "deleted status",
+			email: "deleted@example.com",
+			createUser: func(t *testing.T, db *gorm.DB) (auth.User, bool) {
+				return createStatusUser(t, db, "deleted@example.com", "deleted", false, false), true
+			},
+		},
+		{
+			name:  "soft deleted active",
+			email: "soft-deleted@example.com",
+			createUser: func(t *testing.T, db *gorm.DB) (auth.User, bool) {
+				return createStatusUser(t, db, "soft-deleted@example.com", "active", false, true), true
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			router, db := newAuthTestRouter(t)
+			user, hasUser := tc.createUser(t, db)
+			code := createEmailVerification(t, db, tc.email)
+			if code == "wrong-code" {
+				t.Fatal("test setup used wrong code")
+			}
+			var before authUserState
+			if hasUser {
+				before = captureAuthUserState(t, db, user.ID)
+			}
+
+			response := authJSON(t, router, http.MethodPost, "/api/auth/email-otp/verify-email", `{
+				"email":"`+tc.email+`",
+				"otp":"wrong-code"
+			}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+			assertErrorResponse(t, response, http.StatusBadRequest, "invalid verification code")
+			assertVerificationCount(t, db, verificationIdentifier(tc.email), 1)
+			if hasUser {
+				after := captureAuthUserState(t, db, user.ID)
+				assertAuthUserStateUnchanged(t, before, after)
+			}
+		})
 	}
 }
 
@@ -1058,6 +1331,46 @@ func TestOAuthCallbackReturnsUnauthorizedOnProviderFailure(t *testing.T) {
 	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
 	if response.Code != http.StatusUnauthorized {
 		t.Fatalf("oauth callback status = %d, want %d; body=%s", response.Code, http.StatusUnauthorized, response.Body.String())
+	}
+}
+
+func TestFetchGitHubProfileUsesVerifiedPrimaryEmail(t *testing.T) {
+	handler := newGitHubProfileTestHandler(t, `[
+		{"email":"secondary@example.com","primary":false,"verified":true},
+		{"email":"primary@example.com","primary":true,"verified":true}
+	]`)
+
+	profile, err := handler.fetchGitHubProfile(context.Background(), "oauth-code", "http://localhost/callback")
+	if err != nil {
+		t.Fatalf("fetchGitHubProfile() error = %v", err)
+	}
+	if profile.ProviderID != auth.GitHubProviderID || profile.AccountID != "123" || profile.Email != "primary@example.com" || !profile.Verified {
+		t.Fatalf("profile = %#v, want verified primary email profile", profile)
+	}
+	if profile.Name != "Ada Lovelace" {
+		t.Fatalf("profile name = %q, want Ada Lovelace", profile.Name)
+	}
+}
+
+func TestFetchGitHubProfileRequiresVerifiedPrimaryEmail(t *testing.T) {
+	tests := []struct {
+		name       string
+		emailsJSON string
+	}{
+		{name: "missing emails", emailsJSON: `[]`},
+		{name: "primary unverified", emailsJSON: `[{"email":"primary@example.com","primary":true,"verified":false}]`},
+		{name: "verified non primary", emailsJSON: `[{"email":"secondary@example.com","primary":false,"verified":true}]`},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			handler := newGitHubProfileTestHandler(t, tc.emailsJSON)
+
+			profile, err := handler.fetchGitHubProfile(context.Background(), "oauth-code", "http://localhost/callback")
+			if err == nil {
+				t.Fatalf("fetchGitHubProfile() error = nil profile=%#v, want verified primary email error", profile)
+			}
+		})
 	}
 }
 
@@ -1325,6 +1638,52 @@ func newAuthTestRouterWithOptions(t *testing.T, options RouterOptions) (http.Han
 	return NewRouter(base), db
 }
 
+func newGitHubProfileTestHandler(t *testing.T, emailsJSON string) *authHandler {
+	t.Helper()
+	client := &http.Client{
+		Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+			switch request.URL.String() {
+			case "https://github.com/login/oauth/access_token":
+				return jsonHTTPResponse(http.StatusOK, `{"access_token":"github-token"}`), nil
+			case "https://api.github.com/user":
+				if got := request.Header.Get("Authorization"); got != "Bearer github-token" {
+					t.Fatalf("github user authorization = %q, want bearer token", got)
+				}
+				return jsonHTTPResponse(http.StatusOK, `{"id":123,"login":"ada","name":"Ada Lovelace","email":"","avatar_url":"https://example.com/avatar.png"}`), nil
+			case "https://api.github.com/user/emails":
+				if got := request.Header.Get("Authorization"); got != "Bearer github-token" {
+					t.Fatalf("github emails authorization = %q, want bearer token", got)
+				}
+				return jsonHTTPResponse(http.StatusOK, emailsJSON), nil
+			default:
+				t.Fatalf("unexpected request URL: %s", request.URL.String())
+				return nil, nil
+			}
+		}),
+	}
+	return &authHandler{
+		gitHubClientID:     "github-client",
+		gitHubClientSecret: "github-secret",
+		httpClient:         client,
+	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
+	return f(request)
+}
+
+func jsonHTTPResponse(status int, body string) *http.Response {
+	header := make(http.Header)
+	header.Set("Content-Type", "application/json")
+	return &http.Response{
+		StatusCode: status,
+		Header:     header,
+		Body:       io.NopCloser(strings.NewReader(body)),
+	}
+}
+
 func trustedAuthHeaders() map[string]string {
 	return map[string]string{
 		"X-Syncra-Internal-Token":      testInternalToken,
@@ -1350,6 +1709,20 @@ func decodeJSON(t *testing.T, response *httptest.ResponseRecorder, out any) {
 	t.Helper()
 	if err := json.Unmarshal(response.Body.Bytes(), out); err != nil {
 		t.Fatalf("decode response: %v body=%s", err, response.Body.String())
+	}
+}
+
+func assertErrorResponse(t *testing.T, response *httptest.ResponseRecorder, status int, message string) {
+	t.Helper()
+	if response.Code != status {
+		t.Fatalf("status = %d body=%s, want %d", response.Code, response.Body.String(), status)
+	}
+	var body struct {
+		Error string `json:"error"`
+	}
+	decodeJSON(t, response, &body)
+	if body.Error != message {
+		t.Fatalf("error = %q, want %q; body=%s", body.Error, message, response.Body.String())
 	}
 }
 
