@@ -87,6 +87,26 @@ func TestResolverAllowsOrganizationUnitRoleThroughPrimaryUnit(t *testing.T) {
 	}
 }
 
+func TestResolverDeniesOrganizationUnitRoleFromArchivedPrimaryUnit(t *testing.T) {
+	db := newResolverTestDB(t)
+	unit := createResolverUnit(t, db, "Finance", nil)
+	user := createResolverUser(t, db, string(UserStatusActive), &unit.ID)
+	role := createResolverRoleWithPermission(t, db, "organization_unit.view")
+	assignOrganizationUnitRole(t, db, unit.ID, role.ID, ScopeGlobal)
+	archiveResolverUnit(t, db, unit.ID)
+
+	allowed, err := NewResolver(db).Can(t.Context(), Check{
+		UserID:     user.ID,
+		Permission: "organization_unit.view",
+	})
+	if err != nil {
+		t.Fatalf("Can() error = %v", err)
+	}
+	if allowed {
+		t.Fatal("Can() = true, want false")
+	}
+}
+
 func TestResolverEffectiveGrantsUsesAssignmentSourceValues(t *testing.T) {
 	db := newResolverTestDB(t)
 	unit := createResolverUnit(t, db, "Finance", nil)
@@ -144,6 +164,28 @@ func TestResolverAllowsOrganizationUnitAndChildrenForDescendantUnit(t *testing.T
 	}
 }
 
+func TestResolverDeniesOrganizationUnitAndChildrenWhenGrantUnitArchived(t *testing.T) {
+	db := newResolverTestDB(t)
+	parent := createResolverUnit(t, db, "Finance", nil)
+	child := createResolverUnit(t, db, "Accounts Payable", &parent.ID)
+	user := createResolverUser(t, db, string(UserStatusActive), nil)
+	role := createResolverRoleWithPermission(t, db, "document.view")
+	assignUserRole(t, db, user.ID, role.ID, ScopeOrganizationUnitAndChildren, &parent.ID)
+	archiveResolverUnit(t, db, parent.ID)
+
+	allowed, err := NewResolver(db).Can(t.Context(), Check{
+		UserID:             user.ID,
+		Permission:         "document.view",
+		OrganizationUnitID: &child.ID,
+	})
+	if err != nil {
+		t.Fatalf("Can() error = %v", err)
+	}
+	if allowed {
+		t.Fatal("Can() = true, want false")
+	}
+}
+
 func TestResolverDeniesUnmatchedScope(t *testing.T) {
 	db := newResolverTestDB(t)
 	grantedUnit := createResolverUnit(t, db, "Finance", nil)
@@ -156,6 +198,27 @@ func TestResolverDeniesUnmatchedScope(t *testing.T) {
 		UserID:             user.ID,
 		Permission:         "document.view",
 		OrganizationUnitID: &requestedUnit.ID,
+	})
+	if err != nil {
+		t.Fatalf("Can() error = %v", err)
+	}
+	if allowed {
+		t.Fatal("Can() = true, want false")
+	}
+}
+
+func TestResolverDeniesArchivedExactScopeOrganizationUnit(t *testing.T) {
+	db := newResolverTestDB(t)
+	unit := createResolverUnit(t, db, "Finance", nil)
+	user := createResolverUser(t, db, string(UserStatusActive), nil)
+	role := createResolverRoleWithPermission(t, db, "document.view")
+	assignUserRole(t, db, user.ID, role.ID, ScopeOrganizationUnit, &unit.ID)
+	archiveResolverUnit(t, db, unit.ID)
+
+	allowed, err := NewResolver(db).Can(t.Context(), Check{
+		UserID:             user.ID,
+		Permission:         "document.view",
+		OrganizationUnitID: &unit.ID,
 	})
 	if err != nil {
 		t.Fatalf("Can() error = %v", err)
@@ -456,4 +519,11 @@ func createResolverUnit(t *testing.T, db *gorm.DB, name string, parentID *string
 		t.Fatalf("create organization unit: %v", err)
 	}
 	return unit
+}
+
+func archiveResolverUnit(t *testing.T, db *gorm.DB, unitID string) {
+	t.Helper()
+	if err := db.Model(&orgunits.Unit{}).Where("id = ?", unitID).Update("archived_at", time.Now().UTC()).Error; err != nil {
+		t.Fatalf("archive organization unit: %v", err)
+	}
 }

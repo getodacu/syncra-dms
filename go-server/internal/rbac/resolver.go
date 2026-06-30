@@ -131,6 +131,7 @@ func (r *Resolver) organizationUnitRoleGrants(ctx context.Context, organizationU
 	if err := r.db.WithContext(ctx).
 		Table("organization_unit_roles").
 		Select("? AS source, permissions.code AS permission_code, organization_unit_roles.scope_type, organization_unit_roles.organization_unit_id", GrantSourceOrganizationUnitRole).
+		Joins("JOIN organization_units ON organization_units.id = organization_unit_roles.organization_unit_id AND organization_units.archived_at IS NULL").
 		Joins("JOIN roles ON roles.id = organization_unit_roles.role_id AND roles.is_active = ?", true).
 		Joins("JOIN role_permissions ON role_permissions.role_id = roles.id").
 		Joins("JOIN permissions ON permissions.id = role_permissions.permission_id").
@@ -146,20 +147,54 @@ func (r *Resolver) scopeMatches(ctx context.Context, grant Grant, requested *str
 	case ScopeGlobal:
 		return true, nil
 	case ScopeOrganizationUnit:
-		return grant.OrganizationUnitID != nil && requested != nil && *grant.OrganizationUnitID == *requested, nil
+		if grant.OrganizationUnitID == nil || requested == nil || *grant.OrganizationUnitID != *requested {
+			return false, nil
+		}
+		return r.organizationUnitsActive(ctx, *grant.OrganizationUnitID, *requested)
 	case ScopeOrganizationUnitAndChildren:
 		if grant.OrganizationUnitID == nil || requested == nil {
 			return false, nil
-		}
-		if *grant.OrganizationUnitID == *requested {
-			return true, nil
 		}
 		var units []orgunits.Unit
 		if err := r.db.WithContext(ctx).Where("archived_at IS NULL").Find(&units).Error; err != nil {
 			return false, err
 		}
+		activeUnitIDs := make(map[string]bool, len(units))
+		for _, unit := range units {
+			activeUnitIDs[unit.ID] = true
+		}
+		if !activeUnitIDs[*grant.OrganizationUnitID] || !activeUnitIDs[*requested] {
+			return false, nil
+		}
+		if *grant.OrganizationUnitID == *requested {
+			return true, nil
+		}
 		return orgunits.DescendantIDs(*grant.OrganizationUnitID, units)[*requested], nil
 	default:
 		return false, nil
 	}
+}
+
+func (r *Resolver) organizationUnitsActive(ctx context.Context, ids ...string) (bool, error) {
+	uniqueIDs := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		uniqueIDs[id] = true
+	}
+	if len(uniqueIDs) == 0 {
+		return false, nil
+	}
+
+	unitIDs := make([]string, 0, len(uniqueIDs))
+	for id := range uniqueIDs {
+		unitIDs = append(unitIDs, id)
+	}
+
+	var count int64
+	if err := r.db.WithContext(ctx).
+		Model(&orgunits.Unit{}).
+		Where("id IN ? AND archived_at IS NULL", unitIDs).
+		Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count == int64(len(uniqueIDs)), nil
 }
