@@ -6,55 +6,111 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
+	import { confirmDelete } from '$lib/components/ui/confirm-delete-dialog/index.js';
 	import { Separator } from '$lib/components/ui/separator';
+	import type { OrganizationUnitInput } from './api';
 	import type { FlatOrganizationUnitNode, OrganizationUnitNode } from './tree';
-
-	type OrganizationUnitsActionData = {
-		action?: string;
-		values?: {
-			id?: string;
-			parentId?: string | null;
-			name?: string;
-			code?: string;
-			description?: string;
-		};
-	};
 
 	let {
 		selected,
 		canManage,
 		parentOptions,
-		selectedId,
-		actionData
+		isPending,
+		onCreateChild,
+		onUpdate,
+		onMove,
+		onArchive
 	}: {
 		selected: OrganizationUnitNode | null;
 		canManage: boolean;
 		parentOptions: FlatOrganizationUnitNode[];
-		selectedId: string;
-		actionData: OrganizationUnitsActionData | null | undefined;
+		isPending: boolean;
+		onCreateChild: (input: OrganizationUnitInput) => Promise<void>;
+		onUpdate: (id: string, input: OrganizationUnitInput) => Promise<void>;
+		onMove: (id: string, parentId: string | null) => Promise<void>;
+		onArchive: (id: string) => Promise<void>;
 	} = $props();
 
 	const fieldClass =
 		'h-9 rounded-md border bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60';
 	const textareaClass =
 		'min-h-24 rounded-md border bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60';
-	const selectedActionValues = $derived.by(() => {
-		const values = actionData?.values;
-		return values?.id === selected?.id ? values : null;
-	});
-	const updateValues = $derived(actionData?.action === 'update' ? selectedActionValues : null);
-	const moveValues = $derived(actionData?.action === 'move' ? selectedActionValues : null);
-	const childCreateValues = $derived(
-		actionData?.action === 'create' && actionData.values?.parentId === selected?.id
-			? actionData.values
-			: null
-	);
 
-	function confirmArchive(event: SubmitEvent) {
-		if (!selected) return;
-		if (!confirm(`Archive ${selected.name} and all descendants?`)) {
-			event.preventDefault();
+	let editName = $derived(selected?.name ?? '');
+	let editCode = $derived(selected?.code ?? '');
+	let editDescription = $derived(selected?.description ?? '');
+	let childName = $derived.by(() => {
+		selected?.id;
+		return '';
+	});
+	let childCode = $derived.by(() => {
+		selected?.id;
+		return '';
+	});
+	let childDescription = $derived.by(() => {
+		selected?.id;
+		return '';
+	});
+	let moveParentId = $derived(selected?.parentId ?? '');
+
+	async function submitUpdate(event: SubmitEvent) {
+		event.preventDefault();
+		if (!selected || isPending) return;
+
+		try {
+			await onUpdate(selected.id, {
+				parentId: selected.parentId ?? null,
+				name: editName,
+				code: editCode,
+				description: editDescription
+			});
+		} catch {
 		}
+	}
+
+	async function submitChild(event: SubmitEvent) {
+		event.preventDefault();
+		if (!selected || isPending) return;
+
+		try {
+			await onCreateChild({
+				parentId: selected.id,
+				name: childName,
+				code: childCode,
+				description: childDescription
+			});
+			childName = '';
+			childCode = '';
+			childDescription = '';
+		} catch {
+		}
+	}
+
+	async function submitMove(event: SubmitEvent) {
+		event.preventDefault();
+		if (!selected || isPending) return;
+
+		try {
+			await onMove(selected.id, moveParentId || null);
+		} catch {
+		}
+	}
+
+	function confirmArchive() {
+		if (!selected || isPending) return;
+
+		const unit = selected;
+		confirmDelete({
+			title: `Archive ${unit.name}?`,
+			description: 'This archives the selected unit and all descendants.',
+			confirm: { text: 'Archive' },
+			onConfirm: async () => {
+				try {
+					await onArchive(unit.id);
+				} catch {
+				}
+			}
+		});
 	}
 </script>
 
@@ -78,27 +134,24 @@
 	<Card.Content class="grid gap-4">
 		{#if selected}
 			{#if canManage}
-				<form method="POST" action="?/update" class="grid gap-3">
-					<input type="hidden" name="id" value={selected.id} />
-					<input type="hidden" name="parentId" value={selected.parentId ?? ''} />
-					<input type="hidden" name="selectedId" value={selectedId} />
+				<form class="grid gap-3" onsubmit={submitUpdate}>
 					<label class="grid gap-1.5 text-sm font-medium">
 						Name
-						<input class={fieldClass} name="name" value={updateValues?.name ?? selected.name} required />
+						<input class={fieldClass} bind:value={editName} disabled={isPending} required />
 					</label>
 					<label class="grid gap-1.5 text-sm font-medium">
 						Code
-						<input class={fieldClass} name="code" value={updateValues?.code ?? selected.code ?? ''} />
+						<input class={fieldClass} bind:value={editCode} disabled={isPending} />
 					</label>
 					<label class="grid gap-1.5 text-sm font-medium">
 						Description
 						<textarea
 							class={textareaClass}
-							name="description"
-							value={updateValues?.description ?? selected.description ?? ''}
+							bind:value={editDescription}
+							disabled={isPending}
 						></textarea>
 					</label>
-					<Button type="submit" size="sm" class="w-fit gap-2">
+					<Button type="submit" size="sm" class="w-fit gap-2" disabled={isPending}>
 						<SaveIcon class="size-4" />
 						Save
 					</Button>
@@ -134,24 +187,22 @@
 			{#if canManage}
 				<Separator />
 
-				<form method="POST" action="?/create" class="grid gap-3">
-					<input type="hidden" name="parentId" value={selected.id} />
-					<input type="hidden" name="selectedId" value={selectedId} />
+				<form class="grid gap-3" onsubmit={submitChild}>
 					<div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_8rem]">
 						<label class="grid gap-1.5 text-sm font-medium">
 							Child name
-							<input class={fieldClass} name="name" value={childCreateValues?.name ?? ''} required />
+							<input class={fieldClass} bind:value={childName} disabled={isPending} required />
 						</label>
 						<label class="grid gap-1.5 text-sm font-medium">
 							Code
-							<input class={fieldClass} name="code" value={childCreateValues?.code ?? ''} />
+							<input class={fieldClass} bind:value={childCode} disabled={isPending} />
 						</label>
 					</div>
 					<label class="grid gap-1.5 text-sm font-medium">
 						Description
-						<input class={fieldClass} name="description" value={childCreateValues?.description ?? ''} />
+						<input class={fieldClass} bind:value={childDescription} disabled={isPending} />
 					</label>
-					<Button type="submit" variant="outline" size="sm" class="w-fit gap-2">
+					<Button type="submit" variant="outline" size="sm" class="w-fit gap-2" disabled={isPending}>
 						<PlusIcon class="size-4" />
 						Create child
 					</Button>
@@ -159,25 +210,19 @@
 
 				<Separator />
 
-				<form method="POST" action="?/move" class="grid gap-3">
-					<input type="hidden" name="id" value={selected.id} />
-					<input type="hidden" name="selectedId" value={selectedId} />
+				<form class="grid gap-3" onsubmit={submitMove}>
 					<label class="grid gap-1.5 text-sm font-medium">
 						Parent
-						<select
-							class={fieldClass}
-							name="parentId"
-							value={moveValues ? (moveValues.parentId ?? '') : (selected.parentId ?? '')}
-						>
+						<select class={fieldClass} bind:value={moveParentId} disabled={isPending}>
 							<option value="">Root</option>
 							{#each parentOptions as option (option.id)}
 								<option value={option.id}>
-									{`${'— '.repeat(option.depth)}${option.name}${option.code ? ` (${option.code})` : ''}`}
+									{`${'- '.repeat(option.depth)}${option.name}${option.code ? ` (${option.code})` : ''}`}
 								</option>
 							{/each}
 						</select>
 					</label>
-					<Button type="submit" variant="outline" size="sm" class="w-fit gap-2">
+					<Button type="submit" variant="outline" size="sm" class="w-fit gap-2" disabled={isPending}>
 						<GitBranchIcon class="size-4" />
 						Move
 					</Button>
@@ -185,14 +230,17 @@
 
 				<Separator />
 
-				<form method="POST" action="?/archive" onsubmit={confirmArchive}>
-					<input type="hidden" name="id" value={selected.id} />
-					<input type="hidden" name="selectedId" value={selectedId} />
-					<Button type="submit" variant="destructive" size="sm" class="gap-2">
-						<ArchiveIcon class="size-4" />
-						Archive
-					</Button>
-				</form>
+				<Button
+					type="button"
+					variant="destructive"
+					size="sm"
+					class="w-fit gap-2"
+					disabled={isPending}
+					onclick={confirmArchive}
+				>
+					<ArchiveIcon class="size-4" />
+					Archive
+				</Button>
 			{/if}
 		{:else}
 			<div

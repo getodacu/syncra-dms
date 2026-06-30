@@ -5,6 +5,7 @@ export type OrganizationUnitNode = {
 	code?: string | null;
 	description?: string | null;
 	isArchived?: boolean;
+	archivedAt?: string | null;
 	createdAt: string;
 	updatedAt: string;
 	children: OrganizationUnitNode[];
