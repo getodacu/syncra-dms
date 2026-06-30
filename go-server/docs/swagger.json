@@ -257,6 +257,186 @@
         }
       }
     },
+    "/api/organization-units": {
+      "post": {
+        "description": "Trusted SvelteKit server endpoint. Requires an admin session.",
+        "tags": [
+          "organizationUnits"
+        ],
+        "summary": "Create a root or child organization unit.",
+        "operationId": "createOrganizationUnit",
+        "responses": {
+          "201": {
+            "description": "Organization unit created."
+          },
+          "400": {
+            "description": "Invalid organization unit request."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "Admin role required."
+          },
+          "404": {
+            "description": "Parent organization unit not found."
+          },
+          "409": {
+            "description": "Active organization unit code already exists."
+          }
+        }
+      }
+    },
+    "/api/organization-units/archived": {
+      "get": {
+        "description": "Trusted SvelteKit server endpoint. Requires an admin session.",
+        "tags": [
+          "organizationUnits"
+        ],
+        "summary": "List archived organization units.",
+        "operationId": "listArchivedOrganizationUnits",
+        "responses": {
+          "200": {
+            "description": "Archived organization units."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "Admin role required."
+          }
+        }
+      }
+    },
+    "/api/organization-units/tree": {
+      "get": {
+        "description": "Trusted SvelteKit server endpoint. Requires an authenticated session.",
+        "tags": [
+          "organizationUnits"
+        ],
+        "summary": "List active organization units as a hierarchy.",
+        "operationId": "listOrganizationUnits",
+        "responses": {
+          "200": {
+            "description": "Active organization unit hierarchy."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          }
+        }
+      }
+    },
+    "/api/organization-units/{id}": {
+      "patch": {
+        "description": "Trusted SvelteKit server endpoint. Requires an admin session.",
+        "tags": [
+          "organizationUnits"
+        ],
+        "summary": "Update an active organization unit's details.",
+        "operationId": "updateOrganizationUnit",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Organization unit updated."
+          },
+          "400": {
+            "description": "Invalid organization unit request."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "Admin role required."
+          },
+          "404": {
+            "description": "Organization unit not found."
+          },
+          "409": {
+            "description": "Active organization unit code already exists."
+          }
+        }
+      }
+    },
+    "/api/organization-units/{id}/archive": {
+      "post": {
+        "description": "Trusted SvelteKit server endpoint. Requires an admin session.",
+        "tags": [
+          "organizationUnits"
+        ],
+        "summary": "Archive an active organization unit and its descendants.",
+        "operationId": "archiveOrganizationUnit",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Organization unit subtree archived."
+          },
+          "400": {
+            "description": "Invalid organization unit id."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "Admin role required."
+          },
+          "404": {
+            "description": "Organization unit not found."
+          }
+        }
+      }
+    },
+    "/api/organization-units/{id}/parent": {
+      "patch": {
+        "description": "Trusted SvelteKit server endpoint. Requires an admin session.",
+        "tags": [
+          "organizationUnits"
+        ],
+        "summary": "Move an active organization unit to another parent or root.",
+        "operationId": "moveOrganizationUnit",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Organization unit moved."
+          },
+          "400": {
+            "description": "Invalid move request."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "Admin role required."
+          },
+          "404": {
+            "description": "Organization unit or parent not found."
+          },
+          "409": {
+            "description": "Move would create a cycle."
+          }
+        }
+      }
+    },
     "/healthz": {
       "get": {
         "tags": [

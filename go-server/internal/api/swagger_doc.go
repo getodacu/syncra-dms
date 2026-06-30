@@ -217,4 +217,129 @@ func swaggerOperations() {
 	//     description: Authenticated session.
 	//   "401":
 	//     description: OAuth sign-in failed or trusted internal request required.
+
+	// swagger:operation GET /api/organization-units/tree organizationUnits listOrganizationUnits
+	//
+	// List active organization units as a hierarchy.
+	//
+	// Trusted SvelteKit server endpoint. Requires an authenticated session.
+	//
+	// ---
+	// responses:
+	//   "200":
+	//     description: Active organization unit hierarchy.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+
+	// swagger:operation GET /api/organization-units/archived organizationUnits listArchivedOrganizationUnits
+	//
+	// List archived organization units.
+	//
+	// Trusted SvelteKit server endpoint. Requires an admin session.
+	//
+	// ---
+	// responses:
+	//   "200":
+	//     description: Archived organization units.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: Admin role required.
+
+	// swagger:operation POST /api/organization-units organizationUnits createOrganizationUnit
+	//
+	// Create a root or child organization unit.
+	//
+	// Trusted SvelteKit server endpoint. Requires an admin session.
+	//
+	// ---
+	// responses:
+	//   "201":
+	//     description: Organization unit created.
+	//   "400":
+	//     description: Invalid organization unit request.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: Admin role required.
+	//   "404":
+	//     description: Parent organization unit not found.
+	//   "409":
+	//     description: Active organization unit code already exists.
+
+	// swagger:operation PATCH /api/organization-units/{id} organizationUnits updateOrganizationUnit
+	//
+	// Update an active organization unit's details.
+	//
+	// Trusted SvelteKit server endpoint. Requires an admin session.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: Organization unit updated.
+	//   "400":
+	//     description: Invalid organization unit request.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: Admin role required.
+	//   "404":
+	//     description: Organization unit not found.
+	//   "409":
+	//     description: Active organization unit code already exists.
+
+	// swagger:operation PATCH /api/organization-units/{id}/parent organizationUnits moveOrganizationUnit
+	//
+	// Move an active organization unit to another parent or root.
+	//
+	// Trusted SvelteKit server endpoint. Requires an admin session.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: Organization unit moved.
+	//   "400":
+	//     description: Invalid move request.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: Admin role required.
+	//   "404":
+	//     description: Organization unit or parent not found.
+	//   "409":
+	//     description: Move would create a cycle.
+
+	// swagger:operation POST /api/organization-units/{id}/archive organizationUnits archiveOrganizationUnit
+	//
+	// Archive an active organization unit and its descendants.
+	//
+	// Trusted SvelteKit server endpoint. Requires an admin session.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: Organization unit subtree archived.
+	//   "400":
+	//     description: Invalid organization unit id.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: Admin role required.
+	//   "404":
+	//     description: Organization unit not found.
 }

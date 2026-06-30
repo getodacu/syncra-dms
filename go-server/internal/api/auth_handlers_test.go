@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"ai.ro/syncra/dms/internal/auth"
+	"ai.ro/syncra/dms/internal/orgunits"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -333,7 +334,7 @@ func newAuthTestRouterWithOptions(t *testing.T, options RouterOptions) (http.Han
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	if err := db.AutoMigrate(&auth.User{}, &auth.AuthAccount{}, &auth.Session{}, &auth.Verification{}); err != nil {
+	if err := db.AutoMigrate(&auth.User{}, &auth.AuthAccount{}, &auth.Session{}, &auth.Verification{}, &orgunits.Unit{}); err != nil {
 		t.Fatalf("auto migrate: %v", err)
 	}
 	base := RouterOptions{

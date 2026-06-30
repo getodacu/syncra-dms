@@ -93,5 +93,15 @@ func NewRouter(options RouterOptions) http.Handler {
 	authAPI.POST("/oauth/github/start", auth.startGitHubOAuth)
 	authAPI.POST("/oauth/github/callback", auth.signInGitHubOAuth)
 
+	orgUnits := newOrganizationUnitHandler(options, auth)
+	orgUnitAPI := router.Group("/api/organization-units")
+	orgUnitAPI.Use(auth.requireTrustedInternalRequest())
+	orgUnitAPI.GET("/tree", orgUnits.listTree)
+	orgUnitAPI.GET("/archived", orgUnits.listArchived)
+	orgUnitAPI.POST("", orgUnits.create)
+	orgUnitAPI.PATCH("/:id", orgUnits.update)
+	orgUnitAPI.PATCH("/:id/parent", orgUnits.move)
+	orgUnitAPI.POST("/:id/archive", orgUnits.archive)
+
 	return router
 }
