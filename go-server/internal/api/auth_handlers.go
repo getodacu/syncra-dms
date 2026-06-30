@@ -857,7 +857,7 @@ func (h *authHandler) upsertOAuthUser(profile OAuthProfile) (auth.User, error) {
 			if user.ID == "" {
 				return errors.New("oauth account has no user")
 			}
-			if !user.EmailVerified && profile.Verified {
+			if shouldPromoteOAuthVerifiedUser(user, profile) {
 				if err := markEmailVerified(tx, user.ID, now); err != nil {
 					return err
 				}
@@ -885,7 +885,7 @@ func (h *authHandler) upsertOAuthUser(profile OAuthProfile) (auth.User, error) {
 			if err := tx.Create(&user).Error; err != nil {
 				return err
 			}
-		} else if !user.EmailVerified && profile.Verified {
+		} else if shouldPromoteOAuthVerifiedUser(user, profile) {
 			if err := markEmailVerified(tx, user.ID, now); err != nil {
 				return err
 			}
@@ -924,6 +924,10 @@ func markEmailVerified(tx *gorm.DB, userID string, now time.Time) error {
 		"status":         gorm.Expr("CASE WHEN status = ? THEN ? ELSE status END", "invited", "active"),
 		"updated_at":     now,
 	}).Error
+}
+
+func shouldPromoteOAuthVerifiedUser(user auth.User, profile OAuthProfile) bool {
+	return profile.Verified && (!user.EmailVerified || user.Status == "invited")
 }
 
 func (h *authHandler) fetchOAuthProfile(ctx context.Context, providerID string, code string, redirectURI string) (OAuthProfile, error) {

@@ -418,6 +418,43 @@ func TestOAuthCallbackPromotesExistingInvitedVerifiedEmailUser(t *testing.T) {
 	}
 }
 
+func TestOAuthCallbackPromotesExistingVerifiedInvitedEmailUser(t *testing.T) {
+	router, db := newAuthTestRouterWithOptions(t, RouterOptions{
+		GoogleClientID:     "google-client",
+		GoogleClientSecret: "google-secret",
+		OAuthProfileFetcher: func(_ context.Context, providerID string, code string, redirectURI string) (OAuthProfile, error) {
+			return OAuthProfile{
+				ProviderID: providerID,
+				AccountID:  "google-account-verified-invited",
+				Email:      "ada@example.com",
+				Name:       "Ada Lovelace",
+				Verified:   true,
+			}, nil
+		},
+	})
+	user := createVerifiedInvitedUser(t, db, "ada@example.com")
+
+	response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
+		"code":"oauth-code",
+		"state":"state",
+		"redirectURI":"http://localhost:5173/api/auth/google/callback"
+	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+	if response.Code != http.StatusOK {
+		t.Fatalf("oauth callback status = %d body=%s", response.Code, response.Body.String())
+	}
+
+	var promoted auth.User
+	if err := db.First(&promoted, "id = ?", user.ID).Error; err != nil {
+		t.Fatalf("load promoted user: %v", err)
+	}
+	if !promoted.EmailVerified {
+		t.Fatal("oauth callback changed user email verified to false")
+	}
+	if promoted.Status != "active" {
+		t.Fatalf("oauth promoted user status = %q, want active", promoted.Status)
+	}
+}
+
 func TestOAuthCallbackPromotesExistingLinkedInvitedVerifiedEmailUser(t *testing.T) {
 	router, db := newAuthTestRouterWithOptions(t, RouterOptions{
 		GoogleClientID:     "google-client",
@@ -460,6 +497,54 @@ func TestOAuthCallbackPromotesExistingLinkedInvitedVerifiedEmailUser(t *testing.
 	}
 	if !promoted.EmailVerified {
 		t.Fatal("linked oauth callback did not mark user email verified")
+	}
+	if promoted.Status != "active" {
+		t.Fatalf("linked oauth promoted user status = %q, want active", promoted.Status)
+	}
+}
+
+func TestOAuthCallbackPromotesExistingLinkedVerifiedInvitedEmailUser(t *testing.T) {
+	router, db := newAuthTestRouterWithOptions(t, RouterOptions{
+		GoogleClientID:     "google-client",
+		GoogleClientSecret: "google-secret",
+		OAuthProfileFetcher: func(_ context.Context, providerID string, code string, redirectURI string) (OAuthProfile, error) {
+			return OAuthProfile{
+				ProviderID: providerID,
+				AccountID:  "google-linked-verified-invited",
+				Email:      "ada@example.com",
+				Name:       "Ada Lovelace",
+				Verified:   true,
+			}, nil
+		},
+	})
+	user := createVerifiedInvitedUser(t, db, "ada@example.com")
+	now := time.Now().UTC()
+	account := auth.AuthAccount{
+		AccountID:  "google-linked-verified-invited",
+		ProviderID: auth.GoogleProviderID,
+		UserID:     user.ID,
+		CreatedAt:  now,
+		UpdatedAt:  now,
+	}
+	if err := db.Create(&account).Error; err != nil {
+		t.Fatalf("create linked oauth account: %v", err)
+	}
+
+	response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
+		"code":"oauth-code",
+		"state":"state",
+		"redirectURI":"http://localhost:5173/api/auth/google/callback"
+	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+	if response.Code != http.StatusOK {
+		t.Fatalf("oauth callback status = %d body=%s", response.Code, response.Body.String())
+	}
+
+	var promoted auth.User
+	if err := db.First(&promoted, "id = ?", user.ID).Error; err != nil {
+		t.Fatalf("load promoted user: %v", err)
+	}
+	if !promoted.EmailVerified {
+		t.Fatal("linked oauth callback changed user email verified to false")
 	}
 	if promoted.Status != "active" {
 		t.Fatalf("linked oauth promoted user status = %q, want active", promoted.Status)
@@ -569,6 +654,29 @@ func createInvitedUser(t *testing.T, db *gorm.DB, email string) auth.User {
 	}
 	if err := db.Create(&user).Error; err != nil {
 		t.Fatalf("create invited user: %v", err)
+	}
+	if user.Status != "invited" {
+		t.Fatalf("created user status = %q, want invited", user.Status)
+	}
+	return user
+}
+
+func createVerifiedInvitedUser(t *testing.T, db *gorm.DB, email string) auth.User {
+	t.Helper()
+	now := time.Now().UTC()
+	user := auth.User{
+		Name:          "Ada Lovelace",
+		Email:         email,
+		EmailVerified: true,
+		Status:        "invited",
+		CreatedAt:     now,
+		UpdatedAt:     now,
+	}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatalf("create verified invited user: %v", err)
+	}
+	if !user.EmailVerified {
+		t.Fatal("created user email verified = false, want true")
 	}
 	if user.Status != "invited" {
 		t.Fatalf("created user status = %q, want invited", user.Status)
