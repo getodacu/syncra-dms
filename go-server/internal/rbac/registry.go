@@ -55,6 +55,39 @@ var PermissionRegistry = []PermissionDefinition{
 	{Code: "organization_unit.view_audit", Name: "View organization unit audit", Category: "Organization Unit Management"},
 }
 
+var organizationAdministratorPermissionCodes = []string{
+	"user.view",
+	"user.create",
+	"user.update",
+	"user.delete",
+	"user.activate",
+	"user.suspend",
+	"user.assign_role",
+	"user.assign_group",
+	"user.assign_unit",
+	"role.view",
+	"role.create",
+	"role.update",
+	"role.delete",
+	"role.assign_permissions",
+	"role.assign_users",
+	"group.view",
+	"group.create",
+	"group.update",
+	"group.delete",
+	"group.manage_users",
+	"group.assign_roles",
+	"organization_unit.view",
+	"organization_unit.create",
+	"organization_unit.update",
+	"organization_unit.delete",
+	"organization_unit.manage_users",
+	"organization_unit.manage_roles",
+	"organization_unit.manage_permissions",
+	"organization_unit.manage_hierarchy",
+	"organization_unit.view_audit",
+}
+
 func PermissionCodes() []string {
 	codes := make([]string, 0, len(PermissionRegistry))
 	for _, definition := range PermissionRegistry {
@@ -74,13 +107,7 @@ func PermissionByCode(code string) (PermissionDefinition, bool) {
 
 func DefaultRoles() []RoleDefinition {
 	allPermissions := PermissionCodes()
-	organizationAdministratorPermissions := make([]string, 0, len(PermissionRegistry)-1)
-	for _, definition := range PermissionRegistry {
-		if definition.Code == "system.admin" {
-			continue
-		}
-		organizationAdministratorPermissions = append(organizationAdministratorPermissions, definition.Code)
-	}
+	organizationAdministratorPermissions := append([]string(nil), organizationAdministratorPermissionCodes...)
 
 	return []RoleDefinition{
 		{

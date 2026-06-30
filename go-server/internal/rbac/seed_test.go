@@ -69,7 +69,7 @@ func TestSeedDefaultsReconcilesDefaultRolePermissions(t *testing.T) {
 		t.Fatalf("SeedDefaults second: %v", err)
 	}
 
-	assertRolePermissionCodes(t, db, OrganizationAdministratorRoleCode, nonSystemPermissionCodes())
+	assertRolePermissionCodes(t, db, OrganizationAdministratorRoleCode, organizationAdministratorExpectedPermissionCodes())
 }
 
 func TestSeedDefaultsFailsForUnknownRolePermissionCode(t *testing.T) {
@@ -87,9 +87,29 @@ func TestSeedDefaultsFailsForUnknownRolePermissionCode(t *testing.T) {
 	if err == nil {
 		t.Fatal("SeedDefaults error = nil, want unknown permission code error")
 	}
-	if !strings.Contains(err.Error(), "unknown permission code") || !strings.Contains(err.Error(), "organization_unit.manage_users") {
+	if !strings.Contains(err.Error(), "unknown permission code") {
 		t.Fatalf("SeedDefaults error = %q, want unknown permission code details", err)
 	}
+}
+
+func TestSeedDefaultsDoesNotGrantFuturePermissionsToOrganizationAdministrator(t *testing.T) {
+	originalRegistry := PermissionRegistry
+	PermissionRegistry = append(append([]PermissionDefinition(nil), PermissionRegistry...), PermissionDefinition{
+		Code:     "document.view",
+		Name:     "View documents",
+		Category: "Document Management",
+	})
+	t.Cleanup(func() {
+		PermissionRegistry = originalRegistry
+	})
+
+	db := newSeedTestDB(t)
+	if err := SeedDefaults(db); err != nil {
+		t.Fatalf("SeedDefaults: %v", err)
+	}
+
+	assertRolePermissionCodes(t, db, OrganizationAdministratorRoleCode, organizationAdministratorExpectedPermissionCodes())
+	assertRolePermissionCodes(t, db, SystemAdministratorRoleCode, PermissionCodes())
 }
 
 func TestSeedDefaultsAssignsExactDefaultRolePermissions(t *testing.T) {
@@ -111,7 +131,7 @@ func TestSeedDefaultsAssignsExactDefaultRolePermissions(t *testing.T) {
 		{
 			name:     "organization administrator",
 			roleCode: OrganizationAdministratorRoleCode,
-			want:     nonSystemPermissionCodes(),
+			want:     organizationAdministratorExpectedPermissionCodes(),
 		},
 		{
 			name:     "unit manager",
@@ -150,15 +170,39 @@ func newSeedTestDB(t *testing.T) *gorm.DB {
 	return db
 }
 
-func nonSystemPermissionCodes() []string {
-	codes := make([]string, 0, len(PermissionRegistry)-1)
-	for _, definition := range PermissionRegistry {
-		if definition.Code == "system.admin" {
-			continue
-		}
-		codes = append(codes, definition.Code)
+func organizationAdministratorExpectedPermissionCodes() []string {
+	return []string{
+		"user.view",
+		"user.create",
+		"user.update",
+		"user.delete",
+		"user.activate",
+		"user.suspend",
+		"user.assign_role",
+		"user.assign_group",
+		"user.assign_unit",
+		"role.view",
+		"role.create",
+		"role.update",
+		"role.delete",
+		"role.assign_permissions",
+		"role.assign_users",
+		"group.view",
+		"group.create",
+		"group.update",
+		"group.delete",
+		"group.manage_users",
+		"group.assign_roles",
+		"organization_unit.view",
+		"organization_unit.create",
+		"organization_unit.update",
+		"organization_unit.delete",
+		"organization_unit.manage_users",
+		"organization_unit.manage_roles",
+		"organization_unit.manage_permissions",
+		"organization_unit.manage_hierarchy",
+		"organization_unit.view_audit",
 	}
-	return codes
 }
 
 func assertRolePermissionCodes(t *testing.T, db *gorm.DB, roleCode string, want []string) {
