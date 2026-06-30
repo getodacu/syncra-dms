@@ -37,6 +37,17 @@ func RunAPI(cfg config.Config) error {
 		Ready: func(ctx context.Context) error {
 			return Ping(ctx, db)
 		},
+		DB:                  db,
+		BetterAuthSecret:    cfg.BetterAuthSecret,
+		AuthDeliveryToken:   cfg.AuthDeliveryToken,
+		InternalAPIToken:    cfg.InternalAPIToken,
+		AuthSessionTTL:      time.Duration(cfg.AuthSessionTTLSeconds) * time.Second,
+		AuthVerificationTTL: time.Duration(cfg.AuthVerificationTTLSeconds) * time.Second,
+		AuthCookieSecure:    cfg.AuthCookieSecure,
+		GoogleClientID:      cfg.GoogleClientID,
+		GoogleClientSecret:  cfg.GoogleClientSecret,
+		GitHubClientID:      cfg.GitHubClientID,
+		GitHubClientSecret:  cfg.GitHubClientSecret,
 	})
 	server := NewHTTPServer(cfg.ServerHostPort, router)
 	logger.Info("api.server_starting", "addr", cfg.ServerHostPort, "debug", cfg.Debug)

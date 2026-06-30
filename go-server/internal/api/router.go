@@ -3,8 +3,10 @@ package api
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type VersionInfo struct {
@@ -14,8 +16,20 @@ type VersionInfo struct {
 }
 
 type RouterOptions struct {
-	Version VersionInfo
-	Ready   func(context.Context) error
+	Version             VersionInfo
+	Ready               func(context.Context) error
+	DB                  *gorm.DB
+	BetterAuthSecret    string
+	AuthDeliveryToken   string
+	InternalAPIToken    string
+	AuthSessionTTL      time.Duration
+	AuthVerificationTTL time.Duration
+	AuthCookieSecure    bool
+	GoogleClientID      string
+	GoogleClientSecret  string
+	GitHubClientID      string
+	GitHubClientSecret  string
+	OAuthProfileFetcher func(context.Context, string, string, string) (OAuthProfile, error)
 }
 
 func NewRouter(options RouterOptions) http.Handler {
@@ -62,6 +76,22 @@ func NewRouter(options RouterOptions) http.Handler {
 			"version": version.Version,
 		})
 	})
+
+	auth := newAuthHandler(options)
+	authAPI := router.Group("/api/auth")
+	authAPI.Use(auth.requireTrustedInternalRequest())
+	authAPI.POST("/sign-up/email", auth.signUpEmail)
+	authAPI.POST("/sign-in/email", auth.signInEmail)
+	authAPI.GET("/get-session", auth.getSession)
+	authAPI.POST("/sign-out", auth.signOut)
+	authAPI.POST("/email-otp/send-verification-otp", auth.sendVerificationOTP)
+	authAPI.POST("/email-otp/verify-email", auth.verifyEmailOTP)
+	authAPI.POST("/password-reset/request", auth.requestPasswordReset)
+	authAPI.POST("/password-reset/confirm", auth.confirmPasswordReset)
+	authAPI.POST("/oauth/google/start", auth.startGoogleOAuth)
+	authAPI.POST("/oauth/google/callback", auth.signInGoogleOAuth)
+	authAPI.POST("/oauth/github/start", auth.startGitHubOAuth)
+	authAPI.POST("/oauth/github/callback", auth.signInGitHubOAuth)
 
 	return router
 }

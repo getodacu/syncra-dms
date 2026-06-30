@@ -12,6 +12,15 @@ func TestLoadReadsEnvironmentAndDefaults(t *testing.T) {
 	t.Setenv("ATLAS_DEV_DATABASE_URL", "postgres://syncra:syncra@localhost:5432/syncra_atlas?sslmode=disable")
 	t.Setenv("SERVER_HOST_PORT", "127.0.0.1:9090")
 	t.Setenv("DEBUG", "true")
+	t.Setenv("BETTER_AUTH_SECRET", "better-auth-secret-from-env")
+	t.Setenv("AUTH_DELIVERY_TOKEN", "delivery-token")
+	t.Setenv("AUTH_SESSION_TTL_SECONDS", "3600")
+	t.Setenv("AUTH_VERIFICATION_TTL_SECONDS", "900")
+	t.Setenv("AUTH_COOKIE_SECURE", "true")
+	t.Setenv("GOOGLE_CLIENT_ID", "google-client")
+	t.Setenv("GOOGLE_CLIENT_SECRET", "google-secret")
+	t.Setenv("GITHUB_CLIENT_ID", "github-client")
+	t.Setenv("GITHUB_CLIENT_SECRET", "github-secret")
 
 	cfg, err := Load()
 	if err != nil {
@@ -32,6 +41,18 @@ func TestLoadReadsEnvironmentAndDefaults(t *testing.T) {
 	}
 	if cfg.Version != "dev" {
 		t.Fatalf("Version = %q, want dev", cfg.Version)
+	}
+	if cfg.BetterAuthSecret != "better-auth-secret-from-env" || cfg.AuthDeliveryToken != "delivery-token" {
+		t.Fatalf("auth secret/token were not loaded")
+	}
+	if cfg.AuthSessionTTLSeconds != 3600 || cfg.AuthVerificationTTLSeconds != 900 || !cfg.AuthCookieSecure {
+		t.Fatalf("auth TTL/cookie config = %d/%d/%v", cfg.AuthSessionTTLSeconds, cfg.AuthVerificationTTLSeconds, cfg.AuthCookieSecure)
+	}
+	if cfg.GoogleClientID != "google-client" || cfg.GoogleClientSecret != "google-secret" {
+		t.Fatalf("google oauth env was not loaded")
+	}
+	if cfg.GitHubClientID != "github-client" || cfg.GitHubClientSecret != "github-secret" {
+		t.Fatalf("github oauth env was not loaded")
 	}
 }
 

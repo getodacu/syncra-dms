@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 
+	"ai.ro/syncra/dms/internal/auth"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -16,5 +17,10 @@ func OpenPostgres(dsn string) (*gorm.DB, error) {
 }
 
 func ApplicationModels() []any {
-	return []any{}
+	return []any{
+		&auth.User{},
+		&auth.AuthAccount{},
+		&auth.Session{},
+		&auth.Verification{},
+	}
 }

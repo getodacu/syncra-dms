@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -18,28 +19,46 @@ const (
 )
 
 type Config struct {
-	ServerHostPort      string
-	Debug               bool
-	DSN                 string
-	DSNDev              string
-	AtlasDatabaseURL    string
-	AtlasDevDatabaseURL string
-	InternalAPIToken    string
-	Version             string
+	ServerHostPort             string
+	Debug                      bool
+	DSN                        string
+	DSNDev                     string
+	AtlasDatabaseURL           string
+	AtlasDevDatabaseURL        string
+	InternalAPIToken           string
+	BetterAuthSecret           string
+	AuthDeliveryToken          string
+	AuthSessionTTLSeconds      int64
+	AuthVerificationTTLSeconds int64
+	AuthCookieSecure           bool
+	GoogleClientID             string
+	GoogleClientSecret         string
+	GitHubClientID             string
+	GitHubClientSecret         string
+	Version                    string
 }
 
 func Load() (Config, error) {
 	_ = godotenv.Load()
 
 	cfg := Config{
-		ServerHostPort:      getenv("SERVER_HOST_PORT", defaultServerHostPort),
-		Debug:               getenvBool("DEBUG", false),
-		DSN:                 strings.TrimSpace(os.Getenv("DSN")),
-		DSNDev:              strings.TrimSpace(os.Getenv("DSN_DEV")),
-		AtlasDatabaseURL:    strings.TrimSpace(os.Getenv("ATLAS_DATABASE_URL")),
-		AtlasDevDatabaseURL: strings.TrimSpace(os.Getenv("ATLAS_DEV_DATABASE_URL")),
-		InternalAPIToken:    strings.TrimSpace(os.Getenv("SYNCRA_INTERNAL_API_TOKEN")),
-		Version:             getenv("APP_VERSION", defaultVersion),
+		ServerHostPort:             getenv("SERVER_HOST_PORT", defaultServerHostPort),
+		Debug:                      getenvBool("DEBUG", false),
+		DSN:                        strings.TrimSpace(os.Getenv("DSN")),
+		DSNDev:                     strings.TrimSpace(os.Getenv("DSN_DEV")),
+		AtlasDatabaseURL:           strings.TrimSpace(os.Getenv("ATLAS_DATABASE_URL")),
+		AtlasDevDatabaseURL:        strings.TrimSpace(os.Getenv("ATLAS_DEV_DATABASE_URL")),
+		InternalAPIToken:           strings.TrimSpace(os.Getenv("SYNCRA_INTERNAL_API_TOKEN")),
+		BetterAuthSecret:           strings.TrimSpace(os.Getenv("BETTER_AUTH_SECRET")),
+		AuthDeliveryToken:          strings.TrimSpace(os.Getenv("AUTH_DELIVERY_TOKEN")),
+		AuthSessionTTLSeconds:      getenvInt64("AUTH_SESSION_TTL_SECONDS", 604800),
+		AuthVerificationTTLSeconds: getenvInt64("AUTH_VERIFICATION_TTL_SECONDS", 300),
+		AuthCookieSecure:           getenvBool("AUTH_COOKIE_SECURE", false),
+		GoogleClientID:             strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID")),
+		GoogleClientSecret:         strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_SECRET")),
+		GitHubClientID:             strings.TrimSpace(os.Getenv("GITHUB_CLIENT_ID")),
+		GitHubClientSecret:         strings.TrimSpace(os.Getenv("GITHUB_CLIENT_SECRET")),
+		Version:                    getenv("APP_VERSION", defaultVersion),
 	}
 
 	if cfg.DSN == "" {
@@ -117,4 +136,16 @@ func getenvBool(key string, fallback bool) bool {
 		return fallback
 	}
 	return value == "1" || strings.EqualFold(value, "true") || strings.EqualFold(value, "yes")
+}
+
+func getenvInt64(key string, fallback int64) int64 {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseInt(value, 10, 64)
+	if err != nil || parsed <= 0 {
+		return fallback
+	}
+	return parsed
 }

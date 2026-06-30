@@ -6,13 +6,21 @@ import (
 	"testing"
 )
 
-func TestRunWritesEmptySchemaForLeanScaffold(t *testing.T) {
+func TestRunWritesAuthSchema(t *testing.T) {
 	var stdout bytes.Buffer
 
 	if err := run(&stdout); err != nil {
 		t.Fatalf("run() error = %v", err)
 	}
-	if got := strings.TrimSpace(stdout.String()); got != "" {
-		t.Fatalf("run() output = %q, want empty schema before domain models are added", got)
+	got := stdout.String()
+	for _, want := range []string{
+		`CREATE TABLE "user"`,
+		`CREATE TABLE "account"`,
+		`CREATE TABLE "session"`,
+		`CREATE TABLE "verification"`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("run() output missing %q:\n%s", want, got)
+		}
 	}
 }

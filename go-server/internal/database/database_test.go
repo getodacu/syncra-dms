@@ -2,9 +2,9 @@ package database
 
 import "testing"
 
-func TestApplicationModelsStartsEmpty(t *testing.T) {
-	if got := ApplicationModels(); len(got) != 0 {
-		t.Fatalf("ApplicationModels() length = %d, want 0 for lean scaffold", len(got))
+func TestApplicationModelsIncludesAuthModels(t *testing.T) {
+	if got := ApplicationModels(); len(got) != 4 {
+		t.Fatalf("ApplicationModels() length = %d, want 4 auth models", len(got))
 	}
 }
 

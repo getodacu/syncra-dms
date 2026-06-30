@@ -6,8 +6,8 @@ Lean Go API scaffold for Syncra DMS.
 
 ```sh
 cp .env.example .env
-go test ./...
-go run ./cmd/api
+rtk go test ./...
+rtk go run ./cmd/api
 ```
 
 `DSN` must target `syncra_dms`. `DSN_DEV` must target `syncra_dms_dev`. `ATLAS_DATABASE_URL` must target `syncra_dms`. `ATLAS_DEV_DATABASE_URL` must target a separate empty scratch database.
@@ -17,12 +17,13 @@ go run ./cmd/api
 - `GET /healthz`
 - `GET /readyz`
 - `GET /version`
+- `/api/auth/*` for trusted SvelteKit-to-Go authentication requests
 
 ## Atlas
 
 ```sh
-go run ./cmd/atlas-loader
-atlas migrate validate --dir file://migrations
+rtk go run ./cmd/atlas-loader
+rtk atlas migrate validate --dir file://migrations
 ```
 
-The initial scaffold has no domain models. Add models to `internal/database.ApplicationModels()` as feature plans introduce persistent entities.
+Auth models are included in `internal/database.ApplicationModels()` for Atlas migration output. Add future domain models there as feature plans introduce persistent entities.
