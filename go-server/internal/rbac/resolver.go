@@ -26,6 +26,12 @@ type Grant struct {
 	Source             string
 }
 
+const (
+	GrantSourceUserRole             = "user_role"
+	GrantSourceGroupRole            = "group_role"
+	GrantSourceOrganizationUnitRole = "organization_unit_role"
+)
+
 func NewResolver(db *gorm.DB) *Resolver {
 	return &Resolver{db: db}
 }
@@ -92,7 +98,7 @@ func (r *Resolver) userRoleGrants(ctx context.Context, userID string) ([]Grant, 
 	var grants []Grant
 	if err := r.db.WithContext(ctx).
 		Table("user_roles").
-		Select("'user' AS source, permissions.code AS permission_code, user_roles.scope_type, user_roles.organization_unit_id").
+		Select("? AS source, permissions.code AS permission_code, user_roles.scope_type, user_roles.organization_unit_id", GrantSourceUserRole).
 		Joins("JOIN roles ON roles.id = user_roles.role_id AND roles.is_active = ?", true).
 		Joins("JOIN role_permissions ON role_permissions.role_id = roles.id").
 		Joins("JOIN permissions ON permissions.id = role_permissions.permission_id").
@@ -107,7 +113,7 @@ func (r *Resolver) groupRoleGrants(ctx context.Context, userID string) ([]Grant,
 	var grants []Grant
 	if err := r.db.WithContext(ctx).
 		Table("group_users").
-		Select("'group' AS source, permissions.code AS permission_code, group_roles.scope_type, group_roles.organization_unit_id").
+		Select("? AS source, permissions.code AS permission_code, group_roles.scope_type, group_roles.organization_unit_id", GrantSourceGroupRole).
 		Joins("JOIN groups ON groups.id = group_users.group_id AND groups.is_active = ?", true).
 		Joins("JOIN group_roles ON group_roles.group_id = groups.id").
 		Joins("JOIN roles ON roles.id = group_roles.role_id AND roles.is_active = ?", true).
@@ -124,7 +130,7 @@ func (r *Resolver) organizationUnitRoleGrants(ctx context.Context, organizationU
 	var grants []Grant
 	if err := r.db.WithContext(ctx).
 		Table("organization_unit_roles").
-		Select("'organization_unit' AS source, permissions.code AS permission_code, organization_unit_roles.scope_type, organization_unit_roles.organization_unit_id").
+		Select("? AS source, permissions.code AS permission_code, organization_unit_roles.scope_type, organization_unit_roles.organization_unit_id", GrantSourceOrganizationUnitRole).
 		Joins("JOIN roles ON roles.id = organization_unit_roles.role_id AND roles.is_active = ?", true).
 		Joins("JOIN role_permissions ON role_permissions.role_id = roles.id").
 		Joins("JOIN permissions ON permissions.id = role_permissions.permission_id").

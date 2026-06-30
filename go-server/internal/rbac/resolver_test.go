@@ -87,6 +87,42 @@ func TestResolverAllowsOrganizationUnitRoleThroughPrimaryUnit(t *testing.T) {
 	}
 }
 
+func TestResolverEffectiveGrantsUsesAssignmentSourceValues(t *testing.T) {
+	db := newResolverTestDB(t)
+	unit := createResolverUnit(t, db, "Finance", nil)
+	user := createResolverUser(t, db, string(UserStatusActive), &unit.ID)
+
+	userRole := createResolverRoleWithPermission(t, db, "source.user.view")
+	assignUserRole(t, db, user.ID, userRole.ID, ScopeGlobal, nil)
+
+	group := createResolverGroupWithUser(t, db, user.ID)
+	groupRole := createResolverRoleWithPermission(t, db, "source.group.view")
+	assignGroupRole(t, db, group.ID, groupRole.ID, ScopeGlobal, nil)
+
+	organizationUnitRole := createResolverRoleWithPermission(t, db, "source.organization_unit.view")
+	assignOrganizationUnitRole(t, db, unit.ID, organizationUnitRole.ID, ScopeOrganizationUnit)
+
+	grants, err := NewResolver(db).EffectiveGrants(t.Context(), user.ID)
+	if err != nil {
+		t.Fatalf("EffectiveGrants() error = %v", err)
+	}
+
+	sourceByPermission := make(map[string]string, len(grants))
+	for _, grant := range grants {
+		sourceByPermission[grant.PermissionCode] = grant.Source
+	}
+	want := map[string]string{
+		"source.user.view":              "user_role",
+		"source.group.view":             "group_role",
+		"source.organization_unit.view": "organization_unit_role",
+	}
+	for permissionCode, wantSource := range want {
+		if sourceByPermission[permissionCode] != wantSource {
+			t.Fatalf("EffectiveGrants() source for %s = %q, want %q", permissionCode, sourceByPermission[permissionCode], wantSource)
+		}
+	}
+}
+
 func TestResolverAllowsOrganizationUnitAndChildrenForDescendantUnit(t *testing.T) {
 	db := newResolverTestDB(t)
 	parent := createResolverUnit(t, db, "Finance", nil)
@@ -123,6 +159,121 @@ func TestResolverDeniesUnmatchedScope(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("Can() error = %v", err)
+	}
+	if allowed {
+		t.Fatal("Can() = true, want false")
+	}
+}
+
+func TestResolverDeniesMissingUserWithoutError(t *testing.T) {
+	db := newResolverTestDB(t)
+
+	allowed, err := NewResolver(db).Can(t.Context(), Check{
+		UserID:     uuid.NewString(),
+		Permission: "role.view",
+	})
+	if err != nil {
+		t.Fatalf("Can() error = %v", err)
+	}
+	if allowed {
+		t.Fatal("Can() = true, want false")
+	}
+}
+
+func TestResolverDeniesInactiveUserRole(t *testing.T) {
+	db := newResolverTestDB(t)
+	user := createResolverUser(t, db, string(UserStatusActive), nil)
+	role := createResolverRoleWithPermission(t, db, "role.view")
+	setResolverRoleActive(t, db, role.ID, false)
+	assignUserRole(t, db, user.ID, role.ID, ScopeGlobal, nil)
+
+	allowed, err := NewResolver(db).Can(t.Context(), Check{
+		UserID:     user.ID,
+		Permission: "role.view",
+	})
+	if err != nil {
+		t.Fatalf("Can() error = %v", err)
+	}
+	if allowed {
+		t.Fatal("Can() = true, want false")
+	}
+}
+
+func TestResolverDeniesInactiveGroupRole(t *testing.T) {
+	db := newResolverTestDB(t)
+	user := createResolverUser(t, db, string(UserStatusActive), nil)
+	group := createResolverGroupWithUser(t, db, user.ID)
+	setResolverGroupActive(t, db, group.ID, false)
+	role := createResolverRoleWithPermission(t, db, "group.view")
+	assignGroupRole(t, db, group.ID, role.ID, ScopeGlobal, nil)
+
+	allowed, err := NewResolver(db).Can(t.Context(), Check{
+		UserID:     user.ID,
+		Permission: "group.view",
+	})
+	if err != nil {
+		t.Fatalf("Can() error = %v", err)
+	}
+	if allowed {
+		t.Fatal("Can() = true, want false")
+	}
+}
+
+func TestResolverDeniesScopedGrantWithoutRequestedOrganizationUnit(t *testing.T) {
+	db := newResolverTestDB(t)
+	unit := createResolverUnit(t, db, "Finance", nil)
+	user := createResolverUser(t, db, string(UserStatusActive), nil)
+	role := createResolverRoleWithPermission(t, db, "document.view")
+	assignUserRole(t, db, user.ID, role.ID, ScopeOrganizationUnit, &unit.ID)
+
+	allowed, err := NewResolver(db).Can(t.Context(), Check{
+		UserID:     user.ID,
+		Permission: "document.view",
+	})
+	if err != nil {
+		t.Fatalf("Can() error = %v", err)
+	}
+	if allowed {
+		t.Fatal("Can() = true, want false")
+	}
+}
+
+func TestResolverDeniesOrganizationUnitRoleWhenUserHasNoPrimaryUnit(t *testing.T) {
+	db := newResolverTestDB(t)
+	unit := createResolverUnit(t, db, "Finance", nil)
+	user := createResolverUser(t, db, string(UserStatusActive), nil)
+	role := createResolverRoleWithPermission(t, db, "organization_unit.view")
+	assignOrganizationUnitRole(t, db, unit.ID, role.ID, ScopeOrganizationUnit)
+
+	allowed, err := NewResolver(db).Can(t.Context(), Check{
+		UserID:             user.ID,
+		Permission:         "organization_unit.view",
+		OrganizationUnitID: &unit.ID,
+	})
+	if err != nil {
+		t.Fatalf("Can() error = %v", err)
+	}
+	if allowed {
+		t.Fatal("Can() = true, want false")
+	}
+}
+
+func TestResolverPropagatesDatabaseErrors(t *testing.T) {
+	db := newResolverTestDB(t)
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatalf("DB() error = %v", err)
+	}
+	if err := sqlDB.Close(); err != nil {
+		t.Fatalf("close db: %v", err)
+	}
+
+	allowed, err := NewResolver(db).Can(t.Context(), Check{
+		UserID:     uuid.NewString(),
+		Permission: "role.view",
+	})
+	if err == nil {
+		t.Fatal("Can() error = nil, want database error")
 	}
 	if allowed {
 		t.Fatal("Can() = true, want false")
@@ -224,6 +375,13 @@ func assignUserRole(t *testing.T, db *gorm.DB, userID, roleID string, scope Scop
 	}
 }
 
+func setResolverRoleActive(t *testing.T, db *gorm.DB, roleID string, active bool) {
+	t.Helper()
+	if err := db.Model(&Role{}).Where("id = ?", roleID).Update("is_active", active).Error; err != nil {
+		t.Fatalf("update role active flag: %v", err)
+	}
+}
+
 func createResolverGroupWithUser(t *testing.T, db *gorm.DB, userID string) Group {
 	t.Helper()
 	now := time.Now().UTC()
@@ -247,6 +405,13 @@ func createResolverGroupWithUser(t *testing.T, db *gorm.DB, userID string) Group
 		t.Fatalf("create group user: %v", err)
 	}
 	return group
+}
+
+func setResolverGroupActive(t *testing.T, db *gorm.DB, groupID string, active bool) {
+	t.Helper()
+	if err := db.Model(&Group{}).Where("id = ?", groupID).Update("is_active", active).Error; err != nil {
+		t.Fatalf("update group active flag: %v", err)
+	}
 }
 
 func assignGroupRole(t *testing.T, db *gorm.DB, groupID, roleID string, scope ScopeType, organizationUnitID *string) {
