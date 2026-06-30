@@ -31,6 +31,7 @@ const (
 )
 
 var errAuthUserInactive = errors.New("user account is not active")
+var errOAuthStateInvalid = errors.New("invalid oauth state")
 
 type authHandler struct {
 	db                  *gorm.DB
@@ -573,11 +574,6 @@ func (h *authHandler) confirmPasswordReset(c *gin.Context) {
 		writeError(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	passwordHash, err := auth.HashPassword(req.Password)
-	if err != nil {
-		writeError(c, http.StatusInternalServerError, "failed to hash password")
-		return
-	}
 
 	invalid := false
 	if err := h.db.Transaction(func(tx *gorm.DB) error {
@@ -607,6 +603,10 @@ func (h *authHandler) confirmPasswordReset(c *gin.Context) {
 		}
 		if !authUserCanUseCredentialLifecycle(user) {
 			return errAuthUserInactive
+		}
+		passwordHash, err := auth.HashPassword(req.Password)
+		if err != nil {
+			return err
 		}
 		if err := tx.Delete(&verification).Error; err != nil {
 			return err
@@ -650,6 +650,9 @@ func (h *authHandler) startGitHubOAuth(c *gin.Context) {
 }
 
 func (h *authHandler) startOAuth(c *gin.Context, provider string) {
+	if !h.authConfigured(c) {
+		return
+	}
 	var req oauthStartRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		writeError(c, http.StatusBadRequest, "invalid JSON body")
@@ -699,6 +702,10 @@ func (h *authHandler) startOAuth(c *gin.Context, provider string) {
 		writeError(c, http.StatusBadRequest, "unsupported oauth provider")
 		return
 	}
+	if err := h.persistOAuthState(provider, state, expiresAt); err != nil {
+		writeError(c, http.StatusInternalServerError, "failed to create oauth state")
+		return
+	}
 	c.JSON(http.StatusOK, oauthStartResponse{
 		AuthorizationURL: authorizationURL,
 		State:            state,
@@ -725,6 +732,19 @@ func (h *authHandler) signInOAuth(c *gin.Context, providerID string) {
 	}
 	if strings.TrimSpace(req.Code) == "" || strings.TrimSpace(req.RedirectURI) == "" {
 		writeError(c, http.StatusBadRequest, "code and redirectURI are required")
+		return
+	}
+	state := strings.TrimSpace(req.State)
+	if state == "" {
+		writeError(c, http.StatusBadRequest, "state is required")
+		return
+	}
+	if err := h.consumeOAuthState(providerID, state); err != nil {
+		if errors.Is(err, errOAuthStateInvalid) {
+			writeError(c, http.StatusUnauthorized, errOAuthStateInvalid.Error())
+			return
+		}
+		writeError(c, http.StatusInternalServerError, "failed to validate oauth state")
 		return
 	}
 
@@ -852,6 +872,42 @@ func (h *authHandler) rotatePasswordResetVerification(tx *gorm.DB, email string,
 	}
 	identifier := passwordResetIdentifier(email)
 	return h.rotateVerification(tx, identifier, token, tokenOut, expiresOut)
+}
+
+func (h *authHandler) persistOAuthState(providerID string, state string, expiresAt time.Time) error {
+	now := time.Now().UTC()
+	identifier := h.oauthStateIdentifier(providerID, state)
+	return h.db.Create(&auth.Verification{
+		Identifier: identifier,
+		Value:      auth.HashCode(h.betterAuthSecret, identifier, state),
+		ExpiresAt:  expiresAt,
+		CreatedAt:  now,
+		UpdatedAt:  now,
+	}).Error
+}
+
+func (h *authHandler) consumeOAuthState(providerID string, state string) error {
+	return h.db.Transaction(func(tx *gorm.DB) error {
+		identifier := h.oauthStateIdentifier(providerID, state)
+		verification, ok, err := h.loadVerification(tx, identifier)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return errOAuthStateInvalid
+		}
+		now := time.Now().UTC()
+		if !verification.ExpiresAt.After(now) {
+			if err := tx.Delete(&verification).Error; err != nil {
+				return err
+			}
+			return errOAuthStateInvalid
+		}
+		if !auth.VerifyCode(h.betterAuthSecret, identifier, state, verification.Value) {
+			return errOAuthStateInvalid
+		}
+		return tx.Delete(&verification).Error
+	})
 }
 
 func (h *authHandler) rotateVerification(tx *gorm.DB, identifier string, plaintext string, plaintextOut *string, expiresOut *time.Time) error {
@@ -1168,6 +1224,11 @@ func verificationIdentifier(email string) string {
 
 func passwordResetIdentifier(email string) string {
 	return "password-reset:" + normalizeEmail(email)
+}
+
+func (h *authHandler) oauthStateIdentifier(providerID string, state string) string {
+	stateHash := auth.HashCode(h.betterAuthSecret, "oauth-state:"+providerID, state)
+	return "oauth-state:" + providerID + ":" + stateHash
 }
 
 func validateSignupInput(name string, email string, password string) error {

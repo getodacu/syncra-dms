@@ -131,6 +131,12 @@ CREATE TABLE "organization_unit_roles" (
 
 CREATE UNIQUE INDEX "idx_organization_unit_role_unique" ON "organization_unit_roles" ("organization_unit_id", "role_id", "scope_type");
 
+CREATE TABLE "rbac_bootstrap_markers" (
+  "name" varchar(120) NOT NULL,
+  "created_at" timestamptz NOT NULL,
+  PRIMARY KEY ("name")
+);
+
 ALTER TABLE "user" ADD CONSTRAINT "fk_user_primary_organization_unit" FOREIGN KEY ("primary_organization_unit_id") REFERENCES "organization_units"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 ALTER TABLE "user" ADD CONSTRAINT "fk_user_manager_user" FOREIGN KEY ("manager_user_id") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 ALTER TABLE "role_permissions" ADD CONSTRAINT "fk_role_permissions_role" FOREIGN KEY ("role_id") REFERENCES "roles"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -41,6 +41,40 @@ func TestBootstrapLegacyAdminsAssignsSystemAdministratorRole(t *testing.T) {
 	}
 }
 
+func TestBootstrapLegacyAdminsDoesNotRestoreRevokedGrantAfterImportMarker(t *testing.T) {
+	db := newBootstrapTestDB(t)
+	if err := SeedDefaults(db); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	now := time.Now().UTC()
+	admin := auth.User{Name: "Admin", Email: "admin@example.com", EmailVerified: true, Role: auth.UserRoleAdmin, Status: string(UserStatusActive), CreatedAt: now, UpdatedAt: now}
+	if err := db.Create(&admin).Error; err != nil {
+		t.Fatalf("create admin: %v", err)
+	}
+	var adminRole Role
+	if err := db.First(&adminRole, "code = ?", SystemAdministratorRoleCode).Error; err != nil {
+		t.Fatalf("load system administrator role: %v", err)
+	}
+
+	if err := BootstrapLegacyAdmins(db); err != nil {
+		t.Fatalf("bootstrap: %v", err)
+	}
+	if err := db.Where("user_id = ? AND role_id = ? AND scope_type = ?", admin.ID, adminRole.ID, ScopeGlobal).Delete(&UserRole{}).Error; err != nil {
+		t.Fatalf("delete imported role grant: %v", err)
+	}
+	if err := BootstrapLegacyAdmins(db); err != nil {
+		t.Fatalf("bootstrap after revocation: %v", err)
+	}
+
+	var count int64
+	if err := db.Model(&UserRole{}).Where("user_id = ? AND role_id = ? AND scope_type = ?", admin.ID, adminRole.ID, ScopeGlobal).Count(&count).Error; err != nil {
+		t.Fatalf("count user roles: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("revoked user role count = %d, want 0", count)
+	}
+}
+
 func TestBootstrapLegacyAdminsAssignsEmptyStatusLegacyAdmin(t *testing.T) {
 	db := newBootstrapTestDB(t)
 	if err := SeedDefaults(db); err != nil {
@@ -201,6 +235,7 @@ func newBootstrapTestDB(t *testing.T) *gorm.DB {
 		&Permission{},
 		&RolePermission{},
 		&UserRole{},
+		&BootstrapMarker{},
 	); err != nil {
 		t.Fatalf("auto migrate: %v", err)
 	}

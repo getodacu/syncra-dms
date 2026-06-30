@@ -35,6 +35,8 @@ const (
 	UserStatusDeleted   UserStatus = "deleted"
 )
 
+const LegacyAdminsBootstrapMarkerName = "legacy_admins"
+
 func (s UserStatus) Valid() bool {
 	return s == UserStatusInvited || s == UserStatusActive || s == UserStatusInactive || s == UserStatusSuspended || s == UserStatusDeleted
 }
@@ -209,6 +211,13 @@ func (o *OrganizationUnitRole) BeforeCreate(_ *gorm.DB) error {
 }
 
 func (OrganizationUnitRole) TableName() string { return "organization_unit_roles" }
+
+type BootstrapMarker struct {
+	Name      string    `gorm:"primaryKey;size:120" json:"name"`
+	CreatedAt time.Time `gorm:"column:created_at;not null" json:"createdAt"`
+}
+
+func (BootstrapMarker) TableName() string { return "rbac_bootstrap_markers" }
 
 func validateScopeType(scope ScopeType) error {
 	if !scope.Valid() {

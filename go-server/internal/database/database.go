@@ -33,5 +33,6 @@ func ApplicationModels() []any {
 		&rbac.GroupUser{},
 		&rbac.GroupRole{},
 		&rbac.OrganizationUnitRole{},
+		&rbac.BootstrapMarker{},
 	}
 }

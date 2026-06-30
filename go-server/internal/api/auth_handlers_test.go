@@ -500,9 +500,10 @@ func TestOAuthCallbackRejectsInvitedUserThatRemainsInvited(t *testing.T) {
 	})
 	createInvitedUser(t, db, "ada@example.com")
 
+	state := startOAuthState(t, router, "/api/auth/oauth/google/start")
 	response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
 		"code":"oauth-code",
-		"state":"state",
+		"state":"`+state+`",
 		"redirectURI":"http://localhost:5173/api/auth/google/callback"
 	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
 	if response.Code != http.StatusForbidden {
@@ -542,9 +543,10 @@ func TestOAuthCallbackRejectsNewUnverifiedUserWithoutSideEffects(t *testing.T) {
 		},
 	})
 
+	state := startOAuthState(t, router, "/api/auth/oauth/google/start")
 	response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
 		"code":"oauth-code",
-		"state":"state",
+		"state":"`+state+`",
 		"redirectURI":"http://localhost:5173/api/auth/google/callback"
 	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
 	if response.Code != http.StatusForbidden {
@@ -579,9 +581,10 @@ func TestOAuthCallbackRejectsUnverifiedEmailMatchWithoutSideEffects(t *testing.T
 	user := createStatusUser(t, db, "ada@example.com", "active", true, false)
 	before := captureAuthUserState(t, db, user.ID)
 
+	state := startOAuthState(t, router, "/api/auth/oauth/google/start")
 	response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
 		"code":"oauth-code",
-		"state":"state",
+		"state":"`+state+`",
 		"redirectURI":"http://localhost:5173/api/auth/google/callback"
 	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
 	if response.Code != http.StatusForbidden {
@@ -637,9 +640,10 @@ func TestOAuthCallbackRejectsNonActiveExistingUsersWithoutSideEffects(t *testing
 			user := createStatusUser(t, db, "ada@example.com", tc.status, false, tc.softDelete)
 			before := captureAuthUserState(t, db, user.ID)
 
+			state := startOAuthState(t, router, "/api/auth/oauth/google/start")
 			response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
 				"code":"oauth-code",
-				"state":"state",
+				"state":"`+state+`",
 				"redirectURI":"http://localhost:5173/api/auth/google/callback"
 			}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
 			if response.Code != http.StatusForbidden {
@@ -681,9 +685,10 @@ func TestOAuthCallbackRejectsLinkedNonActiveUserWithoutMutation(t *testing.T) {
 	}
 	before := captureAuthUserState(t, db, user.ID)
 
+	state := startOAuthState(t, router, "/api/auth/oauth/google/start")
 	response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
 		"code":"oauth-code",
-		"state":"state",
+		"state":"`+state+`",
 		"redirectURI":"http://localhost:5173/api/auth/google/callback"
 	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
 	if response.Code != http.StatusForbidden {
@@ -722,9 +727,10 @@ func TestOAuthCallbackAllowsLinkedUnverifiedProfileWithoutPromotion(t *testing.T
 		t.Fatalf("create linked oauth account: %v", err)
 	}
 
+	state := startOAuthState(t, router, "/api/auth/oauth/google/start")
 	response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
 		"code":"oauth-code",
-		"state":"state",
+		"state":"`+state+`",
 		"redirectURI":"http://localhost:5173/api/auth/google/callback"
 	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
 	if response.Code != http.StatusOK {
@@ -800,9 +806,10 @@ func TestOAuthCallbackPromotesLinkedInvitedOnlyWhenVerifiedEmailMatches(t *testi
 			}
 			before := captureAuthUserState(t, db, user.ID)
 
+			state := startOAuthState(t, router, "/api/auth/oauth/google/start")
 			response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
 				"code":"oauth-code",
-				"state":"state",
+				"state":"`+state+`",
 				"redirectURI":"http://localhost:5173/api/auth/google/callback"
 			}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
 			if response.Code != tc.wantStatus {
@@ -1038,6 +1045,24 @@ func TestConfirmPasswordResetInvalidTokenDoesNotEnumerateLifecycle(t *testing.T)
 			}
 		})
 	}
+}
+
+func TestConfirmPasswordResetInvalidTokenDoesNotChangeCredentialWithNewPassword(t *testing.T) {
+	router, db := newAuthTestRouter(t)
+	user := createVerifiedUser(t, db, "ada@example.com", "old-password")
+	createPasswordResetVerification(t, db, "ada@example.com")
+	before := captureAuthUserState(t, db, user.ID)
+
+	response := authJSON(t, router, http.MethodPost, "/api/auth/password-reset/confirm", `{
+		"email":"ada@example.com",
+		"token":"wrong-token",
+		"password":"new-password"
+	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+	assertErrorResponse(t, response, http.StatusBadRequest, "invalid password reset token")
+	assertVerificationCount(t, db, passwordResetIdentifier("ada@example.com"), 1)
+	assertCredentialPassword(t, db, user.ID, "old-password")
+	after := captureAuthUserState(t, db, user.ID)
+	assertAuthUserStateUnchanged(t, before, after)
 }
 
 func TestPasswordResetConfirmRejectsNonActiveUsersWithoutMutation(t *testing.T) {
@@ -1315,6 +1340,189 @@ func TestOAuthStartRequiresConfiguredProvider(t *testing.T) {
 	}
 }
 
+func TestOAuthStartPersistsHashedState(t *testing.T) {
+	router, db := newAuthTestRouterWithOptions(t, RouterOptions{
+		GoogleClientID:     "google-client",
+		GoogleClientSecret: "google-secret",
+	})
+
+	response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/start", `{
+		"redirectURI":"http://localhost:5173/api/auth/google/callback"
+	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+	if response.Code != http.StatusOK {
+		t.Fatalf("oauth start status = %d body=%s, want ok", response.Code, response.Body.String())
+	}
+	var body struct {
+		State          string `json:"state"`
+		StateExpiresAt string `json:"stateExpiresAt"`
+	}
+	decodeJSON(t, response, &body)
+	if body.State == "" || body.StateExpiresAt == "" {
+		t.Fatalf("unexpected oauth start body: %#v", body)
+	}
+
+	var verifications []auth.Verification
+	if err := db.Find(&verifications).Error; err != nil {
+		t.Fatalf("load oauth state verification: %v", err)
+	}
+	if len(verifications) != 1 {
+		t.Fatalf("oauth state verification count = %d, want 1", len(verifications))
+	}
+	if strings.Contains(verifications[0].Identifier, body.State) {
+		t.Fatalf("oauth state identifier stored raw state: identifier=%q state=%q", verifications[0].Identifier, body.State)
+	}
+	if verifications[0].Value == body.State || strings.Contains(verifications[0].Value, body.State) {
+		t.Fatalf("oauth state value stored raw state: value=%q state=%q", verifications[0].Value, body.State)
+	}
+	expiresAt, err := time.Parse(time.RFC3339Nano, body.StateExpiresAt)
+	if err != nil {
+		t.Fatalf("parse StateExpiresAt: %v", err)
+	}
+	if !verifications[0].ExpiresAt.Equal(expiresAt) {
+		t.Fatalf("verification expiresAt = %s, want %s", verifications[0].ExpiresAt.Format(time.RFC3339Nano), expiresAt.Format(time.RFC3339Nano))
+	}
+}
+
+func TestOAuthCallbackRejectsInvalidStateBeforeProfileFetch(t *testing.T) {
+	tests := []struct {
+		name       string
+		wantStatus int
+		body       func(*testing.T, http.Handler, *gorm.DB) string
+	}{
+		{
+			name:       "missing",
+			wantStatus: http.StatusBadRequest,
+			body: func(t *testing.T, router http.Handler, db *gorm.DB) string {
+				return `{
+					"code":"oauth-code",
+					"redirectURI":"http://localhost:5173/api/auth/google/callback"
+				}`
+			},
+		},
+		{
+			name:       "mismatched",
+			wantStatus: http.StatusUnauthorized,
+			body: func(t *testing.T, router http.Handler, db *gorm.DB) string {
+				return `{
+					"code":"oauth-code",
+					"state":"not-issued",
+					"redirectURI":"http://localhost:5173/api/auth/google/callback"
+				}`
+			},
+		},
+		{
+			name:       "expired",
+			wantStatus: http.StatusUnauthorized,
+			body: func(t *testing.T, router http.Handler, db *gorm.DB) string {
+				state := startOAuthState(t, router, "/api/auth/oauth/google/start")
+				expireOAuthStates(t, db, auth.GoogleProviderID)
+				return `{
+					"code":"oauth-code",
+					"state":"` + state + `",
+					"redirectURI":"http://localhost:5173/api/auth/google/callback"
+				}`
+			},
+		},
+		{
+			name:       "wrong provider",
+			wantStatus: http.StatusUnauthorized,
+			body: func(t *testing.T, router http.Handler, db *gorm.DB) string {
+				state := startOAuthState(t, router, "/api/auth/oauth/github/start")
+				return `{
+					"code":"oauth-code",
+					"state":"` + state + `",
+					"redirectURI":"http://localhost:5173/api/auth/google/callback"
+				}`
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			fetchCalled := false
+			router, db := newAuthTestRouterWithOptions(t, RouterOptions{
+				GoogleClientID:     "google-client",
+				GoogleClientSecret: "google-secret",
+				GitHubClientID:     "github-client",
+				GitHubClientSecret: "github-secret",
+				OAuthProfileFetcher: func(context.Context, string, string, string) (OAuthProfile, error) {
+					fetchCalled = true
+					return OAuthProfile{
+						ProviderID: auth.GoogleProviderID,
+						AccountID:  "google-invalid-state",
+						Email:      "ada@example.com",
+						Name:       "Ada Lovelace",
+						Verified:   true,
+					}, nil
+				},
+			})
+			user := createInvitedUser(t, db, "ada@example.com")
+			before := captureAuthUserState(t, db, user.ID)
+
+			response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", tc.body(t, router, db), map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+			if response.Code != tc.wantStatus {
+				t.Fatalf("oauth callback status = %d body=%s, want %d", response.Code, response.Body.String(), tc.wantStatus)
+			}
+			if fetchCalled {
+				t.Fatal("oauth callback fetched provider profile before validating state")
+			}
+			assertSessionCount(t, db, 0)
+			assertOAuthAccountCount(t, db, auth.GoogleProviderID, "google-invalid-state", 0)
+			after := captureAuthUserState(t, db, user.ID)
+			assertAuthUserStateUnchanged(t, before, after)
+		})
+	}
+}
+
+func TestOAuthCallbackConsumesStateAndRejectsReplayBeforeProfileFetch(t *testing.T) {
+	fetchCalls := 0
+	router, db := newAuthTestRouterWithOptions(t, RouterOptions{
+		GoogleClientID:     "google-client",
+		GoogleClientSecret: "google-secret",
+		OAuthProfileFetcher: func(_ context.Context, providerID string, code string, redirectURI string) (OAuthProfile, error) {
+			fetchCalls++
+			accountID := "google-replay-first"
+			if fetchCalls > 1 {
+				accountID = "google-replay-second"
+			}
+			return OAuthProfile{
+				ProviderID: providerID,
+				AccountID:  accountID,
+				Email:      "ada@example.com",
+				Name:       "Ada Lovelace",
+				Verified:   true,
+			}, nil
+		},
+	})
+	state := startOAuthState(t, router, "/api/auth/oauth/google/start")
+
+	first := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
+		"code":"oauth-code",
+		"state":"`+state+`",
+		"redirectURI":"http://localhost:5173/api/auth/google/callback"
+	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+	if first.Code != http.StatusOK {
+		t.Fatalf("first oauth callback status = %d body=%s, want ok", first.Code, first.Body.String())
+	}
+	assertSessionCount(t, db, 1)
+	assertOAuthAccountCount(t, db, auth.GoogleProviderID, "google-replay-first", 1)
+	assertOAuthStateCount(t, db, auth.GoogleProviderID, 0)
+
+	second := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
+		"code":"oauth-code",
+		"state":"`+state+`",
+		"redirectURI":"http://localhost:5173/api/auth/google/callback"
+	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+	if second.Code != http.StatusUnauthorized {
+		t.Fatalf("replayed oauth callback status = %d body=%s, want unauthorized", second.Code, second.Body.String())
+	}
+	if fetchCalls != 1 {
+		t.Fatalf("fetch calls = %d, want 1", fetchCalls)
+	}
+	assertSessionCount(t, db, 1)
+	assertOAuthAccountCount(t, db, auth.GoogleProviderID, "google-replay-second", 0)
+}
+
 func TestOAuthCallbackReturnsUnauthorizedOnProviderFailure(t *testing.T) {
 	router, _ := newAuthTestRouterWithOptions(t, RouterOptions{
 		GoogleClientID:     "google-client",
@@ -1324,9 +1532,10 @@ func TestOAuthCallbackReturnsUnauthorizedOnProviderFailure(t *testing.T) {
 		},
 	})
 
+	state := startOAuthState(t, router, "/api/auth/oauth/google/start")
 	response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
 		"code":"oauth-code",
-		"state":"state",
+		"state":"`+state+`",
 		"redirectURI":"http://localhost:5173/api/auth/google/callback"
 	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
 	if response.Code != http.StatusUnauthorized {
@@ -1392,9 +1601,10 @@ func TestOAuthCallbackCreatesSessionAndProviderAccount(t *testing.T) {
 		},
 	})
 
+	state := startOAuthState(t, router, "/api/auth/oauth/google/start")
 	response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
 		"code":"oauth-code",
-		"state":"state",
+		"state":"`+state+`",
 		"redirectURI":"http://localhost:5173/api/auth/google/callback"
 	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
 	if response.Code != http.StatusOK {
@@ -1452,9 +1662,10 @@ func TestOAuthCallbackPromotesExistingInvitedVerifiedEmailUser(t *testing.T) {
 		t.Fatalf("created user status = %q, want invited", user.Status)
 	}
 
+	state := startOAuthState(t, router, "/api/auth/oauth/google/start")
 	response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
 		"code":"oauth-code",
-		"state":"state",
+		"state":"`+state+`",
 		"redirectURI":"http://localhost:5173/api/auth/google/callback"
 	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
 	if response.Code != http.StatusOK {
@@ -1489,9 +1700,10 @@ func TestOAuthCallbackPromotesExistingVerifiedInvitedEmailUser(t *testing.T) {
 	})
 	user := createVerifiedInvitedUser(t, db, "ada@example.com")
 
+	state := startOAuthState(t, router, "/api/auth/oauth/google/start")
 	response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
 		"code":"oauth-code",
-		"state":"state",
+		"state":"`+state+`",
 		"redirectURI":"http://localhost:5173/api/auth/google/callback"
 	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
 	if response.Code != http.StatusOK {
@@ -1537,9 +1749,10 @@ func TestOAuthCallbackPromotesExistingLinkedInvitedVerifiedEmailUser(t *testing.
 		t.Fatalf("create linked oauth account: %v", err)
 	}
 
+	state := startOAuthState(t, router, "/api/auth/oauth/google/start")
 	response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
 		"code":"oauth-code",
-		"state":"state",
+		"state":"`+state+`",
 		"redirectURI":"http://localhost:5173/api/auth/google/callback"
 	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
 	if response.Code != http.StatusOK {
@@ -1585,9 +1798,10 @@ func TestOAuthCallbackPromotesExistingLinkedVerifiedInvitedEmailUser(t *testing.
 		t.Fatalf("create linked oauth account: %v", err)
 	}
 
+	state := startOAuthState(t, router, "/api/auth/oauth/google/start")
 	response := authJSON(t, router, http.MethodPost, "/api/auth/oauth/google/callback", `{
 		"code":"oauth-code",
-		"state":"state",
+		"state":"`+state+`",
 		"redirectURI":"http://localhost:5173/api/auth/google/callback"
 	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
 	if response.Code != http.StatusOK {
@@ -1636,6 +1850,34 @@ func newAuthTestRouterWithOptions(t *testing.T, options RouterOptions) (http.Han
 		OAuthProfileFetcher: options.OAuthProfileFetcher,
 	}
 	return NewRouter(base), db
+}
+
+func startOAuthState(t *testing.T, router http.Handler, path string) string {
+	t.Helper()
+	response := authJSON(t, router, http.MethodPost, path, `{
+		"redirectURI":"http://localhost:5173/api/auth/oauth/callback"
+	}`, map[string]string{"X-Syncra-Internal-Token": testInternalToken})
+	if response.Code != http.StatusOK {
+		t.Fatalf("oauth start status = %d body=%s, want ok", response.Code, response.Body.String())
+	}
+	var body struct {
+		State string `json:"state"`
+	}
+	decodeJSON(t, response, &body)
+	if body.State == "" {
+		t.Fatalf("oauth start returned empty state: %s", response.Body.String())
+	}
+	return body.State
+}
+
+func expireOAuthStates(t *testing.T, db *gorm.DB, providerID string) {
+	t.Helper()
+	expiresAt := time.Now().UTC().Add(-time.Minute)
+	if err := db.Model(&auth.Verification{}).
+		Where("identifier LIKE ?", "oauth-state:"+providerID+":%").
+		Update("expires_at", expiresAt).Error; err != nil {
+		t.Fatalf("expire oauth states: %v", err)
+	}
 }
 
 func newGitHubProfileTestHandler(t *testing.T, emailsJSON string) *authHandler {
@@ -1979,6 +2221,17 @@ func assertOAuthAccountCount(t *testing.T, db *gorm.DB, providerID string, accou
 	}
 	if count != want {
 		t.Fatalf("oauth account count = %d, want %d", count, want)
+	}
+}
+
+func assertOAuthStateCount(t *testing.T, db *gorm.DB, providerID string, want int64) {
+	t.Helper()
+	var count int64
+	if err := db.Model(&auth.Verification{}).Where("identifier LIKE ?", "oauth-state:"+providerID+":%").Count(&count).Error; err != nil {
+		t.Fatalf("count oauth states: %v", err)
+	}
+	if count != want {
+		t.Fatalf("oauth state count = %d, want %d", count, want)
 	}
 }
 
