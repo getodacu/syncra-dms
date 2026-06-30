@@ -1,3 +1,4 @@
-h1:lpM2x/gT5oZvJw/SyVAn68Dfjgivb94W1T4Ch8qLGNo=
+h1:uKy2XB1TeJLq07jzeffP1K4heZ0y3JUcqX+AuvqQ8Fc=
 20260630090000_add_auth_tables.sql h1:Ti54slYklHRVt0PNvAXOhfzvqjhYphpipan8ZfL1QK0=
 20260630120000_add_organization_units.sql h1:tbmYN6OBLnvbpgdnjpNDjb7kq7UWfFMLkZbVj+Qhpq4=
+20260630150000_add_rbac_foundation.sql h1:wh3OwZjFm35LfBtgBhgquevfnXI3fH3gFuma2TOLtPM=
