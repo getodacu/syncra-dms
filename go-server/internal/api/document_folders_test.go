@@ -143,6 +143,52 @@ func TestDocumentFolderRoutesDenyCrossUnitScopedDocumentPermissions(t *testing.T
 	}
 }
 
+func TestDocumentFolderParentValidationHidesInaccessibleCrossUnitParentIDs(t *testing.T) {
+	router, db := newAuthTestRouter(t)
+	adminToken := loginSeededAdmin(t, router, db, "admin@example.com")
+	financeID := createUnitViaAPI(t, router, adminToken, `{"name":"Finance"}`)
+	legalID := createUnitViaAPI(t, router, adminToken, `{"name":"Legal"}`)
+	financeRootID := createFolderViaAPI(t, router, adminToken, `{"organizationUnitId":"`+financeID+`","name":"Invoices"}`)
+	financeChildID := createFolderViaAPI(t, router, adminToken, `{"organizationUnitId":"`+financeID+`","parentId":"`+financeRootID+`","name":"2026"}`)
+	legalFolderID := createFolderViaAPI(t, router, adminToken, `{"organizationUnitId":"`+legalID+`","name":"Cases"}`)
+	user := createVerifiedUser(t, db, "finance-parent-probe@example.com", "password123")
+	assignOrganizationUnitRoleByCode(t, db, user.ID, rbac.OrganizationAdministratorRoleCode, financeID)
+	token := loginUser(t, router, user.Email, "password123")
+	missingID := "00000000-0000-0000-0000-000000000123"
+
+	for _, tc := range []struct {
+		name             string
+		method           string
+		path             string
+		bodyWithExisting string
+		bodyWithMissing  string
+	}{
+		{
+			name:             "create",
+			method:           http.MethodPost,
+			path:             "/api/document-folders",
+			bodyWithExisting: `{"organizationUnitId":"` + financeID + `","parentId":"` + legalFolderID + `","name":"Cross Unit Create"}`,
+			bodyWithMissing:  `{"organizationUnitId":"` + financeID + `","parentId":"` + missingID + `","name":"Missing Parent Create"}`,
+		},
+		{
+			name:             "move",
+			method:           http.MethodPatch,
+			path:             "/api/document-folders/" + financeChildID + "/parent",
+			bodyWithExisting: `{"parentId":"` + legalFolderID + `"}`,
+			bodyWithMissing:  `{"parentId":"` + missingID + `"}`,
+		},
+	} {
+		existing := folderJSON(t, router, tc.method, tc.path, tc.bodyWithExisting, authCookieHeaders(token))
+		if existing.Code != http.StatusNotFound {
+			t.Fatalf("%s inaccessible parent status = %d body=%s, want not found", tc.name, existing.Code, existing.Body.String())
+		}
+		missing := folderJSON(t, router, tc.method, tc.path, tc.bodyWithMissing, authCookieHeaders(token))
+		if missing.Code != http.StatusNotFound {
+			t.Fatalf("%s missing parent status = %d body=%s, want not found", tc.name, missing.Code, missing.Body.String())
+		}
+	}
+}
+
 func TestDocumentFolderLifecycle(t *testing.T) {
 	router, db := newAuthTestRouter(t)
 	token := loginSeededAdmin(t, router, db, "admin@example.com")

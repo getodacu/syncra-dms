@@ -133,7 +133,7 @@ func (h *documentFolderHandler) create(c *gin.Context) {
 		if ok := h.activeOrganizationUnitExistsWithDB(c, tx, organizationUnitID); !ok {
 			return errDocumentFolderResponseWritten
 		}
-		parentID, ok := h.validateOptionalActiveParentWithDB(c, tx, req.ParentID, organizationUnitID)
+		parentID, ok := h.validateOptionalActiveParentWithDB(c, tx, req.ParentID, organizationUnitID, user, []string{"document.create", "document.view"})
 		if !ok {
 			return errDocumentFolderResponseWritten
 		}
@@ -250,7 +250,7 @@ func (h *documentFolderHandler) move(c *gin.Context) {
 			return errDocumentFolderResponseWritten
 		}
 		folder = lockedFolder
-		parentID, ok := h.validateOptionalActiveParentWithDB(c, tx, req.ParentID, folder.OrganizationUnitID)
+		parentID, ok := h.validateOptionalActiveParentWithDB(c, tx, req.ParentID, folder.OrganizationUnitID, user, []string{"document.update", "document.view"})
 		if !ok {
 			return errDocumentFolderResponseWritten
 		}
@@ -488,7 +488,7 @@ func checkDocumentFolderPermissionForAuthenticatedUser(c *gin.Context, h *authHa
 	return allowed, true
 }
 
-func (h *documentFolderHandler) validateOptionalActiveParentWithDB(c *gin.Context, db *gorm.DB, raw *string, organizationUnitID string) (*string, bool) {
+func (h *documentFolderHandler) validateOptionalActiveParentWithDB(c *gin.Context, db *gorm.DB, raw *string, organizationUnitID string, user auth.User, parentAccessPermissions []string) (*string, bool) {
 	if raw == nil || strings.TrimSpace(*raw) == "" {
 		return nil, true
 	}
@@ -497,7 +497,10 @@ func (h *documentFolderHandler) validateOptionalActiveParentWithDB(c *gin.Contex
 		return nil, false
 	}
 	var parent documents.Folder
-	if err := db.WithContext(c.Request.Context()).First(&parent, "id = ?", parentID).Error; err != nil {
+	if err := db.WithContext(c.Request.Context()).
+		Joins("JOIN organization_units ON organization_units.id = document_folders.organization_unit_id").
+		Where("document_folders.id = ? AND document_folders.deleted_at IS NULL AND organization_units.archived_at IS NULL", parentID).
+		First(&parent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeError(c, http.StatusNotFound, "parent document folder not found")
 			return nil, false
@@ -505,15 +508,38 @@ func (h *documentFolderHandler) validateOptionalActiveParentWithDB(c *gin.Contex
 		writeError(c, http.StatusInternalServerError, "failed to validate parent document folder")
 		return nil, false
 	}
-	if parent.DeletedAt != nil {
-		writeError(c, http.StatusNotFound, "parent document folder not found")
-		return nil, false
-	}
 	if parent.OrganizationUnitID != organizationUnitID {
+		canAccessParent, ok := h.userHasAnyDocumentFolderPermissionWithDB(c, db, user, parentAccessPermissions, parent.OrganizationUnitID)
+		if !ok {
+			return nil, false
+		}
+		if !canAccessParent {
+			writeError(c, http.StatusNotFound, "parent document folder not found")
+			return nil, false
+		}
 		writeError(c, http.StatusConflict, "parent document folder belongs to another organization unit")
 		return nil, false
 	}
 	return &parentID, true
+}
+
+func (h *documentFolderHandler) userHasAnyDocumentFolderPermissionWithDB(c *gin.Context, db *gorm.DB, user auth.User, permissions []string, organizationUnitID string) (bool, bool) {
+	resolver := rbac.NewResolver(db)
+	for _, permission := range permissions {
+		allowed, err := resolver.Can(c.Request.Context(), rbac.Check{
+			UserID:             user.ID,
+			Permission:         permission,
+			OrganizationUnitID: &organizationUnitID,
+		})
+		if err != nil {
+			writeError(c, http.StatusInternalServerError, "failed to check permission")
+			return false, false
+		}
+		if allowed {
+			return true, true
+		}
+	}
+	return false, true
 }
 
 func (h *documentFolderHandler) parentWouldCreateCycleWithDB(c *gin.Context, db *gorm.DB, organizationUnitID string, folderID string, parentID string) (bool, bool) {
