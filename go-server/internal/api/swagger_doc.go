@@ -407,10 +407,8 @@ func swaggerOperations() {
 	//     description: Invalid document folder request.
 	//   "401":
 	//     description: Authenticated session or trusted internal request required.
-	//   "403":
-	//     description: document.update permission required.
 	//   "404":
-	//     description: Document folder not found.
+	//     description: Document folder not found or inaccessible.
 	//   "409":
 	//     description: Active document folder name already exists.
 
@@ -433,10 +431,8 @@ func swaggerOperations() {
 	//     description: Invalid move request.
 	//   "401":
 	//     description: Authenticated session or trusted internal request required.
-	//   "403":
-	//     description: document.update permission required.
 	//   "404":
-	//     description: Document folder or parent not found.
+	//     description: Document folder not found or inaccessible, or parent not found.
 	//   "409":
 	//     description: Move would create a cycle, cross units, or duplicate an active folder name.
 
@@ -459,10 +455,8 @@ func swaggerOperations() {
 	//     description: Invalid document folder id.
 	//   "401":
 	//     description: Authenticated session or trusted internal request required.
-	//   "403":
-	//     description: document.delete permission required.
 	//   "404":
-	//     description: Document folder not found.
+	//     description: Document folder not found or inaccessible.
 
 	// swagger:operation GET /api/document-folders/{id}/contents documentFolders listDocumentFolderContents
 	//
@@ -481,10 +475,8 @@ func swaggerOperations() {
 	//     description: Invalid document folder id.
 	//   "401":
 	//     description: Authenticated session or trusted internal request required.
-	//   "403":
-	//     description: document.view permission required.
 	//   "404":
-	//     description: Document folder not found.
+	//     description: Document folder not found or inaccessible.
 	//   "501":
 	//     description: Folder contents listing is not implemented.
 

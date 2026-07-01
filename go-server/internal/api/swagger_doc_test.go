@@ -87,3 +87,47 @@ func TestServedSwaggerDocDeclaresDocumentFolderRoutes(t *testing.T) {
 		}
 	}
 }
+
+func TestServedSwaggerDocDocumentsHiddenDocumentFolderIDs(t *testing.T) {
+	router := NewRouter(RouterOptions{})
+	spec := assertJSONStatus(t, router, "http://localhost:8090/swagger/doc.json", http.StatusOK, "swagger", "2.0")
+
+	paths, ok := spec["paths"].(map[string]any)
+	if !ok {
+		t.Fatal("/swagger/doc.json missing paths object")
+	}
+
+	for _, route := range []struct {
+		method string
+		path   string
+	}{
+		{method: "patch", path: "/api/document-folders/{id}"},
+		{method: "patch", path: "/api/document-folders/{id}/parent"},
+		{method: "post", path: "/api/document-folders/{id}/archive"},
+		{method: "get", path: "/api/document-folders/{id}/contents"},
+	} {
+		pathDoc, ok := paths[route.path].(map[string]any)
+		if !ok {
+			t.Fatalf("/swagger/doc.json missing path %q", route.path)
+		}
+		operation, ok := pathDoc[route.method].(map[string]any)
+		if !ok {
+			t.Fatalf("/swagger/doc.json missing %s %s", strings.ToUpper(route.method), route.path)
+		}
+		responses, ok := operation["responses"].(map[string]any)
+		if !ok {
+			t.Fatalf("/swagger/doc.json missing responses for %s %s", strings.ToUpper(route.method), route.path)
+		}
+		if _, ok := responses["403"]; ok {
+			t.Fatalf("/swagger/doc.json documents 403 for %s %s, want hidden as 404", strings.ToUpper(route.method), route.path)
+		}
+		notFound, ok := responses["404"].(map[string]any)
+		if !ok {
+			t.Fatalf("/swagger/doc.json missing 404 for %s %s", strings.ToUpper(route.method), route.path)
+		}
+		description, _ := notFound["description"].(string)
+		if !strings.Contains(strings.ToLower(description), "inaccessible") {
+			t.Fatalf("/swagger/doc.json 404 description for %s %s = %q, want inaccessible behavior documented", strings.ToUpper(route.method), route.path, description)
+		}
+	}
+}
