@@ -14,13 +14,30 @@ import (
 
 func TestDocumentFolderRoutesRequirePermissions(t *testing.T) {
 	router, db := newAuthTestRouter(t)
-	unitID := createUnitViaAPI(t, router, loginSeededAdmin(t, router, db, "admin@example.com"), `{"name":"Finance"}`)
+	adminToken := loginSeededAdmin(t, router, db, "admin@example.com")
+	unitID := createUnitViaAPI(t, router, adminToken, `{"name":"Finance"}`)
+	rootID := createFolderViaAPI(t, router, adminToken, `{"organizationUnitId":"`+unitID+`","name":"Invoices"}`)
+	childID := createFolderViaAPI(t, router, adminToken, `{"organizationUnitId":"`+unitID+`","parentId":"`+rootID+`","name":"2026"}`)
 	user := createVerifiedUser(t, db, "viewer@example.com", "password123")
 	token := loginUser(t, router, user.Email, "password123")
 
-	response := folderJSON(t, router, http.MethodGet, "/api/document-folders/tree?organizationUnitId="+unitID, "", authCookieHeaders(token))
-	if response.Code != http.StatusForbidden {
-		t.Fatalf("tree status = %d body=%s, want forbidden", response.Code, response.Body.String())
+	for _, tc := range []struct {
+		name   string
+		method string
+		path   string
+		body   string
+	}{
+		{name: "tree", method: http.MethodGet, path: "/api/document-folders/tree?organizationUnitId=" + unitID},
+		{name: "create", method: http.MethodPost, path: "/api/document-folders", body: `{"organizationUnitId":"` + unitID + `","name":"Receipts"}`},
+		{name: "update", method: http.MethodPatch, path: "/api/document-folders/" + rootID, body: `{"organizationUnitId":"` + unitID + `","name":"Invoices Updated"}`},
+		{name: "move", method: http.MethodPatch, path: "/api/document-folders/" + childID + "/parent", body: `{"parentId":null}`},
+		{name: "archive", method: http.MethodPost, path: "/api/document-folders/" + rootID + "/archive", body: `{}`},
+		{name: "contents", method: http.MethodGet, path: "/api/document-folders/" + rootID + "/contents"},
+	} {
+		response := folderJSON(t, router, tc.method, tc.path, tc.body, authCookieHeaders(token))
+		if response.Code != http.StatusForbidden {
+			t.Fatalf("%s status = %d body=%s, want forbidden", tc.name, response.Code, response.Body.String())
+		}
 	}
 }
 
@@ -212,6 +229,36 @@ func TestDocumentFolderArchiveCascadesAndTreeExcludesArchived(t *testing.T) {
 	updateArchived := folderJSON(t, router, http.MethodPatch, "/api/document-folders/"+rootID, `{"organizationUnitId":"`+unitID+`","name":"Archived"}`, authCookieHeaders(token))
 	if updateArchived.Code != http.StatusNotFound {
 		t.Fatalf("update archived status = %d body=%s, want not found", updateArchived.Code, updateArchived.Body.String())
+	}
+}
+
+func TestDocumentFolderByIDRoutesReturnNotFoundForArchivedOrganizationUnit(t *testing.T) {
+	router, db := newAuthTestRouter(t)
+	token := loginSeededAdmin(t, router, db, "admin@example.com")
+	unitID := createUnitViaAPI(t, router, token, `{"name":"Finance"}`)
+	rootID := createFolderViaAPI(t, router, token, `{"organizationUnitId":"`+unitID+`","name":"Invoices"}`)
+	childID := createFolderViaAPI(t, router, token, `{"organizationUnitId":"`+unitID+`","parentId":"`+rootID+`","name":"2026"}`)
+
+	archiveUnit := orgUnitJSON(t, router, http.MethodPost, "/api/organization-units/"+unitID+"/archive", `{}`, authCookieHeaders(token))
+	if archiveUnit.Code != http.StatusOK {
+		t.Fatalf("archive organization unit status = %d body=%s", archiveUnit.Code, archiveUnit.Body.String())
+	}
+
+	for _, tc := range []struct {
+		name   string
+		method string
+		path   string
+		body   string
+	}{
+		{name: "update", method: http.MethodPatch, path: "/api/document-folders/" + rootID, body: `{"organizationUnitId":"` + unitID + `","name":"Invoices Updated"}`},
+		{name: "move", method: http.MethodPatch, path: "/api/document-folders/" + childID + "/parent", body: `{"parentId":null}`},
+		{name: "contents", method: http.MethodGet, path: "/api/document-folders/" + rootID + "/contents"},
+		{name: "archive", method: http.MethodPost, path: "/api/document-folders/" + rootID + "/archive", body: `{}`},
+	} {
+		response := folderJSON(t, router, tc.method, tc.path, tc.body, authCookieHeaders(token))
+		if response.Code != http.StatusNotFound {
+			t.Errorf("%s status = %d body=%s, want not found", tc.name, response.Code, response.Body.String())
+		}
 	}
 }
 

@@ -162,7 +162,7 @@ func (h *documentFolderHandler) update(c *gin.Context) {
 	if !ok {
 		return
 	}
-	folder, ok := h.loadActiveFolder(c, id)
+	folder, ok := h.loadActiveFolderWithActiveOrganizationUnit(c, id)
 	if !ok {
 		return
 	}
@@ -218,7 +218,7 @@ func (h *documentFolderHandler) move(c *gin.Context) {
 	if !ok {
 		return
 	}
-	folder, ok := h.loadActiveFolder(c, id)
+	folder, ok := h.loadActiveFolderWithActiveOrganizationUnit(c, id)
 	if !ok {
 		return
 	}
@@ -280,7 +280,7 @@ func (h *documentFolderHandler) archive(c *gin.Context) {
 	if !ok {
 		return
 	}
-	folder, ok := h.loadActiveFolder(c, id)
+	folder, ok := h.loadActiveFolderWithActiveOrganizationUnit(c, id)
 	if !ok {
 		return
 	}
@@ -331,7 +331,7 @@ func (h *documentFolderHandler) contents(c *gin.Context) {
 	if !ok {
 		return
 	}
-	folder, ok := h.loadActiveFolder(c, id)
+	folder, ok := h.loadActiveFolderWithActiveOrganizationUnit(c, id)
 	if !ok {
 		return
 	}
@@ -393,9 +393,12 @@ func (h *documentFolderHandler) activeOrganizationUnitExists(c *gin.Context, org
 	return true
 }
 
-func (h *documentFolderHandler) loadActiveFolder(c *gin.Context, folderID string) (documents.Folder, bool) {
+func (h *documentFolderHandler) loadActiveFolderWithActiveOrganizationUnit(c *gin.Context, folderID string) (documents.Folder, bool) {
 	var folder documents.Folder
-	if err := h.db.WithContext(c.Request.Context()).First(&folder, "id = ? AND deleted_at IS NULL", folderID).Error; err != nil {
+	if err := h.db.WithContext(c.Request.Context()).
+		Joins("JOIN organization_units ON organization_units.id = document_folders.organization_unit_id").
+		Where("document_folders.id = ? AND document_folders.deleted_at IS NULL AND organization_units.archived_at IS NULL", folderID).
+		First(&folder).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeError(c, http.StatusNotFound, "document folder not found")
 			return documents.Folder{}, false
