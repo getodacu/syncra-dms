@@ -343,6 +343,151 @@ func swaggerOperations() {
 	//   "404":
 	//     description: Organization unit not found.
 
+	// swagger:operation GET /api/document-folders/tree documentFolders listDocumentFolderTree
+	//
+	// List active document folders for an organization unit as a hierarchy.
+	//
+	// Trusted SvelteKit server endpoint. Requires document.view scoped to the organization unit.
+	//
+	// ---
+	// parameters:
+	// - name: organizationUnitId
+	//   in: query
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: Active document folder hierarchy.
+	//   "400":
+	//     description: Invalid organization unit id.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: document.view permission required.
+	//   "404":
+	//     description: Organization unit not found.
+
+	// swagger:operation POST /api/document-folders documentFolders createDocumentFolder
+	//
+	// Create a root or child document folder.
+	//
+	// Trusted SvelteKit server endpoint. Requires document.create scoped to the organization unit.
+	//
+	// ---
+	// responses:
+	//   "201":
+	//     description: Document folder created.
+	//   "400":
+	//     description: Invalid document folder request.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: document.create permission required.
+	//   "404":
+	//     description: Organization unit or parent folder not found.
+	//   "409":
+	//     description: Active document folder name already exists or parent belongs to another organization unit.
+
+	// swagger:operation PATCH /api/document-folders/{id} documentFolders updateDocumentFolder
+	//
+	// Update an active document folder's details.
+	//
+	// Trusted SvelteKit server endpoint. Requires document.update scoped to the folder's organization unit.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: Document folder updated.
+	//   "400":
+	//     description: Invalid document folder request.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: document.update permission required.
+	//   "404":
+	//     description: Document folder not found.
+	//   "409":
+	//     description: Active document folder name already exists.
+
+	// swagger:operation PATCH /api/document-folders/{id}/parent documentFolders moveDocumentFolder
+	//
+	// Move an active document folder to another parent or root.
+	//
+	// Trusted SvelteKit server endpoint. Requires document.update scoped to the folder's organization unit.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: Document folder moved.
+	//   "400":
+	//     description: Invalid move request.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: document.update permission required.
+	//   "404":
+	//     description: Document folder or parent not found.
+	//   "409":
+	//     description: Move would create a cycle, cross units, or duplicate an active folder name.
+
+	// swagger:operation POST /api/document-folders/{id}/archive documentFolders archiveDocumentFolder
+	//
+	// Archive an active document folder subtree and active documents under it.
+	//
+	// Trusted SvelteKit server endpoint. Requires document.delete scoped to the folder's organization unit.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: Document folder subtree archived.
+	//   "400":
+	//     description: Invalid document folder id.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: document.delete permission required.
+	//   "404":
+	//     description: Document folder not found.
+
+	// swagger:operation GET /api/document-folders/{id}/contents documentFolders listDocumentFolderContents
+	//
+	// List the active folder and its contents.
+	//
+	// Trusted SvelteKit server endpoint. Requires document.view scoped to the folder's organization unit.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: Folder contents were listed.
+	//   "400":
+	//     description: Invalid document folder id.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: document.view permission required.
+	//   "404":
+	//     description: Document folder not found.
+
 	// swagger:operation GET /api/users users listUsers
 	//
 	// List active users.

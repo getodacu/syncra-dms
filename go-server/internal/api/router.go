@@ -114,6 +114,16 @@ func NewRouter(options RouterOptions) http.Handler {
 	orgUnitAPI.PATCH("/:id/parent", orgUnits.move)
 	orgUnitAPI.POST("/:id/archive", orgUnits.archive)
 
+	documentFolders := newDocumentFolderHandler(options, auth)
+	folderAPI := router.Group("/api/document-folders")
+	folderAPI.Use(auth.requireTrustedInternalRequest())
+	folderAPI.GET("/tree", documentFolders.listTree)
+	folderAPI.POST("", documentFolders.create)
+	folderAPI.PATCH("/:id", documentFolders.update)
+	folderAPI.PATCH("/:id/parent", documentFolders.move)
+	folderAPI.POST("/:id/archive", documentFolders.archive)
+	folderAPI.GET("/:id/contents", documentFolders.contents)
+
 	users := newUserHandler(options, auth)
 	userAPI := router.Group("/api/users")
 	userAPI.Use(auth.requireTrustedInternalRequest())
