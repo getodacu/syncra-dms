@@ -1,6 +1,8 @@
 package api
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -137,8 +139,8 @@ func TestDocumentFolderRoutesDenyCrossUnitScopedDocumentPermissions(t *testing.T
 		t.Fatalf("move scoped folder status = %d body=%s, want ok", move.Code, move.Body.String())
 	}
 	contents := folderJSON(t, router, http.MethodGet, "/api/document-folders/"+financeRootID+"/contents", "", authCookieHeaders(token))
-	if contents.Code != http.StatusNotImplemented {
-		t.Fatalf("contents scoped folder status = %d body=%s, want not implemented", contents.Code, contents.Body.String())
+	if contents.Code != http.StatusOK {
+		t.Fatalf("contents scoped folder status = %d body=%s, want ok", contents.Code, contents.Body.String())
 	}
 	archive := folderJSON(t, router, http.MethodPost, "/api/document-folders/"+financeRootID+"/archive", `{}`, authCookieHeaders(token))
 	if archive.Code != http.StatusOK {
@@ -237,13 +239,115 @@ func TestDocumentFolderLifecycle(t *testing.T) {
 	}
 
 	contents := folderJSON(t, router, http.MethodGet, "/api/document-folders/"+childID+"/contents", "", authCookieHeaders(token))
-	if contents.Code != http.StatusNotImplemented {
-		t.Fatalf("contents status = %d body=%s, want not implemented", contents.Code, contents.Body.String())
+	if contents.Code != http.StatusOK {
+		t.Fatalf("contents status = %d body=%s, want ok", contents.Code, contents.Body.String())
 	}
 
 	archive := folderJSON(t, router, http.MethodPost, "/api/document-folders/"+rootID+"/archive", `{}`, authCookieHeaders(token))
 	if archive.Code != http.StatusOK {
 		t.Fatalf("archive status = %d body=%s", archive.Code, archive.Body.String())
+	}
+}
+
+func TestDocumentFolderContentsListsActiveChildrenAndDocuments(t *testing.T) {
+	router, db := newAuthTestRouter(t)
+	token := loginSeededAdmin(t, router, db, "admin@example.com")
+	admin := loadUserByEmail(t, db, "admin@example.com")
+	unitID := createUnitViaAPI(t, router, token, `{"name":"Finance"}`)
+
+	rootID := createFolderViaAPI(t, router, token, `{"organizationUnitId":"`+unitID+`","name":"Invoices"}`)
+	childID := createFolderViaAPI(t, router, token, `{"organizationUnitId":"`+unitID+`","parentId":"`+rootID+`","name":"2026"}`)
+	archivedChildID := createFolderViaAPI(t, router, token, `{"organizationUnitId":"`+unitID+`","parentId":"`+rootID+`","name":"Archived"}`)
+	archivedAt := time.Now().UTC()
+	if err := db.Model(&documents.Folder{}).Where("id = ?", archivedChildID).Update("deleted_at", archivedAt).Error; err != nil {
+		t.Fatalf("archive child folder: %v", err)
+	}
+
+	secondDocID := createDocumentInFolder(t, db, unitID, rootID, admin.ID, "b-invoice.pdf")
+	firstDocID := createDocumentInFolder(t, db, unitID, rootID, admin.ID, "a-invoice.pdf")
+	archivedDocID := createDocumentInFolder(t, db, unitID, rootID, admin.ID, "archived.pdf")
+	if err := db.Model(&documents.Document{}).Where("id = ?", archivedDocID).Update("deleted_at", archivedAt).Error; err != nil {
+		t.Fatalf("archive document: %v", err)
+	}
+
+	response := folderJSON(t, router, http.MethodGet, "/api/document-folders/"+rootID+"/contents", "", authCookieHeaders(token))
+	if response.Code != http.StatusOK {
+		t.Fatalf("contents status = %d body=%s, want ok", response.Code, response.Body.String())
+	}
+	var body documentFolderContentsTestResponse
+	decodeJSON(t, response, &body)
+
+	if body.Folder.ID != rootID || body.Folder.Name != "Invoices" {
+		t.Fatalf("contents folder = %#v, want root Invoices", body.Folder)
+	}
+	if len(body.Folders) != 1 {
+		t.Fatalf("contents folders = %#v, want one active child", body.Folders)
+	}
+	if body.Folders[0].ID != childID || body.Folders[0].Name != "2026" {
+		t.Fatalf("contents child folder = %#v, want 2026", body.Folders[0])
+	}
+
+	if len(body.Documents) != 2 {
+		t.Fatalf("contents documents = %#v, want two active documents", body.Documents)
+	}
+	expectedDocuments := []struct {
+		id          string
+		displayName string
+	}{
+		{id: firstDocID, displayName: "a-invoice.pdf"},
+		{id: secondDocID, displayName: "b-invoice.pdf"},
+	}
+	for i, want := range expectedDocuments {
+		got := body.Documents[i]
+		if got.ID != want.id || got.DisplayName != want.displayName {
+			t.Fatalf("contents document[%d] = %#v, want %s %s", i, got, want.id, want.displayName)
+		}
+		if got.FolderID != rootID || got.OrganizationUnitID != unitID {
+			t.Fatalf("contents document[%d] scope = %#v, want folder/unit", i, got)
+		}
+		if got.OriginalFileName != want.displayName || got.MimeType != "application/pdf" || got.SizeBytes != 1 || got.SHA256Hash == "" {
+			t.Fatalf("contents document[%d] metadata = %#v, want file metadata", i, got)
+		}
+		if got.StorageKey != nil {
+			t.Fatalf("contents document[%d] storageKey = %q, want omitted", i, *got.StorageKey)
+		}
+		if got.DeletedAt != nil {
+			t.Fatalf("contents document[%d] deletedAt = %q, want omitted for active document", i, *got.DeletedAt)
+		}
+		if got.CreatedAt == "" || got.UpdatedAt == "" {
+			t.Fatalf("contents document[%d] timestamps = %#v, want populated", i, got)
+		}
+	}
+	for _, folder := range body.Folders {
+		if folder.ID == archivedChildID {
+			t.Fatalf("contents included archived child folder %s", archivedChildID)
+		}
+	}
+	for _, doc := range body.Documents {
+		if doc.ID == archivedDocID {
+			t.Fatalf("contents included archived document %s", archivedDocID)
+		}
+	}
+}
+
+func TestDocumentFolderContentsRequiresDocumentViewForFolderOrganizationUnit(t *testing.T) {
+	router, db := newAuthTestRouter(t)
+	adminToken := loginSeededAdmin(t, router, db, "admin@example.com")
+	financeID := createUnitViaAPI(t, router, adminToken, `{"name":"Finance"}`)
+	legalID := createUnitViaAPI(t, router, adminToken, `{"name":"Legal"}`)
+	financeFolderID := createFolderViaAPI(t, router, adminToken, `{"organizationUnitId":"`+financeID+`","name":"Invoices"}`)
+	legalFolderID := createFolderViaAPI(t, router, adminToken, `{"organizationUnitId":"`+legalID+`","name":"Cases"}`)
+	user := createVerifiedUser(t, db, "legal-docs@example.com", "password123")
+	assignOrganizationUnitRoleByCode(t, db, user.ID, rbac.OrganizationAdministratorRoleCode, legalID)
+	token := loginUser(t, router, user.Email, "password123")
+
+	denied := folderJSON(t, router, http.MethodGet, "/api/document-folders/"+financeFolderID+"/contents", "", authCookieHeaders(token))
+	if denied.Code != http.StatusNotFound {
+		t.Fatalf("contents without folder unit document.view status = %d body=%s, want not found", denied.Code, denied.Body.String())
+	}
+	allowed := folderJSON(t, router, http.MethodGet, "/api/document-folders/"+legalFolderID+"/contents", "", authCookieHeaders(token))
+	if allowed.Code != http.StatusOK {
+		t.Fatalf("contents with folder unit document.view status = %d body=%s, want ok", allowed.Code, allowed.Body.String())
 	}
 }
 
@@ -532,6 +636,28 @@ type documentFolderTestResponse struct {
 	Children           []documentFolderTestResponse `json:"children"`
 }
 
+type documentFolderContentsTestResponse struct {
+	Folder    documentFolderTestResponse     `json:"folder"`
+	Folders   []documentFolderTestResponse   `json:"folders"`
+	Documents []documentMetadataTestResponse `json:"documents"`
+}
+
+type documentMetadataTestResponse struct {
+	ID                 string  `json:"id"`
+	FolderID           string  `json:"folderId"`
+	OrganizationUnitID string  `json:"organizationUnitId"`
+	OriginalFileName   string  `json:"originalFileName"`
+	DisplayName        string  `json:"displayName"`
+	MimeType           string  `json:"mimeType"`
+	Extension          *string `json:"extension"`
+	SizeBytes          int64   `json:"sizeBytes"`
+	SHA256Hash         string  `json:"sha256Hash"`
+	StorageKey         *string `json:"storageKey"`
+	DeletedAt          *string `json:"deletedAt"`
+	CreatedAt          string  `json:"createdAt"`
+	UpdatedAt          string  `json:"updatedAt"`
+}
+
 func folderJSON(t *testing.T, router http.Handler, method string, path string, body string, headers map[string]string) *httptest.ResponseRecorder {
 	t.Helper()
 	return authJSON(t, router, method, path, body, headers)
@@ -556,7 +682,8 @@ func createFolderViaAPI(t *testing.T, router http.Handler, token string, body st
 func createDocumentInFolder(t *testing.T, db *gorm.DB, organizationUnitID string, folderID string, creatorID string, fileName string) string {
 	t.Helper()
 	now := time.Now().UTC()
-	hash := strings.Repeat("a", 63) + "1"
+	sum := sha256.Sum256([]byte(folderID + ":" + fileName))
+	hash := hex.EncodeToString(sum[:])
 	doc := documents.Document{
 		FolderID:           folderID,
 		OrganizationUnitID: organizationUnitID,

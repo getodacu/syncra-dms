@@ -132,6 +132,45 @@ func TestServedSwaggerDocDocumentsHiddenDocumentFolderIDs(t *testing.T) {
 	}
 }
 
+func TestServedSwaggerDocDocumentsDocumentFolderContentsResponse(t *testing.T) {
+	router := NewRouter(RouterOptions{})
+	spec := assertJSONStatus(t, router, "http://localhost:8090/swagger/doc.json", http.StatusOK, "swagger", "2.0")
+
+	paths, ok := spec["paths"].(map[string]any)
+	if !ok {
+		t.Fatal("/swagger/doc.json missing paths object")
+	}
+	pathDoc, ok := paths["/api/document-folders/{id}/contents"].(map[string]any)
+	if !ok {
+		t.Fatal("/swagger/doc.json missing path /api/document-folders/{id}/contents")
+	}
+	operation, ok := pathDoc["get"].(map[string]any)
+	if !ok {
+		t.Fatal("/swagger/doc.json missing GET /api/document-folders/{id}/contents")
+	}
+	description, _ := operation["description"].(string)
+	if strings.Contains(strings.ToLower(description), "not implemented") {
+		t.Fatalf("/swagger/doc.json contents description = %q, want implemented listing contract", description)
+	}
+	responses, ok := operation["responses"].(map[string]any)
+	if !ok {
+		t.Fatal("/swagger/doc.json missing responses for GET /api/document-folders/{id}/contents")
+	}
+	okResponse, ok := responses["200"].(map[string]any)
+	if !ok {
+		t.Fatal("/swagger/doc.json missing 200 for GET /api/document-folders/{id}/contents")
+	}
+	okDescription, _ := okResponse["description"].(string)
+	for _, want := range []string{"folders", "document metadata"} {
+		if !strings.Contains(strings.ToLower(okDescription), want) {
+			t.Fatalf("/swagger/doc.json 200 description for GET /api/document-folders/{id}/contents = %q, want %q", okDescription, want)
+		}
+	}
+	if _, ok := responses["501"]; ok {
+		t.Fatal("/swagger/doc.json documents 501 for implemented folder contents endpoint")
+	}
+}
+
 func TestServedSwaggerDocDocumentsDocumentFolderUpdateConflicts(t *testing.T) {
 	router := NewRouter(RouterOptions{})
 	spec := assertJSONStatus(t, router, "http://localhost:8090/swagger/doc.json", http.StatusOK, "swagger", "2.0")

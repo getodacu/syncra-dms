@@ -412,11 +412,11 @@
     },
     "/api/document-folders/{id}/contents": {
       "get": {
-        "description": "Trusted SvelteKit server endpoint. Requires document.view scoped to the folder's organization unit. Contents listing is not implemented until the document contents task.",
+        "description": "Trusted SvelteKit server endpoint. Requires document.view scoped to the folder's organization unit. Document metadata excludes storage keys.",
         "tags": [
           "documentFolders"
         ],
-        "summary": "Validate access to a folder contents listing.",
+        "summary": "List active child folders and documents in a folder.",
         "operationId": "listDocumentFolderContents",
         "parameters": [
           {
@@ -427,6 +427,9 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Active child folders and document metadata were listed."
+          },
           "400": {
             "description": "Invalid document folder id."
           },
@@ -435,9 +438,6 @@
           },
           "404": {
             "description": "Document folder not found or inaccessible."
-          },
-          "501": {
-            "description": "Folder contents listing is not implemented."
           }
         }
       }

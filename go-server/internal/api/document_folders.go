@@ -72,6 +72,27 @@ type documentFolderListResponse struct {
 	Folders []documentFolderResponse `json:"folders"`
 }
 
+type documentMetadataResponse struct {
+	ID                 string  `json:"id"`
+	FolderID           string  `json:"folderId"`
+	OrganizationUnitID string  `json:"organizationUnitId"`
+	OriginalFileName   string  `json:"originalFileName"`
+	DisplayName        string  `json:"displayName"`
+	MimeType           string  `json:"mimeType"`
+	Extension          *string `json:"extension,omitempty"`
+	SizeBytes          int64   `json:"sizeBytes"`
+	SHA256Hash         string  `json:"sha256Hash"`
+	DeletedAt          *string `json:"deletedAt,omitempty"`
+	CreatedAt          string  `json:"createdAt"`
+	UpdatedAt          string  `json:"updatedAt"`
+}
+
+type documentFolderContentsResponse struct {
+	Folder    documentFolderResponse     `json:"folder"`
+	Folders   []documentFolderResponse   `json:"folders"`
+	Documents []documentMetadataResponse `json:"documents"`
+}
+
 type normalizedDocumentFolderInput struct {
 	Name                string
 	Description         *string
@@ -389,7 +410,27 @@ func (h *documentFolderHandler) contents(c *gin.Context) {
 	if ok := requireDocumentFolderObjectPermissionForAuthenticatedUser(c, h.auth, user, "document.view", &folder.OrganizationUnitID); !ok {
 		return
 	}
-	writeError(c, http.StatusNotImplemented, "document folder contents are not implemented")
+	var childFolders []documents.Folder
+	if err := h.db.WithContext(c.Request.Context()).
+		Where("organization_unit_id = ? AND parent_id = ? AND deleted_at IS NULL", folder.OrganizationUnitID, id).
+		Order("name asc, id asc").
+		Find(&childFolders).Error; err != nil {
+		writeError(c, http.StatusInternalServerError, "failed to list document folder contents")
+		return
+	}
+	var documentRows []documents.Document
+	if err := h.db.WithContext(c.Request.Context()).
+		Where("organization_unit_id = ? AND folder_id = ? AND deleted_at IS NULL", folder.OrganizationUnitID, id).
+		Order("display_name asc, id asc").
+		Find(&documentRows).Error; err != nil {
+		writeError(c, http.StatusInternalServerError, "failed to list document folder contents")
+		return
+	}
+	c.JSON(http.StatusOK, documentFolderContentsResponse{
+		Folder:    documentFolderResponseFromModel(folder),
+		Folders:   documentFolderResponsesFromModels(childFolders),
+		Documents: documentMetadataResponsesFromModels(documentRows),
+	})
 }
 
 func bindDocumentFolderRequest(c *gin.Context) (documentFolderRequest, bool) {
@@ -626,6 +667,44 @@ func documentFolderResponseFromModel(folder documents.Folder) documentFolderResp
 		CreatedAt:          folder.CreatedAt.UTC().Format(time.RFC3339Nano),
 		UpdatedAt:          folder.UpdatedAt.UTC().Format(time.RFC3339Nano),
 		Children:           []documentFolderResponse{},
+	}
+}
+
+func documentFolderResponsesFromModels(folders []documents.Folder) []documentFolderResponse {
+	out := make([]documentFolderResponse, 0, len(folders))
+	for _, folder := range folders {
+		out = append(out, documentFolderResponseFromModel(folder))
+	}
+	return out
+}
+
+func documentMetadataResponsesFromModels(documentRows []documents.Document) []documentMetadataResponse {
+	out := make([]documentMetadataResponse, 0, len(documentRows))
+	for _, documentRow := range documentRows {
+		out = append(out, documentMetadataResponseFromModel(documentRow))
+	}
+	return out
+}
+
+func documentMetadataResponseFromModel(documentRow documents.Document) documentMetadataResponse {
+	var deletedAt *string
+	if documentRow.DeletedAt != nil {
+		value := documentRow.DeletedAt.UTC().Format(time.RFC3339Nano)
+		deletedAt = &value
+	}
+	return documentMetadataResponse{
+		ID:                 documentRow.ID,
+		FolderID:           documentRow.FolderID,
+		OrganizationUnitID: documentRow.OrganizationUnitID,
+		OriginalFileName:   documentRow.OriginalFileName,
+		DisplayName:        documentRow.DisplayName,
+		MimeType:           documentRow.MimeType,
+		Extension:          documentRow.Extension,
+		SizeBytes:          documentRow.SizeBytes,
+		SHA256Hash:         documentRow.SHA256Hash,
+		DeletedAt:          deletedAt,
+		CreatedAt:          documentRow.CreatedAt.UTC().Format(time.RFC3339Nano),
+		UpdatedAt:          documentRow.UpdatedAt.UTC().Format(time.RFC3339Nano),
 	}
 }
 

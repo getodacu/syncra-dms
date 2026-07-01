@@ -460,9 +460,9 @@ func swaggerOperations() {
 
 	// swagger:operation GET /api/document-folders/{id}/contents documentFolders listDocumentFolderContents
 	//
-	// Validate access to a folder contents listing.
+	// List active child folders and documents in a folder.
 	//
-	// Trusted SvelteKit server endpoint. Requires document.view scoped to the folder's organization unit. Contents listing is not implemented until the document contents task.
+	// Trusted SvelteKit server endpoint. Requires document.view scoped to the folder's organization unit. Document metadata excludes storage keys.
 	//
 	// ---
 	// parameters:
@@ -471,14 +471,14 @@ func swaggerOperations() {
 	//   required: true
 	//   type: string
 	// responses:
+	//   "200":
+	//     description: Active child folders and document metadata were listed.
 	//   "400":
 	//     description: Invalid document folder id.
 	//   "401":
 	//     description: Authenticated session or trusted internal request required.
 	//   "404":
 	//     description: Document folder not found or inaccessible.
-	//   "501":
-	//     description: Folder contents listing is not implemented.
 
 	// swagger:operation GET /api/users users listUsers
 	//
