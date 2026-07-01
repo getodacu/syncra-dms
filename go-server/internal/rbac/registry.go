@@ -53,6 +53,11 @@ var PermissionRegistry = []PermissionDefinition{
 	{Code: "organization_unit.manage_permissions", Name: "Manage organization unit permissions", Category: "Organization Unit Management"},
 	{Code: "organization_unit.manage_hierarchy", Name: "Manage organization unit hierarchy", Category: "Organization Unit Management"},
 	{Code: "organization_unit.view_audit", Name: "View organization unit audit", Category: "Organization Unit Management"},
+	{Code: "document.view", Name: "View documents", Category: "Document Repository"},
+	{Code: "document.create", Name: "Create document folders and uploads", Category: "Document Repository"},
+	{Code: "document.update", Name: "Update document folders and metadata", Category: "Document Repository"},
+	{Code: "document.delete", Name: "Archive document folders and documents", Category: "Document Repository"},
+	{Code: "document.download", Name: "Download documents", Category: "Document Repository"},
 }
 
 var organizationAdministratorPermissionCodes = []string{
@@ -86,6 +91,11 @@ var organizationAdministratorPermissionCodes = []string{
 	"organization_unit.manage_permissions",
 	"organization_unit.manage_hierarchy",
 	"organization_unit.view_audit",
+	"document.view",
+	"document.create",
+	"document.update",
+	"document.delete",
+	"document.download",
 }
 
 func PermissionCodes() []string {

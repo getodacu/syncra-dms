@@ -42,6 +42,22 @@ func TestSeedDefaultsIsIdempotent(t *testing.T) {
 	}
 }
 
+func TestDocumentPermissionsAreSeeded(t *testing.T) {
+	db := newSeedTestDB(t)
+	if err := SeedDefaults(db); err != nil {
+		t.Fatalf("SeedDefaults error = %v", err)
+	}
+	for _, code := range []string{"document.view", "document.create", "document.update", "document.delete", "document.download"} {
+		var permission Permission
+		if err := db.First(&permission, "code = ?", code).Error; err != nil {
+			t.Fatalf("permission %s was not seeded: %v", code, err)
+		}
+		if permission.Category != "Document Repository" {
+			t.Fatalf("%s category = %q", code, permission.Category)
+		}
+	}
+}
+
 func TestSeedDefaultsReconcilesDefaultRolePermissions(t *testing.T) {
 	db := newSeedTestDB(t)
 	if err := SeedDefaults(db); err != nil {
@@ -95,9 +111,9 @@ func TestSeedDefaultsFailsForUnknownRolePermissionCode(t *testing.T) {
 func TestSeedDefaultsDoesNotGrantFuturePermissionsToOrganizationAdministrator(t *testing.T) {
 	originalRegistry := PermissionRegistry
 	PermissionRegistry = append(append([]PermissionDefinition(nil), PermissionRegistry...), PermissionDefinition{
-		Code:     "document.view",
-		Name:     "View documents",
-		Category: "Document Management",
+		Code:     "workflow.approve",
+		Name:     "Approve workflows",
+		Category: "Workflow Management",
 	})
 	t.Cleanup(func() {
 		PermissionRegistry = originalRegistry
@@ -202,6 +218,11 @@ func organizationAdministratorExpectedPermissionCodes() []string {
 		"organization_unit.manage_permissions",
 		"organization_unit.manage_hierarchy",
 		"organization_unit.view_audit",
+		"document.view",
+		"document.create",
+		"document.update",
+		"document.delete",
+		"document.download",
 	}
 }
 
