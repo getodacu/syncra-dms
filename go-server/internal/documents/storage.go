@@ -137,16 +137,26 @@ func (s *LocalStorage) Save(ctx context.Context, reader io.Reader, originalFileN
 	}
 
 	sha256Hash := hex.EncodeToString(hasher.Sum(nil))
-	targetDir := filepath.Join(s.root, "documents", sha256Hash[:2])
+	hashPrefix := sha256Hash[:2]
+	documentsDir := filepath.Join(s.root, "documents")
+	if err := os.MkdirAll(documentsDir, 0o700); err != nil {
+		return StoredFile{}, fmt.Errorf("create storage documents directory: %w", err)
+	}
+	if err := ensureRealDirectory(documentsDir); err != nil {
+		return StoredFile{}, err
+	}
+
+	targetDir := filepath.Join(documentsDir, hashPrefix)
 	if err := os.MkdirAll(targetDir, 0o700); err != nil {
 		return StoredFile{}, fmt.Errorf("create storage document directory: %w", err)
 	}
-
-	targetPath := filepath.Join(targetDir, uuid.NewString()+".bin")
-	storageKey, err := filepath.Rel(s.root, targetPath)
-	if err != nil {
-		return StoredFile{}, fmt.Errorf("create storage key: %w", err)
+	if err := ensureRealDirectory(targetDir); err != nil {
+		return StoredFile{}, err
 	}
+
+	targetName := uuid.NewString() + ".bin"
+	targetPath := filepath.Join(targetDir, targetName)
+	storageKey := "documents/" + hashPrefix + "/" + targetName
 
 	if err := closeTemp(); err != nil {
 		return StoredFile{}, fmt.Errorf("close storage temp file: %w", err)
@@ -164,25 +174,32 @@ func (s *LocalStorage) Save(ctx context.Context, reader io.Reader, originalFileN
 		Extension:        fileExtension(safeName),
 		SizeBytes:        sizeBytes,
 		SHA256Hash:       sha256Hash,
-		StorageKey:       filepath.ToSlash(storageKey),
+		StorageKey:       storageKey,
 	}, nil
 }
 
 func (s *LocalStorage) Open(storageKey string) (*os.File, error) {
-	storageKey = strings.TrimSpace(storageKey)
-	if storageKey == "" || filepath.IsAbs(storageKey) || strings.Contains(storageKey, "\\") {
-		return nil, ErrInvalidStorageKey
+	parts, err := validateStorageKey(storageKey)
+	if err != nil {
+		return nil, err
 	}
 
-	cleanKey := filepath.Clean(filepath.FromSlash(storageKey))
-	if cleanKey == "." || cleanKey == ".." || strings.HasPrefix(cleanKey, ".."+string(os.PathSeparator)) {
-		return nil, ErrInvalidStorageKey
+	documentsDir := filepath.Join(s.root, parts[0])
+	if err := ensureRealDirectory(documentsDir); err != nil {
+		return nil, err
+	}
+	prefixDir := filepath.Join(documentsDir, parts[1])
+	if err := ensureRealDirectory(prefixDir); err != nil {
+		return nil, err
 	}
 
-	fullPath := filepath.Join(s.root, cleanKey)
-	rel, err := filepath.Rel(s.root, fullPath)
-	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) || filepath.IsAbs(rel) {
-		return nil, ErrInvalidStorageKey
+	fullPath := filepath.Join(prefixDir, parts[2])
+	info, err := os.Lstat(fullPath)
+	if err != nil {
+		return nil, fmt.Errorf("open stored document: %w", err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+		return nil, fmt.Errorf("%w: unsafe document file", ErrInvalidStorageKey)
 	}
 
 	file, err := os.Open(fullPath)
@@ -190,6 +207,57 @@ func (s *LocalStorage) Open(storageKey string) (*os.File, error) {
 		return nil, fmt.Errorf("open stored document: %w", err)
 	}
 	return file, nil
+}
+
+func validateStorageKey(storageKey string) ([]string, error) {
+	if storageKey == "" || strings.HasPrefix(storageKey, "/") || filepath.IsAbs(storageKey) || strings.Contains(storageKey, "\\") {
+		return nil, ErrInvalidStorageKey
+	}
+
+	parts := strings.Split(storageKey, "/")
+	if len(parts) != 3 {
+		return nil, ErrInvalidStorageKey
+	}
+	for _, part := range parts {
+		if part == "" || part == "." || part == ".." {
+			return nil, ErrInvalidStorageKey
+		}
+	}
+	if parts[0] != "documents" || !isLowerHexPair(parts[1]) {
+		return nil, ErrInvalidStorageKey
+	}
+	if !strings.HasSuffix(parts[2], ".bin") {
+		return nil, ErrInvalidStorageKey
+	}
+	id := strings.TrimSuffix(parts[2], ".bin")
+	parsed, err := uuid.Parse(id)
+	if err != nil || parsed.String() != id {
+		return nil, ErrInvalidStorageKey
+	}
+	return parts, nil
+}
+
+func isLowerHexPair(value string) bool {
+	if len(value) != 2 {
+		return false
+	}
+	for _, char := range value {
+		if !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f')) {
+			return false
+		}
+	}
+	return true
+}
+
+func ensureRealDirectory(path string) error {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return fmt.Errorf("inspect storage directory: %w", err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+		return fmt.Errorf("%w: unsafe document directory", ErrInvalidStorageKey)
+	}
+	return nil
 }
 
 func fileExtension(fileName string) *string {
