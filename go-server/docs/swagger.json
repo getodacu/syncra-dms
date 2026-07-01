@@ -278,6 +278,217 @@
         }
       }
     },
+    "/api/document-folders": {
+      "post": {
+        "description": "Trusted SvelteKit server endpoint. Requires document.create scoped to the organization unit.",
+        "tags": [
+          "documentFolders"
+        ],
+        "summary": "Create a root or child document folder.",
+        "operationId": "createDocumentFolder",
+        "responses": {
+          "201": {
+            "description": "Document folder created."
+          },
+          "400": {
+            "description": "Invalid document folder request."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "document.create permission required."
+          },
+          "404": {
+            "description": "Organization unit or parent folder not found."
+          },
+          "409": {
+            "description": "Active document folder name already exists or parent belongs to another organization unit."
+          }
+        }
+      }
+    },
+    "/api/document-folders/tree": {
+      "get": {
+        "description": "Trusted SvelteKit server endpoint. Requires document.view scoped to the organization unit.",
+        "tags": [
+          "documentFolders"
+        ],
+        "summary": "List active document folders for an organization unit as a hierarchy.",
+        "operationId": "listDocumentFolderTree",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "organizationUnitId",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active document folder hierarchy."
+          },
+          "400": {
+            "description": "Invalid organization unit id."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "document.view permission required."
+          },
+          "404": {
+            "description": "Organization unit not found."
+          }
+        }
+      }
+    },
+    "/api/document-folders/{id}": {
+      "patch": {
+        "description": "Trusted SvelteKit server endpoint. Requires document.update scoped to the folder's organization unit.",
+        "tags": [
+          "documentFolders"
+        ],
+        "summary": "Update an active document folder's details.",
+        "operationId": "updateDocumentFolder",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document folder updated."
+          },
+          "400": {
+            "description": "Invalid document folder request."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "document.update permission required."
+          },
+          "404": {
+            "description": "Document folder not found."
+          },
+          "409": {
+            "description": "Active document folder name already exists."
+          }
+        }
+      }
+    },
+    "/api/document-folders/{id}/archive": {
+      "post": {
+        "description": "Trusted SvelteKit server endpoint. Requires document.delete scoped to the folder's organization unit.",
+        "tags": [
+          "documentFolders"
+        ],
+        "summary": "Archive an active document folder subtree and active documents under it.",
+        "operationId": "archiveDocumentFolder",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document folder subtree archived."
+          },
+          "400": {
+            "description": "Invalid document folder id."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "document.delete permission required."
+          },
+          "404": {
+            "description": "Document folder not found."
+          }
+        }
+      }
+    },
+    "/api/document-folders/{id}/contents": {
+      "get": {
+        "description": "Trusted SvelteKit server endpoint. Requires document.view scoped to the folder's organization unit. Contents listing is not implemented until the document contents task.",
+        "tags": [
+          "documentFolders"
+        ],
+        "summary": "Validate access to a folder contents listing.",
+        "operationId": "listDocumentFolderContents",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid document folder id."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "document.view permission required."
+          },
+          "404": {
+            "description": "Document folder not found."
+          },
+          "501": {
+            "description": "Folder contents listing is not implemented."
+          }
+        }
+      }
+    },
+    "/api/document-folders/{id}/parent": {
+      "patch": {
+        "description": "Trusted SvelteKit server endpoint. Requires document.update scoped to the folder's organization unit.",
+        "tags": [
+          "documentFolders"
+        ],
+        "summary": "Move an active document folder to another parent or root.",
+        "operationId": "moveDocumentFolder",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document folder moved."
+          },
+          "400": {
+            "description": "Invalid move request."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "document.update permission required."
+          },
+          "404": {
+            "description": "Document folder or parent not found."
+          },
+          "409": {
+            "description": "Move would create a cycle, cross units, or duplicate an active folder name."
+          }
+        }
+      }
+    },
     "/api/groups": {
       "get": {
         "description": "Trusted SvelteKit server endpoint. Requires group.view.",
