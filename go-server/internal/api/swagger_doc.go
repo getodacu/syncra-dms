@@ -846,4 +846,212 @@ func swaggerOperations() {
 	//     description: role.assign_permissions permission required.
 	//   "404":
 	//     description: Role permission not found.
+
+	// swagger:operation GET /api/groups groups listGroups
+	//
+	// List groups.
+	//
+	// Trusted SvelteKit server endpoint. Requires group.view.
+	//
+	// ---
+	// responses:
+	//   "200":
+	//     description: Groups were listed.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: group.view permission required.
+
+	// swagger:operation GET /api/groups/{id} groups getGroup
+	//
+	// Get a group.
+	//
+	// Trusted SvelteKit server endpoint. Requires group.view.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: Group was loaded.
+	//   "400":
+	//     description: Invalid group id.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: group.view permission required.
+	//   "404":
+	//     description: Group not found.
+
+	// swagger:operation POST /api/groups groups createGroup
+	//
+	// Create a group.
+	//
+	// Trusted SvelteKit server endpoint. Requires group.create.
+	//
+	// ---
+	// responses:
+	//   "201":
+	//     description: Group was created.
+	//   "400":
+	//     description: Invalid group request.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: group.create permission required.
+	//   "409":
+	//     description: Group code already exists.
+
+	// swagger:operation PATCH /api/groups/{id} groups updateGroup
+	//
+	// Update a group.
+	//
+	// Trusted SvelteKit server endpoint. Requires group.update.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: Group was updated.
+	//   "400":
+	//     description: Invalid group request.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: group.update permission required.
+	//   "404":
+	//     description: Group not found.
+	//   "409":
+	//     description: Group code already exists.
+
+	// swagger:operation DELETE /api/groups/{id} groups deleteGroup
+	//
+	// Delete an unused group.
+	//
+	// Trusted SvelteKit server endpoint. Requires group.delete.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: Group was deleted.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: group.delete permission required.
+	//   "404":
+	//     description: Group not found.
+	//   "409":
+	//     description: Group has users or roles.
+
+	// swagger:operation POST /api/groups/{id}/users groups addGroupUser
+	//
+	// Add a user to a group.
+	//
+	// Trusted SvelteKit server endpoint. Requires group.manage_users.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "201":
+	//     description: Group membership was created.
+	//   "400":
+	//     description: Invalid group user request.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: group.manage_users permission required.
+	//   "404":
+	//     description: Group or user not found.
+
+	// swagger:operation DELETE /api/groups/{id}/users/{userId} groups removeGroupUser
+	//
+	// Remove a user from a group.
+	//
+	// Trusted SvelteKit server endpoint. Requires group.manage_users.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// - name: userId
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: Group membership was removed.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: group.manage_users permission required.
+	//   "404":
+	//     description: Group membership not found.
+
+	// swagger:operation POST /api/groups/{id}/roles groups assignGroupRole
+	//
+	// Assign a scoped role to a group.
+	//
+	// Trusted SvelteKit server endpoint. Requires group.assign_roles.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "201":
+	//     description: Group role assignment was created.
+	//   "400":
+	//     description: Invalid group role request.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: group.assign_roles permission required.
+	//   "404":
+	//     description: Group, role, or organization unit not found.
+
+	// swagger:operation DELETE /api/groups/{id}/roles/{assignmentId} groups removeGroupRole
+	//
+	// Remove a group role assignment.
+	//
+	// Trusted SvelteKit server endpoint. Requires group.assign_roles.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// - name: assignmentId
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: Group role assignment was removed.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: group.assign_roles permission required.
+	//   "404":
+	//     description: Group role assignment not found.
 }
