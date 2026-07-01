@@ -18,10 +18,10 @@ const MaxFolderNameCharacters = 160
 const MaxDocumentDisplayNameCharacters = 255
 
 type Folder struct {
-	ID                 string        `gorm:"type:uuid;primaryKey;index:idx_document_folders_parent_name_id,priority:4" json:"id"`
+	ID                 string        `gorm:"type:uuid;primaryKey;index:idx_document_folders_parent_name_id,priority:4;uniqueIndex:idx_document_folders_id_organization_unit_unique,priority:1" json:"id"`
 	ParentID           *string       `gorm:"column:parent_id;type:uuid;index:idx_document_folders_parent_name_id,priority:2;uniqueIndex:idx_document_folders_child_name_unique,priority:2,where:parent_id IS NOT NULL AND deleted_at IS NULL" json:"parentId,omitempty"`
-	Parent             *Folder       `gorm:"foreignKey:ParentID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT" json:"-"`
-	OrganizationUnitID string        `gorm:"column:organization_unit_id;type:uuid;not null;index:idx_document_folders_parent_name_id,priority:1;uniqueIndex:idx_document_folders_root_name_unique,priority:1,where:parent_id IS NULL AND deleted_at IS NULL;uniqueIndex:idx_document_folders_child_name_unique,priority:1,where:parent_id IS NOT NULL AND deleted_at IS NULL" json:"organizationUnitId"`
+	Parent             *Folder       `gorm:"foreignKey:ParentID,OrganizationUnitID;references:ID,OrganizationUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT" json:"-"`
+	OrganizationUnitID string        `gorm:"column:organization_unit_id;type:uuid;not null;index:idx_document_folders_parent_name_id,priority:1;uniqueIndex:idx_document_folders_root_name_unique,priority:1,where:parent_id IS NULL AND deleted_at IS NULL;uniqueIndex:idx_document_folders_child_name_unique,priority:1,where:parent_id IS NOT NULL AND deleted_at IS NULL;uniqueIndex:idx_document_folders_id_organization_unit_unique,priority:2" json:"organizationUnitId"`
 	OrganizationUnit   orgunits.Unit `gorm:"foreignKey:OrganizationUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT" json:"-"`
 	Name               string        `gorm:"not null;size:160;index:idx_document_folders_parent_name_id,priority:3;uniqueIndex:idx_document_folders_root_name_unique,priority:2,where:parent_id IS NULL AND deleted_at IS NULL;uniqueIndex:idx_document_folders_child_name_unique,priority:3,where:parent_id IS NOT NULL AND deleted_at IS NULL" json:"name"`
 	Description        *string       `gorm:"type:text" json:"description,omitempty"`
@@ -46,15 +46,15 @@ func (Folder) TableName() string { return "document_folders" }
 type Document struct {
 	ID                 string        `gorm:"type:uuid;primaryKey" json:"id"`
 	FolderID           string        `gorm:"column:folder_id;type:uuid;not null;index;uniqueIndex:idx_documents_active_folder_hash_unique,priority:1,where:deleted_at IS NULL" json:"folderId"`
-	Folder             Folder        `gorm:"foreignKey:FolderID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT" json:"-"`
+	Folder             Folder        `gorm:"foreignKey:FolderID,OrganizationUnitID;references:ID,OrganizationUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT" json:"-"`
 	OrganizationUnitID string        `gorm:"column:organization_unit_id;type:uuid;not null;index" json:"organizationUnitId"`
 	OrganizationUnit   orgunits.Unit `gorm:"foreignKey:OrganizationUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT" json:"-"`
 	OriginalFileName   string        `gorm:"column:original_file_name;not null;size:255" json:"originalFileName"`
 	DisplayName        string        `gorm:"column:display_name;not null;size:255" json:"displayName"`
 	MimeType           string        `gorm:"column:mime_type;not null;size:255" json:"mimeType"`
 	Extension          *string       `gorm:"size:32" json:"extension,omitempty"`
-	SizeBytes          int64         `gorm:"column:size_bytes;not null" json:"sizeBytes"`
-	SHA256Hash         string        `gorm:"column:sha256_hash;type:char(64);not null;uniqueIndex:idx_documents_active_folder_hash_unique,priority:2,where:deleted_at IS NULL" json:"sha256Hash"`
+	SizeBytes          int64         `gorm:"column:size_bytes;not null;check:chk_documents_size_bytes_non_negative,size_bytes >= 0" json:"sizeBytes"`
+	SHA256Hash         string        `gorm:"column:sha256_hash;type:char(64);not null;check:chk_documents_sha256_hash_lower_hex,length(sha256_hash) = 64 AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(sha256_hash,'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9',''),'a',''),'b',''),'c',''),'d',''),'e',''),'f','') = '';uniqueIndex:idx_documents_active_folder_hash_unique,priority:2,where:deleted_at IS NULL" json:"sha256Hash"`
 	StorageKey         string        `gorm:"column:storage_key;not null;type:text" json:"-"`
 	CreatedByUserID    string        `gorm:"column:created_by_user_id;type:uuid;not null;index" json:"createdByUserId"`
 	CreatedByUser      auth.User     `gorm:"foreignKey:CreatedByUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT" json:"-"`

@@ -17,6 +17,7 @@ CREATE INDEX "idx_document_folders_updated_by_user_id" ON "document_folders" ("u
 CREATE INDEX "idx_document_folders_created_by_user_id" ON "document_folders" ("created_by_user_id");
 CREATE UNIQUE INDEX "idx_document_folders_root_name_unique" ON "document_folders" ("organization_unit_id", "name") WHERE "parent_id" IS NULL AND "deleted_at" IS NULL;
 CREATE UNIQUE INDEX "idx_document_folders_child_name_unique" ON "document_folders" ("organization_unit_id", "parent_id", "name") WHERE "parent_id" IS NOT NULL AND "deleted_at" IS NULL;
+CREATE UNIQUE INDEX "idx_document_folders_id_organization_unit_unique" ON "document_folders" ("id", "organization_unit_id");
 CREATE INDEX "idx_document_folders_parent_name_id" ON "document_folders" ("organization_unit_id", "parent_id", "name", "id");
 
 CREATE TABLE "documents" (
@@ -35,7 +36,9 @@ CREATE TABLE "documents" (
   "deleted_at" timestamptz,
   "created_at" timestamptz NOT NULL,
   "updated_at" timestamptz NOT NULL,
-  PRIMARY KEY ("id")
+  PRIMARY KEY ("id"),
+  CONSTRAINT "chk_documents_sha256_hash_lower_hex" CHECK (length(sha256_hash) = 64 AND replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(sha256_hash,'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9',''),'a',''),'b',''),'c',''),'d',''),'e',''),'f','') = ''),
+  CONSTRAINT "chk_documents_size_bytes_non_negative" CHECK (size_bytes >= 0)
 );
 
 CREATE INDEX "idx_documents_deleted_at" ON "documents" ("deleted_at");
@@ -47,9 +50,9 @@ CREATE INDEX "idx_documents_folder_id" ON "documents" ("folder_id");
 
 ALTER TABLE "document_folders" ADD CONSTRAINT "fk_document_folders_created_by_user" FOREIGN KEY ("created_by_user_id") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "document_folders" ADD CONSTRAINT "fk_document_folders_organization_unit" FOREIGN KEY ("organization_unit_id") REFERENCES "organization_units"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-ALTER TABLE "document_folders" ADD CONSTRAINT "fk_document_folders_parent" FOREIGN KEY ("parent_id") REFERENCES "document_folders"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "document_folders" ADD CONSTRAINT "fk_document_folders_parent" FOREIGN KEY ("parent_id", "organization_unit_id") REFERENCES "document_folders"("id", "organization_unit_id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "document_folders" ADD CONSTRAINT "fk_document_folders_updated_by_user" FOREIGN KEY ("updated_by_user_id") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 ALTER TABLE "documents" ADD CONSTRAINT "fk_documents_created_by_user" FOREIGN KEY ("created_by_user_id") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-ALTER TABLE "documents" ADD CONSTRAINT "fk_documents_folder" FOREIGN KEY ("folder_id") REFERENCES "document_folders"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "documents" ADD CONSTRAINT "fk_documents_folder" FOREIGN KEY ("folder_id", "organization_unit_id") REFERENCES "document_folders"("id", "organization_unit_id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "documents" ADD CONSTRAINT "fk_documents_organization_unit" FOREIGN KEY ("organization_unit_id") REFERENCES "organization_units"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "documents" ADD CONSTRAINT "fk_documents_updated_by_user" FOREIGN KEY ("updated_by_user_id") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE CASCADE;
