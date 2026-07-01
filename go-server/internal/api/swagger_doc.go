@@ -636,4 +636,214 @@ func swaggerOperations() {
 	//     description: user.assign_group permission required.
 	//   "404":
 	//     description: Group membership not found.
+
+	// swagger:operation GET /api/permissions permissions listPermissions
+	//
+	// List fixed permission registry rows.
+	//
+	// Trusted SvelteKit server endpoint. Requires role.view.
+	//
+	// ---
+	// responses:
+	//   "200":
+	//     description: Permissions were listed.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: role.view permission required.
+
+	// swagger:operation GET /api/permissions/categories permissions listPermissionCategories
+	//
+	// List unique permission categories.
+	//
+	// Trusted SvelteKit server endpoint. Requires role.view.
+	//
+	// ---
+	// responses:
+	//   "200":
+	//     description: Permission categories were listed.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: role.view permission required.
+
+	// swagger:operation GET /api/roles roles listRoles
+	//
+	// List roles.
+	//
+	// Trusted SvelteKit server endpoint. Requires role.view.
+	//
+	// ---
+	// responses:
+	//   "200":
+	//     description: Roles were listed.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: role.view permission required.
+
+	// swagger:operation GET /api/roles/{id} roles getRole
+	//
+	// Get a role.
+	//
+	// Trusted SvelteKit server endpoint. Requires role.view.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: Role was loaded.
+	//   "400":
+	//     description: Invalid role id.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: role.view permission required.
+	//   "404":
+	//     description: Role not found.
+
+	// swagger:operation POST /api/roles roles createRole
+	//
+	// Create a custom role.
+	//
+	// Trusted SvelteKit server endpoint. Requires role.create.
+	//
+	// ---
+	// responses:
+	//   "201":
+	//     description: Role was created.
+	//   "400":
+	//     description: Invalid role request.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: role.create permission required.
+	//   "409":
+	//     description: Role code already exists.
+
+	// swagger:operation PATCH /api/roles/{id} roles updateRole
+	//
+	// Update a role.
+	//
+	// Trusted SvelteKit server endpoint. Requires role.update.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: Role was updated.
+	//   "400":
+	//     description: Invalid role request.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: role.update permission required, or system role code change rejected.
+	//   "404":
+	//     description: Role not found.
+	//   "409":
+	//     description: Role code already exists.
+
+	// swagger:operation DELETE /api/roles/{id} roles deleteRole
+	//
+	// Delete an unused custom role.
+	//
+	// Trusted SvelteKit server endpoint. Requires role.delete.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: Role was deleted.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: role.delete permission required, or system role deletion rejected.
+	//   "404":
+	//     description: Role not found.
+	//   "409":
+	//     description: Role is assigned.
+
+	// swagger:operation GET /api/roles/{id}/permissions roles listRolePermissions
+	//
+	// List permissions assigned to a role.
+	//
+	// Trusted SvelteKit server endpoint. Requires role.view.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: Role permissions were listed.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: role.view permission required.
+	//   "404":
+	//     description: Role not found.
+
+	// swagger:operation POST /api/roles/{id}/permissions roles assignRolePermission
+	//
+	// Assign a permission to a role.
+	//
+	// Trusted SvelteKit server endpoint. Requires role.assign_permissions.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "201":
+	//     description: Role permission was assigned.
+	//   "400":
+	//     description: Invalid role permission request.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: role.assign_permissions permission required.
+	//   "404":
+	//     description: Role or permission not found.
+
+	// swagger:operation DELETE /api/roles/{id}/permissions/{permissionId} roles removeRolePermission
+	//
+	// Remove a permission from a role.
+	//
+	// Trusted SvelteKit server endpoint. Requires role.assign_permissions.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// - name: permissionId
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: Role permission was removed.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: role.assign_permissions permission required.
+	//   "404":
+	//     description: Role permission not found.
 }

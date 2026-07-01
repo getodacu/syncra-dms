@@ -121,5 +121,23 @@ func NewRouter(options RouterOptions) http.Handler {
 	userAPI.POST("/:id/groups", users.addGroup)
 	userAPI.DELETE("/:id/groups/:groupId", users.removeGroup)
 
+	permissions := newPermissionHandler(options, auth)
+	permissionAPI := router.Group("/api/permissions")
+	permissionAPI.Use(auth.requireTrustedInternalRequest())
+	permissionAPI.GET("", permissions.list)
+	permissionAPI.GET("/categories", permissions.categories)
+
+	roles := newRoleHandler(options, auth)
+	roleAPI := router.Group("/api/roles")
+	roleAPI.Use(auth.requireTrustedInternalRequest())
+	roleAPI.GET("", roles.list)
+	roleAPI.GET("/:id", roles.get)
+	roleAPI.POST("", roles.create)
+	roleAPI.PATCH("/:id", roles.update)
+	roleAPI.DELETE("/:id", roles.delete)
+	roleAPI.GET("/:id/permissions", roles.listPermissions)
+	roleAPI.POST("/:id/permissions", roles.assignPermission)
+	roleAPI.DELETE("/:id/permissions/:permissionId", roles.removePermission)
+
 	return router
 }
