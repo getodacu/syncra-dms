@@ -25,6 +25,9 @@ type Config struct {
 	DSNDev                     string
 	AtlasDatabaseURL           string
 	AtlasDevDatabaseURL        string
+	DocumentStorageRoot        string
+	DocumentMaxUploadBytes     int64
+	DocumentAllowedMIMETypes   []string
 	InternalAPIToken           string
 	BetterAuthSecret           string
 	AuthDeliveryToken          string
@@ -62,6 +65,9 @@ func Load() (Config, error) {
 		DSNDev:                     strings.TrimSpace(os.Getenv("DSN_DEV")),
 		AtlasDatabaseURL:           strings.TrimSpace(os.Getenv("ATLAS_DATABASE_URL")),
 		AtlasDevDatabaseURL:        strings.TrimSpace(os.Getenv("ATLAS_DEV_DATABASE_URL")),
+		DocumentStorageRoot:        strings.TrimSpace(os.Getenv("SYNCRA_DOCUMENT_STORAGE_ROOT")),
+		DocumentMaxUploadBytes:     getenvInt64("SYNCRA_DOCUMENT_MAX_UPLOAD_BYTES", 25*1024*1024),
+		DocumentAllowedMIMETypes:   getenvCSV("SYNCRA_DOCUMENT_ALLOWED_MIME_TYPES"),
 		InternalAPIToken:           strings.TrimSpace(os.Getenv("SYNCRA_INTERNAL_API_TOKEN")),
 		BetterAuthSecret:           strings.TrimSpace(os.Getenv("BETTER_AUTH_SECRET")),
 		AuthDeliveryToken:          strings.TrimSpace(os.Getenv("AUTH_DELIVERY_TOKEN")),
@@ -86,6 +92,9 @@ func Load() (Config, error) {
 	}
 	if err := requireDatabaseName("DSN_DEV", cfg.DSNDev, testDatabaseName); err != nil {
 		return Config{}, err
+	}
+	if cfg.DocumentStorageRoot == "" {
+		return Config{}, errors.New("SYNCRA_DOCUMENT_STORAGE_ROOT is required")
 	}
 
 	return cfg, nil
@@ -162,4 +171,20 @@ func getenvInt64(key string, fallback int64) int64 {
 		return fallback
 	}
 	return parsed
+}
+
+func getenvCSV(key string) []string {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	values := make([]string, 0, len(parts))
+	for _, part := range parts {
+		value := strings.TrimSpace(part)
+		if value != "" {
+			values = append(values, value)
+		}
+	}
+	return values
 }

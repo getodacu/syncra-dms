@@ -16,20 +16,23 @@ type VersionInfo struct {
 }
 
 type RouterOptions struct {
-	Version             VersionInfo
-	Ready               func(context.Context) error
-	DB                  *gorm.DB
-	BetterAuthSecret    string
-	AuthDeliveryToken   string
-	InternalAPIToken    string
-	AuthSessionTTL      time.Duration
-	AuthVerificationTTL time.Duration
-	AuthCookieSecure    bool
-	GoogleClientID      string
-	GoogleClientSecret  string
-	GitHubClientID      string
-	GitHubClientSecret  string
-	OAuthProfileFetcher func(context.Context, string, string, string) (OAuthProfile, error)
+	Version                  VersionInfo
+	Ready                    func(context.Context) error
+	DB                       *gorm.DB
+	DocumentStorageRoot      string
+	DocumentMaxUploadBytes   int64
+	DocumentAllowedMIMETypes []string
+	BetterAuthSecret         string
+	AuthDeliveryToken        string
+	InternalAPIToken         string
+	AuthSessionTTL           time.Duration
+	AuthVerificationTTL      time.Duration
+	AuthCookieSecure         bool
+	GoogleClientID           string
+	GoogleClientSecret       string
+	GitHubClientID           string
+	GitHubClientSecret       string
+	OAuthProfileFetcher      func(context.Context, string, string, string) (OAuthProfile, error)
 }
 
 func NewRouter(options RouterOptions) http.Handler {

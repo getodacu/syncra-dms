@@ -1,6 +1,7 @@
 package config
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -10,6 +11,7 @@ func TestLoadReadsEnvironmentAndDefaults(t *testing.T) {
 	t.Setenv("DSN_DEV", "host=localhost user=syncra password=syncra dbname=syncra_dms_dev port=5432 sslmode=disable TimeZone=Europe/Bucharest")
 	t.Setenv("ATLAS_DATABASE_URL", "postgres://syncra:syncra@localhost:5432/syncra_dms?sslmode=disable")
 	t.Setenv("ATLAS_DEV_DATABASE_URL", "postgres://syncra:syncra@localhost:5432/syncra_atlas?sslmode=disable")
+	t.Setenv("SYNCRA_DOCUMENT_STORAGE_ROOT", "/var/lib/syncra/documents")
 	t.Setenv("SERVER_HOST_PORT", "127.0.0.1:9090")
 	t.Setenv("DEBUG", "true")
 	t.Setenv("BETTER_AUTH_SECRET", "better-auth-secret-from-env")
@@ -65,11 +67,45 @@ func TestLoadRequiresDSN(t *testing.T) {
 	}
 }
 
+func TestLoadRequiresDocumentStorageRoot(t *testing.T) {
+	t.Setenv("DSN", `host=localhost dbname=syncra_dms`)
+	t.Setenv("DSN_DEV", `host=localhost dbname=syncra_dms_dev`)
+	t.Setenv("SYNCRA_DOCUMENT_STORAGE_ROOT", "")
+
+	_, err := Load()
+	if err == nil || !strings.Contains(err.Error(), "SYNCRA_DOCUMENT_STORAGE_ROOT is required") {
+		t.Fatalf("Load error = %v, want document storage root required", err)
+	}
+}
+
+func TestLoadReadsDocumentStorageSettings(t *testing.T) {
+	t.Setenv("DSN", `host=localhost dbname=syncra_dms`)
+	t.Setenv("DSN_DEV", `host=localhost dbname=syncra_dms_dev`)
+	t.Setenv("SYNCRA_DOCUMENT_STORAGE_ROOT", "/var/lib/syncra/documents")
+	t.Setenv("SYNCRA_DOCUMENT_MAX_UPLOAD_BYTES", "1048576")
+	t.Setenv("SYNCRA_DOCUMENT_ALLOWED_MIME_TYPES", "application/pdf,image/png")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load error = %v", err)
+	}
+	if cfg.DocumentStorageRoot != "/var/lib/syncra/documents" {
+		t.Fatalf("DocumentStorageRoot = %q", cfg.DocumentStorageRoot)
+	}
+	if cfg.DocumentMaxUploadBytes != 1048576 {
+		t.Fatalf("DocumentMaxUploadBytes = %d", cfg.DocumentMaxUploadBytes)
+	}
+	if !reflect.DeepEqual(cfg.DocumentAllowedMIMETypes, []string{"application/pdf", "image/png"}) {
+		t.Fatalf("DocumentAllowedMIMETypes = %#v", cfg.DocumentAllowedMIMETypes)
+	}
+}
+
 func TestLoadDoesNotValidateAtlasDevDatabaseURLDuringAPIRuntime(t *testing.T) {
 	t.Setenv("DSN", "host=localhost dbname=syncra_dms")
 	t.Setenv("DSN_DEV", "host=localhost dbname=syncra_dms_dev")
 	t.Setenv("ATLAS_DATABASE_URL", "postgres://syncra:syncra@localhost:5432/syncra_dms?sslmode=disable")
 	t.Setenv("ATLAS_DEV_DATABASE_URL", "postgres://syncra:syncra@localhost:5432/syncra_dms_dev?sslmode=disable")
+	t.Setenv("SYNCRA_DOCUMENT_STORAGE_ROOT", "/var/lib/syncra/documents")
 
 	cfg, err := Load()
 	if err != nil {
@@ -83,6 +119,7 @@ func TestLoadDoesNotValidateAtlasDevDatabaseURLDuringAPIRuntime(t *testing.T) {
 func TestLoadDoesNotRequireAtlasURLsForAPIRuntime(t *testing.T) {
 	t.Setenv("DSN", "host=localhost dbname=syncra_dms")
 	t.Setenv("DSN_DEV", "host=localhost dbname=syncra_dms_dev")
+	t.Setenv("SYNCRA_DOCUMENT_STORAGE_ROOT", "/var/lib/syncra/documents")
 
 	cfg, err := Load()
 	if err != nil {

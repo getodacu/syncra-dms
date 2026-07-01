@@ -1936,18 +1936,29 @@ func newAuthTestRouterWithOptions(t *testing.T, options RouterOptions) (http.Han
 		t.Fatalf("seed rbac defaults: %v", err)
 	}
 	base := RouterOptions{
-		DB:                  db,
-		BetterAuthSecret:    testBetterAuthSecret,
-		AuthDeliveryToken:   testAuthDeliveryToken,
-		InternalAPIToken:    testInternalToken,
-		AuthSessionTTL:      7 * 24 * time.Hour,
-		AuthVerificationTTL: 5 * time.Minute,
-		AuthCookieSecure:    false,
-		GoogleClientID:      options.GoogleClientID,
-		GoogleClientSecret:  options.GoogleClientSecret,
-		GitHubClientID:      options.GitHubClientID,
-		GitHubClientSecret:  options.GitHubClientSecret,
-		OAuthProfileFetcher: options.OAuthProfileFetcher,
+		DB:                     db,
+		DocumentStorageRoot:    t.TempDir(),
+		DocumentMaxUploadBytes: 25 * 1024 * 1024,
+		BetterAuthSecret:       testBetterAuthSecret,
+		AuthDeliveryToken:      testAuthDeliveryToken,
+		InternalAPIToken:       testInternalToken,
+		AuthSessionTTL:         7 * 24 * time.Hour,
+		AuthVerificationTTL:    5 * time.Minute,
+		AuthCookieSecure:       false,
+		GoogleClientID:         options.GoogleClientID,
+		GoogleClientSecret:     options.GoogleClientSecret,
+		GitHubClientID:         options.GitHubClientID,
+		GitHubClientSecret:     options.GitHubClientSecret,
+		OAuthProfileFetcher:    options.OAuthProfileFetcher,
+	}
+	if options.DocumentStorageRoot != "" {
+		base.DocumentStorageRoot = options.DocumentStorageRoot
+	}
+	if options.DocumentMaxUploadBytes != 0 {
+		base.DocumentMaxUploadBytes = options.DocumentMaxUploadBytes
+	}
+	if len(options.DocumentAllowedMIMETypes) != 0 {
+		base.DocumentAllowedMIMETypes = options.DocumentAllowedMIMETypes
 	}
 	return NewRouter(base), db
 }
