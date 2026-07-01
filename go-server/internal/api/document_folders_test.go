@@ -9,6 +9,7 @@ import (
 
 	"ai.ro/syncra/dms/internal/auth"
 	"ai.ro/syncra/dms/internal/documents"
+	"ai.ro/syncra/dms/internal/orgunits"
 	"ai.ro/syncra/dms/internal/rbac"
 	"gorm.io/gorm"
 )
@@ -406,6 +407,47 @@ func TestDocumentFolderByIDRoutesReturnNotFoundForArchivedOrganizationUnit(t *te
 		if response.Code != http.StatusNotFound {
 			t.Errorf("%s status = %d body=%s, want not found", tc.name, response.Code, response.Body.String())
 		}
+	}
+}
+
+func TestDocumentFolderUpdateRevalidatesOrganizationUnitAtWriteTime(t *testing.T) {
+	router, db := newAuthTestRouter(t)
+	token := loginSeededAdmin(t, router, db, "admin@example.com")
+	unitID := createUnitViaAPI(t, router, token, `{"name":"Finance"}`)
+	rootID := createFolderViaAPI(t, router, token, `{"organizationUnitId":"`+unitID+`","name":"Invoices"}`)
+
+	callbackName := "document_folder_update_test_archive_unit_before_folder_update"
+	archived := false
+	if err := db.Callback().Update().Before("gorm:update").Register(callbackName, func(tx *gorm.DB) {
+		if archived || tx.Statement.Table != "document_folders" {
+			return
+		}
+		archived = true
+		if err := tx.Session(&gorm.Session{NewDB: true}).Model(&orgunits.Unit{}).Where("id = ?", unitID).Update("archived_at", time.Now().UTC()).Error; err != nil {
+			t.Fatalf("archive organization unit during update callback: %v", err)
+		}
+	}); err != nil {
+		t.Fatalf("register update callback: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := db.Callback().Update().Remove(callbackName); err != nil {
+			t.Fatalf("remove update callback: %v", err)
+		}
+	})
+
+	response := folderJSON(t, router, http.MethodPatch, "/api/document-folders/"+rootID, `{"organizationUnitId":"`+unitID+`","name":"Renamed"}`, authCookieHeaders(token))
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("update status = %d body=%s, want not found", response.Code, response.Body.String())
+	}
+	if !archived {
+		t.Fatal("organization unit archive callback did not run")
+	}
+	var folder documents.Folder
+	if err := db.First(&folder, "id = ?", rootID).Error; err != nil {
+		t.Fatalf("load folder after update: %v", err)
+	}
+	if folder.Name != "Invoices" {
+		t.Fatalf("folder name = %q, want Invoices", folder.Name)
 	}
 }
 

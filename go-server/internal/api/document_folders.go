@@ -203,7 +203,10 @@ func (h *documentFolderHandler) update(c *gin.Context) {
 		updates["description"] = nullableStringValue(input.Description)
 	}
 	if err := h.db.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
-		result := tx.Model(&documents.Folder{}).Where("id = ? AND deleted_at IS NULL", id).Updates(updates)
+		result := tx.Model(&documents.Folder{}).
+			Where("id = ? AND deleted_at IS NULL", id).
+			Where("EXISTS (SELECT 1 FROM organization_units WHERE organization_units.id = document_folders.organization_unit_id AND organization_units.archived_at IS NULL)").
+			Updates(updates)
 		if result.Error != nil {
 			return result.Error
 		}
