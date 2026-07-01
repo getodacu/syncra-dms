@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode"
 
 	"github.com/google/uuid"
 	"gorm.io/driver/sqlite"
@@ -61,6 +62,24 @@ func TestDocumentModelsUseExpectedTableNames(t *testing.T) {
 	}
 }
 
+func TestFolderModelCreatesRootAndChildNameUniqueIndexes(t *testing.T) {
+	db := sqliteMemoryDB(t)
+	if err := db.AutoMigrate(&Folder{}); err != nil {
+		t.Fatalf("auto migrate: %v", err)
+	}
+
+	assertIndexSQLContains(t, db, "idx_document_folders_root_name_unique",
+		"CREATE UNIQUE INDEX",
+		"`organization_unit_id`,`name`",
+		"parent_id IS NULL AND deleted_at IS NULL",
+	)
+	assertIndexSQLContains(t, db, "idx_document_folders_child_name_unique",
+		"CREATE UNIQUE INDEX",
+		"`organization_unit_id`,`parent_id`,`name`",
+		"parent_id IS NOT NULL AND deleted_at IS NULL",
+	)
+}
+
 func TestNormalizeFolderName(t *testing.T) {
 	got, err := NormalizeFolderName(" Invoices ")
 	if err != nil {
@@ -112,6 +131,15 @@ func TestSafeOriginalFileName(t *testing.T) {
 	if got := SafeOriginalFileName("../uploads/invoice.pdf"); got != "invoice.pdf" {
 		t.Fatalf("SafeOriginalFileName() = %q, want invoice.pdf", got)
 	}
+	if got := SafeOriginalFileName("C:\\fakepath\\invoice.pdf"); got != "invoice.pdf" {
+		t.Fatalf("SafeOriginalFileName() = %q, want invoice.pdf", got)
+	}
+	if got := SafeOriginalFileName("..\\invoice.pdf"); got != "invoice.pdf" {
+		t.Fatalf("SafeOriginalFileName() = %q, want invoice.pdf", got)
+	}
+	if got := SafeOriginalFileName("invoice\n\t.pdf"); strings.IndexFunc(got, unicode.IsControl) >= 0 {
+		t.Fatalf("SafeOriginalFileName() = %q, want no control runes", got)
+	}
 	if got := SafeOriginalFileName(" \t\n "); got != "upload" {
 		t.Fatalf("SafeOriginalFileName() = %q, want upload", got)
 	}
@@ -127,4 +155,21 @@ func sqliteMemoryDB(t *testing.T) *gorm.DB {
 		t.Fatalf("open sqlite: %v", err)
 	}
 	return db
+}
+
+func assertIndexSQLContains(t *testing.T, db *gorm.DB, indexName string, wantParts ...string) {
+	t.Helper()
+	if !db.Migrator().HasIndex(&Folder{}, indexName) {
+		t.Fatalf("missing index %s", indexName)
+	}
+
+	var sql string
+	if err := db.Raw("SELECT sql FROM sqlite_master WHERE type = 'index' AND name = ?", indexName).Scan(&sql).Error; err != nil {
+		t.Fatalf("load index %s SQL: %v", indexName, err)
+	}
+	for _, want := range wantParts {
+		if !strings.Contains(sql, want) {
+			t.Fatalf("index %s SQL = %q, want to contain %q", indexName, sql, want)
+		}
+	}
 }

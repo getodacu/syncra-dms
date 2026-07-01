@@ -2,9 +2,10 @@ package documents
 
 import (
 	"errors"
-	"path/filepath"
+	"path"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"ai.ro/syncra/dms/internal/auth"
@@ -18,11 +19,11 @@ const MaxDocumentDisplayNameCharacters = 255
 
 type Folder struct {
 	ID                 string        `gorm:"type:uuid;primaryKey;index:idx_document_folders_parent_name_id,priority:4" json:"id"`
-	ParentID           *string       `gorm:"column:parent_id;type:uuid;index:idx_document_folders_parent_name_id,priority:2;uniqueIndex:idx_document_folders_active_name_unique,priority:2,where:deleted_at IS NULL" json:"parentId,omitempty"`
+	ParentID           *string       `gorm:"column:parent_id;type:uuid;index:idx_document_folders_parent_name_id,priority:2;uniqueIndex:idx_document_folders_child_name_unique,priority:2,where:parent_id IS NOT NULL AND deleted_at IS NULL" json:"parentId,omitempty"`
 	Parent             *Folder       `gorm:"foreignKey:ParentID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT" json:"-"`
-	OrganizationUnitID string        `gorm:"column:organization_unit_id;type:uuid;not null;index:idx_document_folders_parent_name_id,priority:1;uniqueIndex:idx_document_folders_active_name_unique,priority:1,where:deleted_at IS NULL" json:"organizationUnitId"`
+	OrganizationUnitID string        `gorm:"column:organization_unit_id;type:uuid;not null;index:idx_document_folders_parent_name_id,priority:1;uniqueIndex:idx_document_folders_root_name_unique,priority:1,where:parent_id IS NULL AND deleted_at IS NULL;uniqueIndex:idx_document_folders_child_name_unique,priority:1,where:parent_id IS NOT NULL AND deleted_at IS NULL" json:"organizationUnitId"`
 	OrganizationUnit   orgunits.Unit `gorm:"foreignKey:OrganizationUnitID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT" json:"-"`
-	Name               string        `gorm:"not null;size:160;index:idx_document_folders_parent_name_id,priority:3;uniqueIndex:idx_document_folders_active_name_unique,priority:3,where:deleted_at IS NULL" json:"name"`
+	Name               string        `gorm:"not null;size:160;index:idx_document_folders_parent_name_id,priority:3;uniqueIndex:idx_document_folders_root_name_unique,priority:2,where:parent_id IS NULL AND deleted_at IS NULL;uniqueIndex:idx_document_folders_child_name_unique,priority:3,where:parent_id IS NOT NULL AND deleted_at IS NULL" json:"name"`
 	Description        *string       `gorm:"type:text" json:"description,omitempty"`
 	CreatedByUserID    string        `gorm:"column:created_by_user_id;type:uuid;not null;index" json:"createdByUserId"`
 	CreatedByUser      auth.User     `gorm:"foreignKey:CreatedByUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT" json:"-"`
@@ -104,7 +105,15 @@ func NormalizeDisplayName(raw string) (string, error) {
 }
 
 func SafeOriginalFileName(raw string) string {
-	name := strings.TrimSpace(filepath.Base(raw))
+	normalizedPath := strings.ReplaceAll(raw, "\\", "/")
+	name := strings.TrimSpace(path.Base(normalizedPath))
+	name = strings.Map(func(char rune) rune {
+		if unicode.IsControl(char) {
+			return -1
+		}
+		return char
+	}, name)
+	name = strings.TrimSpace(name)
 	if name == "." || name == "/" || name == "" {
 		return "upload"
 	}
