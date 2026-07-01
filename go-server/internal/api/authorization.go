@@ -48,3 +48,27 @@ func requirePermission(c *gin.Context, h *authHandler, permission string, organi
 	}
 	return user, true
 }
+
+func requireAnyPermission(c *gin.Context, h *authHandler, permissions []string, organizationUnitID *string) (auth.User, bool) {
+	user, ok := requireAuthenticatedUser(c, h)
+	if !ok {
+		return auth.User{}, false
+	}
+	resolver := rbac.NewResolver(h.db)
+	for _, permission := range permissions {
+		allowed, err := resolver.Can(c.Request.Context(), rbac.Check{
+			UserID:             user.ID,
+			Permission:         permission,
+			OrganizationUnitID: organizationUnitID,
+		})
+		if err != nil {
+			writeError(c, http.StatusInternalServerError, "failed to check permission")
+			return auth.User{}, false
+		}
+		if allowed {
+			return user, true
+		}
+	}
+	writeError(c, http.StatusForbidden, "permission required")
+	return auth.User{}, false
+}

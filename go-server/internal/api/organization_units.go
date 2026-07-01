@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"ai.ro/syncra/dms/internal/auth"
 	"ai.ro/syncra/dms/internal/orgunits"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -83,7 +82,7 @@ func newOrganizationUnitHandler(options RouterOptions, auth *authHandler) *organ
 }
 
 func (h *organizationUnitHandler) listTree(c *gin.Context) {
-	if _, ok := h.requireUser(c); !ok {
+	if _, ok := requirePermission(c, h.auth, "organization_unit.view", nil); !ok {
 		return
 	}
 	var units []orgunits.Unit
@@ -98,7 +97,7 @@ func (h *organizationUnitHandler) listTree(c *gin.Context) {
 }
 
 func (h *organizationUnitHandler) listArchived(c *gin.Context) {
-	if _, ok := h.requireAdmin(c); !ok {
+	if _, ok := requireAnyPermission(c, h.auth, []string{"organization_unit.view_audit", "organization_unit.manage_hierarchy"}, nil); !ok {
 		return
 	}
 	var units []orgunits.Unit
@@ -117,7 +116,7 @@ func (h *organizationUnitHandler) listArchived(c *gin.Context) {
 }
 
 func (h *organizationUnitHandler) create(c *gin.Context) {
-	if _, ok := h.requireAdmin(c); !ok {
+	if _, ok := requireAnyPermission(c, h.auth, []string{"organization_unit.create", "organization_unit.manage_hierarchy"}, nil); !ok {
 		return
 	}
 	req, ok := bindOrganizationUnitRequest(c)
@@ -159,11 +158,11 @@ func (h *organizationUnitHandler) create(c *gin.Context) {
 }
 
 func (h *organizationUnitHandler) update(c *gin.Context) {
-	if _, ok := h.requireAdmin(c); !ok {
-		return
-	}
 	id, ok := parseOrganizationUnitID(c, c.Param("id"))
 	if !ok {
+		return
+	}
+	if _, ok := requireAnyPermission(c, h.auth, []string{"organization_unit.update", "organization_unit.manage_hierarchy"}, &id); !ok {
 		return
 	}
 	req, ok := bindOrganizationUnitRequest(c)
@@ -208,11 +207,11 @@ func (h *organizationUnitHandler) update(c *gin.Context) {
 }
 
 func (h *organizationUnitHandler) move(c *gin.Context) {
-	if _, ok := h.requireAdmin(c); !ok {
-		return
-	}
 	id, ok := parseOrganizationUnitID(c, c.Param("id"))
 	if !ok {
+		return
+	}
+	if _, ok := requirePermission(c, h.auth, "organization_unit.manage_hierarchy", &id); !ok {
 		return
 	}
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxOrganizationUnitRequestBytes)
@@ -264,11 +263,11 @@ func (h *organizationUnitHandler) move(c *gin.Context) {
 }
 
 func (h *organizationUnitHandler) archive(c *gin.Context) {
-	if _, ok := h.requireAdmin(c); !ok {
-		return
-	}
 	id, ok := parseOrganizationUnitID(c, c.Param("id"))
 	if !ok {
+		return
+	}
+	if _, ok := requireAnyPermission(c, h.auth, []string{"organization_unit.delete", "organization_unit.manage_hierarchy"}, &id); !ok {
 		return
 	}
 	now := time.Now().UTC()
@@ -301,38 +300,6 @@ func (h *organizationUnitHandler) archive(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, okResponse{OK: true})
-}
-
-func (h *organizationUnitHandler) requireUser(c *gin.Context) (auth.User, bool) {
-	if h.db == nil {
-		writeError(c, http.StatusServiceUnavailable, "database is not configured")
-		return auth.User{}, false
-	}
-	if h.auth == nil || !h.auth.authConfigured(c) {
-		return auth.User{}, false
-	}
-	session, ok, err := h.auth.loadAuthenticatedSession(c)
-	if err != nil {
-		writeError(c, http.StatusInternalServerError, err.Error())
-		return auth.User{}, false
-	}
-	if !ok {
-		writeError(c, http.StatusUnauthorized, "authenticated session required")
-		return auth.User{}, false
-	}
-	return session.User, true
-}
-
-func (h *organizationUnitHandler) requireAdmin(c *gin.Context) (auth.User, bool) {
-	user, ok := h.requireUser(c)
-	if !ok {
-		return auth.User{}, false
-	}
-	if user.Role != auth.UserRoleAdmin {
-		writeError(c, http.StatusForbidden, "admin role required")
-		return auth.User{}, false
-	}
-	return user, true
 }
 
 func bindOrganizationUnitRequest(c *gin.Context) (organizationUnitRequest, bool) {

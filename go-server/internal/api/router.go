@@ -94,6 +94,13 @@ func NewRouter(options RouterOptions) http.Handler {
 	authAPI.POST("/oauth/github/start", auth.startGitHubOAuth)
 	authAPI.POST("/oauth/github/callback", auth.signInGitHubOAuth)
 
+	me := newMeHandler(options, auth)
+	meAPI := router.Group("/api")
+	meAPI.Use(auth.requireTrustedInternalRequest())
+	meAPI.GET("/me", me.getMe)
+	meAPI.GET("/me/permissions", me.getPermissions)
+	meAPI.POST("/auth/check-permission", me.checkPermission)
+
 	orgUnits := newOrganizationUnitHandler(options, auth)
 	orgUnitAPI := router.Group("/api/organization-units")
 	orgUnitAPI.Use(auth.requireTrustedInternalRequest())

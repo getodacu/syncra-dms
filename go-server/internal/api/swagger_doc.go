@@ -222,7 +222,7 @@ func swaggerOperations() {
 	//
 	// List active organization units as a hierarchy.
 	//
-	// Trusted SvelteKit server endpoint. Requires an authenticated session.
+	// Trusted SvelteKit server endpoint. Requires organization_unit.view.
 	//
 	// ---
 	// responses:
@@ -235,7 +235,7 @@ func swaggerOperations() {
 	//
 	// List archived organization units.
 	//
-	// Trusted SvelteKit server endpoint. Requires an admin session.
+	// Trusted SvelteKit server endpoint. Requires organization_unit.view_audit or organization_unit.manage_hierarchy.
 	//
 	// ---
 	// responses:
@@ -244,13 +244,13 @@ func swaggerOperations() {
 	//   "401":
 	//     description: Authenticated session or trusted internal request required.
 	//   "403":
-	//     description: Admin role required.
+	//     description: Organization unit audit or hierarchy permission required.
 
 	// swagger:operation POST /api/organization-units organizationUnits createOrganizationUnit
 	//
 	// Create a root or child organization unit.
 	//
-	// Trusted SvelteKit server endpoint. Requires an admin session.
+	// Trusted SvelteKit server endpoint. Requires organization_unit.create or organization_unit.manage_hierarchy.
 	//
 	// ---
 	// responses:
@@ -261,7 +261,7 @@ func swaggerOperations() {
 	//   "401":
 	//     description: Authenticated session or trusted internal request required.
 	//   "403":
-	//     description: Admin role required.
+	//     description: Organization unit create or hierarchy permission required.
 	//   "404":
 	//     description: Parent organization unit not found.
 	//   "409":
@@ -271,7 +271,7 @@ func swaggerOperations() {
 	//
 	// Update an active organization unit's details.
 	//
-	// Trusted SvelteKit server endpoint. Requires an admin session.
+	// Trusted SvelteKit server endpoint. Requires organization_unit.update or organization_unit.manage_hierarchy.
 	//
 	// ---
 	// parameters:
@@ -287,7 +287,7 @@ func swaggerOperations() {
 	//   "401":
 	//     description: Authenticated session or trusted internal request required.
 	//   "403":
-	//     description: Admin role required.
+	//     description: Organization unit update or hierarchy permission required.
 	//   "404":
 	//     description: Organization unit not found.
 	//   "409":
@@ -297,7 +297,7 @@ func swaggerOperations() {
 	//
 	// Move an active organization unit to another parent or root.
 	//
-	// Trusted SvelteKit server endpoint. Requires an admin session.
+	// Trusted SvelteKit server endpoint. Requires organization_unit.manage_hierarchy.
 	//
 	// ---
 	// parameters:
@@ -313,7 +313,7 @@ func swaggerOperations() {
 	//   "401":
 	//     description: Authenticated session or trusted internal request required.
 	//   "403":
-	//     description: Admin role required.
+	//     description: Organization unit hierarchy permission required.
 	//   "404":
 	//     description: Organization unit or parent not found.
 	//   "409":
@@ -323,7 +323,7 @@ func swaggerOperations() {
 	//
 	// Archive an active organization unit and its descendants.
 	//
-	// Trusted SvelteKit server endpoint. Requires an admin session.
+	// Trusted SvelteKit server endpoint. Requires organization_unit.delete or organization_unit.manage_hierarchy.
 	//
 	// ---
 	// parameters:
@@ -339,7 +339,7 @@ func swaggerOperations() {
 	//   "401":
 	//     description: Authenticated session or trusted internal request required.
 	//   "403":
-	//     description: Admin role required.
+	//     description: Organization unit delete or hierarchy permission required.
 	//   "404":
 	//     description: Organization unit not found.
 
@@ -1054,4 +1054,45 @@ func swaggerOperations() {
 	//     description: group.assign_roles permission required.
 	//   "404":
 	//     description: Group role assignment not found.
+
+	// swagger:operation GET /api/me me getMe
+	//
+	// Get the current authenticated user.
+	//
+	// Trusted SvelteKit server endpoint. Requires an authenticated session.
+	//
+	// ---
+	// responses:
+	//   "200":
+	//     description: Current user was loaded.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+
+	// swagger:operation GET /api/me/permissions me getMyPermissions
+	//
+	// List effective permissions for the current authenticated user.
+	//
+	// Trusted SvelteKit server endpoint. Requires an authenticated session.
+	//
+	// ---
+	// responses:
+	//   "200":
+	//     description: Effective permissions were listed.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+
+	// swagger:operation POST /api/auth/check-permission me checkPermission
+	//
+	// Check whether the current authenticated user has a permission.
+	//
+	// Trusted SvelteKit server endpoint. Requires an authenticated session.
+	//
+	// ---
+	// responses:
+	//   "200":
+	//     description: Permission decision was returned.
+	//   "400":
+	//     description: Invalid permission check request.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
 }

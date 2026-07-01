@@ -5,9 +5,11 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"ai.ro/syncra/dms/internal/auth"
 	"ai.ro/syncra/dms/internal/orgunits"
+	"ai.ro/syncra/dms/internal/rbac"
 	"gorm.io/gorm"
 )
 
@@ -36,9 +38,18 @@ func TestOrganizationUnitRoutesRequireSessionAndAdminForMutations(t *testing.T) 
 		t.Fatalf("session-only status = %d body=%s", sessionOnly.Code, sessionOnly.Body.String())
 	}
 
-	emptyTree := orgUnitJSON(t, router, http.MethodGet, "/api/organization-units/tree", "", authCookieHeaders(userToken))
+	forbiddenTree := orgUnitJSON(t, router, http.MethodGet, "/api/organization-units/tree", "", authCookieHeaders(userToken))
+	if forbiddenTree.Code != http.StatusForbidden {
+		t.Fatalf("user list status = %d body=%s, want forbidden", forbiddenTree.Code, forbiddenTree.Body.String())
+	}
+
+	viewer := createVerifiedUser(t, db, "viewer@example.com", "password123")
+	assignGlobalRoleByCode(t, db, viewer.ID, rbac.ViewerRoleCode)
+	viewerToken := loginUser(t, router, viewer.Email, "password123")
+
+	emptyTree := orgUnitJSON(t, router, http.MethodGet, "/api/organization-units/tree", "", authCookieHeaders(viewerToken))
 	if emptyTree.Code != http.StatusOK {
-		t.Fatalf("user list status = %d body=%s", emptyTree.Code, emptyTree.Body.String())
+		t.Fatalf("viewer list status = %d body=%s", emptyTree.Code, emptyTree.Body.String())
 	}
 	var emptyTreeBody organizationUnitTestListResponse
 	decodeJSON(t, emptyTree, &emptyTreeBody)
@@ -46,13 +57,20 @@ func TestOrganizationUnitRoutesRequireSessionAndAdminForMutations(t *testing.T) 
 		t.Fatalf("empty tree units = %#v, want none", emptyTreeBody.Units)
 	}
 
-	forbiddenCreate := orgUnitJSON(t, router, http.MethodPost, "/api/organization-units", `{"name":"Company"}`, authCookieHeaders(userToken))
+	forbiddenCreate := orgUnitJSON(t, router, http.MethodPost, "/api/organization-units", `{"name":"Company"}`, authCookieHeaders(viewerToken))
 	if forbiddenCreate.Code != http.StatusForbidden {
-		t.Fatalf("user create status = %d body=%s", forbiddenCreate.Code, forbiddenCreate.Body.String())
+		t.Fatalf("viewer create status = %d body=%s", forbiddenCreate.Code, forbiddenCreate.Body.String())
 	}
 
 	admin := createAdminUser(t, db, "admin@example.com", "password123")
 	adminToken := loginUser(t, router, admin.Email, "password123")
+	legacyBeforeBootstrap := orgUnitJSON(t, router, http.MethodPost, "/api/organization-units", `{"name":"Legacy Before Bootstrap"}`, authCookieHeaders(adminToken))
+	if legacyBeforeBootstrap.Code != http.StatusForbidden {
+		t.Fatalf("legacy admin before bootstrap status = %d body=%s, want forbidden", legacyBeforeBootstrap.Code, legacyBeforeBootstrap.Body.String())
+	}
+	if err := rbac.BootstrapLegacyAdmins(db); err != nil {
+		t.Fatalf("bootstrap legacy admin: %v", err)
+	}
 	created := orgUnitJSON(t, router, http.MethodPost, "/api/organization-units", `{"name":"Company","code":" root "}`, authCookieHeaders(adminToken))
 	if created.Code != http.StatusCreated {
 		t.Fatalf("admin create status = %d body=%s", created.Code, created.Body.String())
@@ -69,9 +87,9 @@ func TestOrganizationUnitRoutesRequireSessionAndAdminForMutations(t *testing.T) 
 		t.Fatalf("created code = %#v, want ROOT", createdBody.Code)
 	}
 
-	list := orgUnitJSON(t, router, http.MethodGet, "/api/organization-units/tree", "", authCookieHeaders(userToken))
+	list := orgUnitJSON(t, router, http.MethodGet, "/api/organization-units/tree", "", authCookieHeaders(viewerToken))
 	if list.Code != http.StatusOK {
-		t.Fatalf("user list status = %d body=%s", list.Code, list.Body.String())
+		t.Fatalf("viewer list status = %d body=%s", list.Code, list.Body.String())
 	}
 	var listBody struct {
 		Units []struct {
@@ -85,31 +103,30 @@ func TestOrganizationUnitRoutesRequireSessionAndAdminForMutations(t *testing.T) 
 		t.Fatalf("tree body = %#v", listBody)
 	}
 
-	forbiddenUpdate := orgUnitJSON(t, router, http.MethodPatch, "/api/organization-units/"+createdBody.ID, `{"name":"Company Updated"}`, authCookieHeaders(userToken))
+	forbiddenUpdate := orgUnitJSON(t, router, http.MethodPatch, "/api/organization-units/"+createdBody.ID, `{"name":"Company Updated"}`, authCookieHeaders(viewerToken))
 	if forbiddenUpdate.Code != http.StatusForbidden {
-		t.Fatalf("user update status = %d body=%s", forbiddenUpdate.Code, forbiddenUpdate.Body.String())
+		t.Fatalf("viewer update status = %d body=%s", forbiddenUpdate.Code, forbiddenUpdate.Body.String())
 	}
 
-	forbiddenMove := orgUnitJSON(t, router, http.MethodPatch, "/api/organization-units/"+createdBody.ID+"/parent", `{"parentId":null}`, authCookieHeaders(userToken))
+	forbiddenMove := orgUnitJSON(t, router, http.MethodPatch, "/api/organization-units/"+createdBody.ID+"/parent", `{"parentId":null}`, authCookieHeaders(viewerToken))
 	if forbiddenMove.Code != http.StatusForbidden {
-		t.Fatalf("user move status = %d body=%s", forbiddenMove.Code, forbiddenMove.Body.String())
+		t.Fatalf("viewer move status = %d body=%s", forbiddenMove.Code, forbiddenMove.Body.String())
 	}
 
-	forbiddenArchive := orgUnitJSON(t, router, http.MethodPost, "/api/organization-units/"+createdBody.ID+"/archive", `{}`, authCookieHeaders(userToken))
+	forbiddenArchive := orgUnitJSON(t, router, http.MethodPost, "/api/organization-units/"+createdBody.ID+"/archive", `{}`, authCookieHeaders(viewerToken))
 	if forbiddenArchive.Code != http.StatusForbidden {
-		t.Fatalf("user archive status = %d body=%s", forbiddenArchive.Code, forbiddenArchive.Body.String())
+		t.Fatalf("viewer archive status = %d body=%s", forbiddenArchive.Code, forbiddenArchive.Body.String())
 	}
 
-	forbiddenArchivedList := orgUnitJSON(t, router, http.MethodGet, "/api/organization-units/archived", "", authCookieHeaders(userToken))
+	forbiddenArchivedList := orgUnitJSON(t, router, http.MethodGet, "/api/organization-units/archived", "", authCookieHeaders(viewerToken))
 	if forbiddenArchivedList.Code != http.StatusForbidden {
-		t.Fatalf("user archived list status = %d body=%s", forbiddenArchivedList.Code, forbiddenArchivedList.Body.String())
+		t.Fatalf("viewer archived list status = %d body=%s", forbiddenArchivedList.Code, forbiddenArchivedList.Body.String())
 	}
 }
 
 func TestOrganizationUnitMoveRejectsCyclesAndArchiveCascades(t *testing.T) {
 	router, db := newAuthTestRouter(t)
-	admin := createAdminUser(t, db, "admin@example.com", "password123")
-	token := loginUser(t, router, admin.Email, "password123")
+	token := loginSeededAdmin(t, router, db, "admin@example.com")
 
 	rootID := createUnitViaAPI(t, router, token, `{"name":"Company"}`)
 	childID := createUnitViaAPI(t, router, token, `{"name":"Finance","parentId":"`+rootID+`"}`)
@@ -161,8 +178,7 @@ func TestOrganizationUnitMoveRejectsCyclesAndArchiveCascades(t *testing.T) {
 
 func TestOrganizationUnitTreeNestsOrdersAndExcludesArchived(t *testing.T) {
 	router, db := newAuthTestRouter(t)
-	admin := createAdminUser(t, db, "admin@example.com", "password123")
-	token := loginUser(t, router, admin.Email, "password123")
+	token := loginSeededAdmin(t, router, db, "admin@example.com")
 
 	companyID := createUnitViaAPI(t, router, token, `{"name":"Company"}`)
 	operationsID := createUnitViaAPI(t, router, token, `{"name":"Operations","parentId":"`+companyID+`"}`)
@@ -208,8 +224,7 @@ func TestOrganizationUnitTreeNestsOrdersAndExcludesArchived(t *testing.T) {
 
 func TestOrganizationUnitCreateAndUpdateValidation(t *testing.T) {
 	router, db := newAuthTestRouter(t)
-	admin := createAdminUser(t, db, "admin@example.com", "password123")
-	token := loginUser(t, router, admin.Email, "password123")
+	token := loginSeededAdmin(t, router, db, "admin@example.com")
 
 	blankName := orgUnitJSON(t, router, http.MethodPost, "/api/organization-units", `{"name":" "}`, authCookieHeaders(token))
 	if blankName.Code != http.StatusBadRequest {
@@ -293,8 +308,7 @@ func TestOrganizationUnitCreateAndUpdateValidation(t *testing.T) {
 
 func TestOrganizationUnitMoveValidationAndRootMove(t *testing.T) {
 	router, db := newAuthTestRouter(t)
-	admin := createAdminUser(t, db, "admin@example.com", "password123")
-	token := loginUser(t, router, admin.Email, "password123")
+	token := loginSeededAdmin(t, router, db, "admin@example.com")
 
 	rootID := createUnitViaAPI(t, router, token, `{"name":"Company"}`)
 	childID := createUnitViaAPI(t, router, token, `{"name":"Finance","parentId":"`+rootID+`"}`)
@@ -381,6 +395,22 @@ func createAdminUser(t *testing.T, db *gorm.DB, email string, password string) a
 	}
 	user.Role = auth.UserRoleAdmin
 	return user
+}
+
+func assignGlobalRoleByCode(t *testing.T, db *gorm.DB, userID string, roleCode string) {
+	t.Helper()
+	role := loadRoleByCode(t, db, roleCode)
+	now := time.Now().UTC()
+	assignment := rbac.UserRole{
+		UserID:    userID,
+		RoleID:    role.ID,
+		ScopeType: rbac.ScopeGlobal,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	if err := db.Create(&assignment).Error; err != nil {
+		t.Fatalf("assign role %s: %v", roleCode, err)
+	}
 }
 
 func authCookieHeaders(token string) map[string]string {
