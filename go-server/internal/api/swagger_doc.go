@@ -466,9 +466,9 @@ func swaggerOperations() {
 
 	// swagger:operation GET /api/document-folders/{id}/contents documentFolders listDocumentFolderContents
 	//
-	// List the active folder and its contents.
+	// Validate access to a folder contents listing.
 	//
-	// Trusted SvelteKit server endpoint. Requires document.view scoped to the folder's organization unit.
+	// Trusted SvelteKit server endpoint. Requires document.view scoped to the folder's organization unit. Contents listing is not implemented until the document contents task.
 	//
 	// ---
 	// parameters:
@@ -477,8 +477,6 @@ func swaggerOperations() {
 	//   required: true
 	//   type: string
 	// responses:
-	//   "200":
-	//     description: Folder contents were listed.
 	//   "400":
 	//     description: Invalid document folder id.
 	//   "401":
@@ -487,6 +485,8 @@ func swaggerOperations() {
 	//     description: document.view permission required.
 	//   "404":
 	//     description: Document folder not found.
+	//   "501":
+	//     description: Folder contents listing is not implemented.
 
 	// swagger:operation GET /api/users users listUsers
 	//

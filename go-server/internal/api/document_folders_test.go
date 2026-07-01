@@ -9,6 +9,7 @@ import (
 
 	"ai.ro/syncra/dms/internal/auth"
 	"ai.ro/syncra/dms/internal/documents"
+	"ai.ro/syncra/dms/internal/rbac"
 	"gorm.io/gorm"
 )
 
@@ -33,6 +34,65 @@ func TestDocumentFolderRoutesRequirePermissions(t *testing.T) {
 		{name: "move", method: http.MethodPatch, path: "/api/document-folders/" + childID + "/parent", body: `{"parentId":null}`},
 		{name: "archive", method: http.MethodPost, path: "/api/document-folders/" + rootID + "/archive", body: `{}`},
 		{name: "contents", method: http.MethodGet, path: "/api/document-folders/" + rootID + "/contents"},
+	} {
+		response := folderJSON(t, router, tc.method, tc.path, tc.body, authCookieHeaders(token))
+		if response.Code != http.StatusForbidden {
+			t.Fatalf("%s status = %d body=%s, want forbidden", tc.name, response.Code, response.Body.String())
+		}
+	}
+}
+
+func TestDocumentFolderRoutesAuthenticateBeforeExistenceChecks(t *testing.T) {
+	router, db := newAuthTestRouter(t)
+	adminToken := loginSeededAdmin(t, router, db, "admin@example.com")
+	unitID := createUnitViaAPI(t, router, adminToken, `{"name":"Finance"}`)
+	rootID := createFolderViaAPI(t, router, adminToken, `{"organizationUnitId":"`+unitID+`","name":"Invoices"}`)
+	missingID := "00000000-0000-0000-0000-000000000123"
+	internalOnly := map[string]string{internalAPIHeader: testInternalToken}
+
+	for _, tc := range []struct {
+		name   string
+		method string
+		path   string
+		body   string
+	}{
+		{name: "tree missing unit", method: http.MethodGet, path: "/api/document-folders/tree?organizationUnitId=" + missingID},
+		{name: "create missing unit", method: http.MethodPost, path: "/api/document-folders", body: `{"organizationUnitId":"` + missingID + `","name":"Invoices"}`},
+		{name: "update missing folder", method: http.MethodPatch, path: "/api/document-folders/" + missingID, body: `{"organizationUnitId":"` + unitID + `","name":"Invoices Updated"}`},
+		{name: "move missing folder", method: http.MethodPatch, path: "/api/document-folders/" + missingID + "/parent", body: `{"parentId":null}`},
+		{name: "archive missing folder", method: http.MethodPost, path: "/api/document-folders/" + missingID + "/archive", body: `{}`},
+		{name: "contents missing folder", method: http.MethodGet, path: "/api/document-folders/" + missingID + "/contents"},
+		{name: "contents existing folder", method: http.MethodGet, path: "/api/document-folders/" + rootID + "/contents"},
+	} {
+		response := folderJSON(t, router, tc.method, tc.path, tc.body, internalOnly)
+		if response.Code != http.StatusUnauthorized {
+			t.Fatalf("%s status = %d body=%s, want unauthorized", tc.name, response.Code, response.Body.String())
+		}
+	}
+}
+
+func TestDocumentFolderRoutesDenyCrossUnitScopedDocumentPermissions(t *testing.T) {
+	router, db := newAuthTestRouter(t)
+	adminToken := loginSeededAdmin(t, router, db, "admin@example.com")
+	financeID := createUnitViaAPI(t, router, adminToken, `{"name":"Finance"}`)
+	legalID := createUnitViaAPI(t, router, adminToken, `{"name":"Legal"}`)
+	legalFolderID := createFolderViaAPI(t, router, adminToken, `{"organizationUnitId":"`+legalID+`","name":"Cases"}`)
+	user := createVerifiedUser(t, db, "finance-docs@example.com", "password123")
+	assignOrganizationUnitRoleByCode(t, db, user.ID, rbac.OrganizationAdministratorRoleCode, financeID)
+	token := loginUser(t, router, user.Email, "password123")
+
+	for _, tc := range []struct {
+		name   string
+		method string
+		path   string
+		body   string
+	}{
+		{name: "tree", method: http.MethodGet, path: "/api/document-folders/tree?organizationUnitId=" + legalID},
+		{name: "create", method: http.MethodPost, path: "/api/document-folders", body: `{"organizationUnitId":"` + legalID + `","name":"Contracts"}`},
+		{name: "update", method: http.MethodPatch, path: "/api/document-folders/" + legalFolderID, body: `{"organizationUnitId":"` + legalID + `","name":"Cases Updated"}`},
+		{name: "move", method: http.MethodPatch, path: "/api/document-folders/" + legalFolderID + "/parent", body: `{"parentId":null}`},
+		{name: "archive", method: http.MethodPost, path: "/api/document-folders/" + legalFolderID + "/archive", body: `{}`},
+		{name: "contents", method: http.MethodGet, path: "/api/document-folders/" + legalFolderID + "/contents"},
 	} {
 		response := folderJSON(t, router, tc.method, tc.path, tc.body, authCookieHeaders(token))
 		if response.Code != http.StatusForbidden {
@@ -86,13 +146,8 @@ func TestDocumentFolderLifecycle(t *testing.T) {
 	}
 
 	contents := folderJSON(t, router, http.MethodGet, "/api/document-folders/"+childID+"/contents", "", authCookieHeaders(token))
-	if contents.Code != http.StatusOK {
-		t.Fatalf("contents status = %d body=%s", contents.Code, contents.Body.String())
-	}
-	var contentsBody documentFolderContentsTestResponse
-	decodeJSON(t, contents, &contentsBody)
-	if contentsBody.Folder.ID != childID || len(contentsBody.Folders) != 0 || len(contentsBody.Documents) != 0 {
-		t.Fatalf("contents body = %#v, want active folder with empty folders/documents", contentsBody)
+	if contents.Code != http.StatusNotImplemented {
+		t.Fatalf("contents status = %d body=%s, want not implemented", contents.Code, contents.Body.String())
 	}
 
 	archive := folderJSON(t, router, http.MethodPost, "/api/document-folders/"+rootID+"/archive", `{}`, authCookieHeaders(token))
@@ -276,12 +331,6 @@ type documentFolderTestResponse struct {
 	Children           []documentFolderTestResponse `json:"children"`
 }
 
-type documentFolderContentsTestResponse struct {
-	Folder    documentFolderTestResponse   `json:"folder"`
-	Folders   []documentFolderTestResponse `json:"folders"`
-	Documents []any                        `json:"documents"`
-}
-
 func folderJSON(t *testing.T, router http.Handler, method string, path string, body string, headers map[string]string) *httptest.ResponseRecorder {
 	t.Helper()
 	return authJSON(t, router, method, path, body, headers)
@@ -333,4 +382,21 @@ func loadUserByEmail(t *testing.T, db *gorm.DB, email string) auth.User {
 		t.Fatalf("load user %s: %v", email, err)
 	}
 	return user
+}
+
+func assignOrganizationUnitRoleByCode(t *testing.T, db *gorm.DB, userID string, roleCode string, organizationUnitID string) {
+	t.Helper()
+	role := loadRoleByCode(t, db, roleCode)
+	now := time.Now().UTC()
+	assignment := rbac.UserRole{
+		UserID:             userID,
+		RoleID:             role.ID,
+		ScopeType:          rbac.ScopeOrganizationUnit,
+		OrganizationUnitID: &organizationUnitID,
+		CreatedAt:          now,
+		UpdatedAt:          now,
+	}
+	if err := db.Create(&assignment).Error; err != nil {
+		t.Fatalf("assign organization unit role %s: %v", roleCode, err)
+	}
 }

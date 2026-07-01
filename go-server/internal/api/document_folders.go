@@ -7,8 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"ai.ro/syncra/dms/internal/auth"
 	"ai.ro/syncra/dms/internal/documents"
 	"ai.ro/syncra/dms/internal/orgunits"
+	"ai.ro/syncra/dms/internal/rbac"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -68,12 +70,6 @@ type documentFolderListResponse struct {
 	Folders []documentFolderResponse `json:"folders"`
 }
 
-type documentFolderContentsResponse struct {
-	Folder    documentFolderResponse   `json:"folder"`
-	Folders   []documentFolderResponse `json:"folders"`
-	Documents []any                    `json:"documents"`
-}
-
 type normalizedDocumentFolderInput struct {
 	Name                string
 	Description         *string
@@ -89,10 +85,10 @@ func (h *documentFolderHandler) listTree(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if ok := h.activeOrganizationUnitExists(c, organizationUnitID); !ok {
+	if _, ok := requirePermission(c, h.auth, "document.view", &organizationUnitID); !ok {
 		return
 	}
-	if _, ok := requirePermission(c, h.auth, "document.view", &organizationUnitID); !ok {
+	if ok := h.activeOrganizationUnitExists(c, organizationUnitID); !ok {
 		return
 	}
 	var folders []documents.Folder
@@ -115,11 +111,11 @@ func (h *documentFolderHandler) create(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if ok := h.activeOrganizationUnitExists(c, organizationUnitID); !ok {
-		return
-	}
 	user, ok := requirePermission(c, h.auth, "document.create", &organizationUnitID)
 	if !ok {
+		return
+	}
+	if ok := h.activeOrganizationUnitExists(c, organizationUnitID); !ok {
 		return
 	}
 	input, ok := normalizeDocumentFolderInput(c, req)
@@ -131,6 +127,12 @@ func (h *documentFolderHandler) create(c *gin.Context) {
 	updaterID := user.ID
 	var folder documents.Folder
 	err := h.db.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
+		if ok := h.lockFolderHierarchyWithDB(c, tx, organizationUnitID); !ok {
+			return errDocumentFolderResponseWritten
+		}
+		if ok := h.activeOrganizationUnitExistsWithDB(c, tx, organizationUnitID); !ok {
+			return errDocumentFolderResponseWritten
+		}
 		parentID, ok := h.validateOptionalActiveParentWithDB(c, tx, req.ParentID, organizationUnitID)
 		if !ok {
 			return errDocumentFolderResponseWritten
@@ -158,6 +160,10 @@ func (h *documentFolderHandler) create(c *gin.Context) {
 }
 
 func (h *documentFolderHandler) update(c *gin.Context) {
+	user, ok := requireAuthenticatedUser(c, h.auth)
+	if !ok {
+		return
+	}
 	id, ok := parseDocumentFolderID(c, c.Param("id"))
 	if !ok {
 		return
@@ -166,8 +172,7 @@ func (h *documentFolderHandler) update(c *gin.Context) {
 	if !ok {
 		return
 	}
-	user, ok := requirePermission(c, h.auth, "document.update", &folder.OrganizationUnitID)
-	if !ok {
+	if ok := requireDocumentFolderPermissionForAuthenticatedUser(c, h.auth, user, "document.update", &folder.OrganizationUnitID); !ok {
 		return
 	}
 	req, ok := bindDocumentFolderRequest(c)
@@ -214,6 +219,10 @@ func (h *documentFolderHandler) update(c *gin.Context) {
 }
 
 func (h *documentFolderHandler) move(c *gin.Context) {
+	user, ok := requireAuthenticatedUser(c, h.auth)
+	if !ok {
+		return
+	}
 	id, ok := parseDocumentFolderID(c, c.Param("id"))
 	if !ok {
 		return
@@ -222,8 +231,7 @@ func (h *documentFolderHandler) move(c *gin.Context) {
 	if !ok {
 		return
 	}
-	user, ok := requirePermission(c, h.auth, "document.update", &folder.OrganizationUnitID)
-	if !ok {
+	if ok := requireDocumentFolderPermissionForAuthenticatedUser(c, h.auth, user, "document.update", &folder.OrganizationUnitID); !ok {
 		return
 	}
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxDocumentFolderRequestBytes)
@@ -234,6 +242,14 @@ func (h *documentFolderHandler) move(c *gin.Context) {
 	}
 
 	err := h.db.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
+		if ok := h.lockFolderHierarchyWithDB(c, tx, folder.OrganizationUnitID); !ok {
+			return errDocumentFolderResponseWritten
+		}
+		lockedFolder, ok := h.loadActiveFolderWithActiveOrganizationUnitWithDB(c, tx, id)
+		if !ok {
+			return errDocumentFolderResponseWritten
+		}
+		folder = lockedFolder
 		parentID, ok := h.validateOptionalActiveParentWithDB(c, tx, req.ParentID, folder.OrganizationUnitID)
 		if !ok {
 			return errDocumentFolderResponseWritten
@@ -276,6 +292,10 @@ func (h *documentFolderHandler) move(c *gin.Context) {
 }
 
 func (h *documentFolderHandler) archive(c *gin.Context) {
+	user, ok := requireAuthenticatedUser(c, h.auth)
+	if !ok {
+		return
+	}
 	id, ok := parseDocumentFolderID(c, c.Param("id"))
 	if !ok {
 		return
@@ -284,13 +304,20 @@ func (h *documentFolderHandler) archive(c *gin.Context) {
 	if !ok {
 		return
 	}
-	user, ok := requirePermission(c, h.auth, "document.delete", &folder.OrganizationUnitID)
-	if !ok {
+	if ok := requireDocumentFolderPermissionForAuthenticatedUser(c, h.auth, user, "document.delete", &folder.OrganizationUnitID); !ok {
 		return
 	}
 
 	now := time.Now().UTC()
 	err := h.db.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
+		if ok := h.lockFolderHierarchyWithDB(c, tx, folder.OrganizationUnitID); !ok {
+			return errDocumentFolderResponseWritten
+		}
+		lockedFolder, ok := h.loadActiveFolderWithActiveOrganizationUnitWithDB(c, tx, id)
+		if !ok {
+			return errDocumentFolderResponseWritten
+		}
+		folder = lockedFolder
 		var folders []documents.Folder
 		if err := tx.Where("organization_unit_id = ? AND deleted_at IS NULL", folder.OrganizationUnitID).Find(&folders).Error; err != nil {
 			return err
@@ -327,6 +354,10 @@ func (h *documentFolderHandler) archive(c *gin.Context) {
 }
 
 func (h *documentFolderHandler) contents(c *gin.Context) {
+	user, ok := requireAuthenticatedUser(c, h.auth)
+	if !ok {
+		return
+	}
 	id, ok := parseDocumentFolderID(c, c.Param("id"))
 	if !ok {
 		return
@@ -335,14 +366,10 @@ func (h *documentFolderHandler) contents(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if _, ok := requirePermission(c, h.auth, "document.view", &folder.OrganizationUnitID); !ok {
+	if ok := requireDocumentFolderPermissionForAuthenticatedUser(c, h.auth, user, "document.view", &folder.OrganizationUnitID); !ok {
 		return
 	}
-	c.JSON(http.StatusOK, documentFolderContentsResponse{
-		Folder:    documentFolderResponseFromModel(folder),
-		Folders:   []documentFolderResponse{},
-		Documents: []any{},
-	})
+	writeError(c, http.StatusNotImplemented, "document folder contents are not implemented")
 }
 
 func bindDocumentFolderRequest(c *gin.Context) (documentFolderRequest, bool) {
@@ -381,8 +408,12 @@ func parseDocumentFolderOrganizationUnitID(c *gin.Context, raw string) (string, 
 }
 
 func (h *documentFolderHandler) activeOrganizationUnitExists(c *gin.Context, organizationUnitID string) bool {
+	return h.activeOrganizationUnitExistsWithDB(c, h.db, organizationUnitID)
+}
+
+func (h *documentFolderHandler) activeOrganizationUnitExistsWithDB(c *gin.Context, db *gorm.DB, organizationUnitID string) bool {
 	var count int64
-	if err := h.db.WithContext(c.Request.Context()).Model(&orgunits.Unit{}).Where("id = ? AND archived_at IS NULL", organizationUnitID).Count(&count).Error; err != nil {
+	if err := db.WithContext(c.Request.Context()).Model(&orgunits.Unit{}).Where("id = ? AND archived_at IS NULL", organizationUnitID).Count(&count).Error; err != nil {
 		writeError(c, http.StatusInternalServerError, "failed to validate organization unit")
 		return false
 	}
@@ -394,8 +425,12 @@ func (h *documentFolderHandler) activeOrganizationUnitExists(c *gin.Context, org
 }
 
 func (h *documentFolderHandler) loadActiveFolderWithActiveOrganizationUnit(c *gin.Context, folderID string) (documents.Folder, bool) {
+	return h.loadActiveFolderWithActiveOrganizationUnitWithDB(c, h.db, folderID)
+}
+
+func (h *documentFolderHandler) loadActiveFolderWithActiveOrganizationUnitWithDB(c *gin.Context, db *gorm.DB, folderID string) (documents.Folder, bool) {
 	var folder documents.Folder
-	if err := h.db.WithContext(c.Request.Context()).
+	if err := db.WithContext(c.Request.Context()).
 		Joins("JOIN organization_units ON organization_units.id = document_folders.organization_unit_id").
 		Where("document_folders.id = ? AND document_folders.deleted_at IS NULL AND organization_units.archived_at IS NULL", folderID).
 		First(&folder).Error; err != nil {
@@ -407,6 +442,39 @@ func (h *documentFolderHandler) loadActiveFolderWithActiveOrganizationUnit(c *gi
 		return documents.Folder{}, false
 	}
 	return folder, true
+}
+
+func (h *documentFolderHandler) lockFolderHierarchyWithDB(c *gin.Context, db *gorm.DB, organizationUnitID string) bool {
+	switch db.Dialector.Name() {
+	case "postgres":
+		key := "document_folders:" + organizationUnitID
+		if err := db.WithContext(c.Request.Context()).Exec("SELECT pg_advisory_xact_lock(hashtext(?))", key).Error; err != nil {
+			writeError(c, http.StatusInternalServerError, "failed to lock document folder hierarchy")
+			return false
+		}
+	case "sqlite":
+		return true
+	default:
+		return true
+	}
+	return true
+}
+
+func requireDocumentFolderPermissionForAuthenticatedUser(c *gin.Context, h *authHandler, user auth.User, permission string, organizationUnitID *string) bool {
+	allowed, err := rbac.NewResolver(h.db).Can(c.Request.Context(), rbac.Check{
+		UserID:             user.ID,
+		Permission:         permission,
+		OrganizationUnitID: organizationUnitID,
+	})
+	if err != nil {
+		writeError(c, http.StatusInternalServerError, "failed to check permission")
+		return false
+	}
+	if !allowed {
+		writeError(c, http.StatusForbidden, "permission required")
+		return false
+	}
+	return true
 }
 
 func (h *documentFolderHandler) validateOptionalActiveParentWithDB(c *gin.Context, db *gorm.DB, raw *string, organizationUnitID string) (*string, bool) {
