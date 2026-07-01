@@ -104,5 +104,22 @@ func NewRouter(options RouterOptions) http.Handler {
 	orgUnitAPI.PATCH("/:id/parent", orgUnits.move)
 	orgUnitAPI.POST("/:id/archive", orgUnits.archive)
 
+	users := newUserHandler(options, auth)
+	userAPI := router.Group("/api/users")
+	userAPI.Use(auth.requireTrustedInternalRequest())
+	userAPI.GET("", users.list)
+	userAPI.GET("/:id", users.get)
+	userAPI.POST("", users.create)
+	userAPI.PATCH("/:id", users.update)
+	userAPI.POST("/:id/activate", users.activate)
+	userAPI.POST("/:id/deactivate", users.deactivate)
+	userAPI.POST("/:id/suspend", users.suspend)
+	userAPI.DELETE("/:id", users.softDelete)
+	userAPI.POST("/:id/primary-organization-unit", users.setPrimaryOrganizationUnit)
+	userAPI.POST("/:id/roles", users.assignRole)
+	userAPI.DELETE("/:id/roles/:assignmentId", users.removeRole)
+	userAPI.POST("/:id/groups", users.addGroup)
+	userAPI.DELETE("/:id/groups/:groupId", users.removeGroup)
+
 	return router
 }

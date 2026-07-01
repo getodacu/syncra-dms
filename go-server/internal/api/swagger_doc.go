@@ -342,4 +342,298 @@ func swaggerOperations() {
 	//     description: Admin role required.
 	//   "404":
 	//     description: Organization unit not found.
+
+	// swagger:operation GET /api/users users listUsers
+	//
+	// List active users.
+	//
+	// Trusted SvelteKit server endpoint. Requires user.view.
+	//
+	// ---
+	// responses:
+	//   "200":
+	//     description: Users were listed.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: user.view permission required.
+
+	// swagger:operation GET /api/users/{id} users getUser
+	//
+	// Get an active user.
+	//
+	// Trusted SvelteKit server endpoint. Requires user.view.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: User was loaded.
+	//   "400":
+	//     description: Invalid user id.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: user.view permission required.
+	//   "404":
+	//     description: User not found.
+
+	// swagger:operation POST /api/users users createUser
+	//
+	// Create an invited or active user.
+	//
+	// Trusted SvelteKit server endpoint. Requires user.create.
+	//
+	// ---
+	// responses:
+	//   "201":
+	//     description: User was created.
+	//   "400":
+	//     description: Invalid user request.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: user.create permission required.
+	//   "409":
+	//     description: User already exists.
+
+	// swagger:operation PATCH /api/users/{id} users updateUser
+	//
+	// Update user profile fields.
+	//
+	// Trusted SvelteKit server endpoint. Requires user.update.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: User was updated.
+	//   "400":
+	//     description: Invalid user request.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: user.update permission required.
+	//   "404":
+	//     description: User not found.
+
+	// swagger:operation POST /api/users/{id}/activate users activateUser
+	//
+	// Activate a user.
+	//
+	// Trusted SvelteKit server endpoint. Requires user.activate.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: User was activated.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: user.activate permission required.
+	//   "404":
+	//     description: User not found.
+
+	// swagger:operation POST /api/users/{id}/deactivate users deactivateUser
+	//
+	// Deactivate a user.
+	//
+	// Trusted SvelteKit server endpoint. Requires user.update.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: User was deactivated.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: user.update permission required.
+	//   "404":
+	//     description: User not found.
+
+	// swagger:operation POST /api/users/{id}/suspend users suspendUser
+	//
+	// Suspend a user and revoke sessions.
+	//
+	// Trusted SvelteKit server endpoint. Requires user.suspend.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: User was suspended.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: user.suspend permission required.
+	//   "404":
+	//     description: User not found.
+
+	// swagger:operation DELETE /api/users/{id} users deleteUser
+	//
+	// Soft-delete a user and revoke sessions.
+	//
+	// Trusted SvelteKit server endpoint. Requires user.delete.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: User was deleted.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: user.delete permission required.
+	//   "404":
+	//     description: User not found.
+
+	// swagger:operation POST /api/users/{id}/primary-organization-unit users setUserPrimaryOrganizationUnit
+	//
+	// Assign or clear a user's primary organization unit.
+	//
+	// Trusted SvelteKit server endpoint. Requires user.assign_unit.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: Primary organization unit was updated.
+	//   "400":
+	//     description: Invalid organization unit request.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: user.assign_unit permission required.
+	//   "404":
+	//     description: User or organization unit not found.
+
+	// swagger:operation POST /api/users/{id}/roles users assignUserRole
+	//
+	// Assign a scoped role to a user.
+	//
+	// Trusted SvelteKit server endpoint. Requires user.assign_role.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "201":
+	//     description: Role assignment was created.
+	//   "400":
+	//     description: Invalid role assignment request.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: user.assign_role permission required.
+	//   "404":
+	//     description: User, role, or organization unit not found.
+
+	// swagger:operation DELETE /api/users/{id}/roles/{assignmentId} users removeUserRole
+	//
+	// Remove a user role assignment.
+	//
+	// Trusted SvelteKit server endpoint. Requires user.assign_role.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// - name: assignmentId
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: Role assignment was removed.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: user.assign_role permission required.
+	//   "404":
+	//     description: Role assignment not found.
+
+	// swagger:operation POST /api/users/{id}/groups users addUserGroup
+	//
+	// Add a user to a group.
+	//
+	// Trusted SvelteKit server endpoint. Requires user.assign_group.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "201":
+	//     description: Group membership was created.
+	//   "400":
+	//     description: Invalid group assignment request.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: user.assign_group permission required.
+	//   "404":
+	//     description: User or group not found.
+
+	// swagger:operation DELETE /api/users/{id}/groups/{groupId} users removeUserGroup
+	//
+	// Remove a user from a group.
+	//
+	// Trusted SvelteKit server endpoint. Requires user.assign_group.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// - name: groupId
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "200":
+	//     description: Group membership was removed.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "403":
+	//     description: user.assign_group permission required.
+	//   "404":
+	//     description: Group membership not found.
 }
