@@ -21,6 +21,12 @@ export type AuthUser = {
 	image: string | null;
 	preferredLanguage: PreferredLanguage;
 	role: 'user' | 'admin';
+	status?: 'invited' | 'active' | 'inactive' | 'suspended' | 'deleted';
+	primaryOrganizationUnitId?: string | null;
+	managerUserId?: string | null;
+	jobTitle?: string | null;
+	phone?: string | null;
+	permissions?: string[];
 	lastLoginAt: string | null;
 	createdAt: string;
 	updatedAt: string;
