@@ -317,6 +317,40 @@ func TestDocumentFolderByIDRoutesReturnNotFoundForArchivedOrganizationUnit(t *te
 	}
 }
 
+func TestDocumentFolderArchiveSuppressesPostLockValidationSentinel(t *testing.T) {
+	router, db := newAuthTestRouter(t)
+	token := loginSeededAdmin(t, router, db, "admin@example.com")
+	unitID := createUnitViaAPI(t, router, token, `{"name":"Finance"}`)
+	rootID := createFolderViaAPI(t, router, token, `{"organizationUnitId":"`+unitID+`","name":"Invoices"}`)
+
+	callbackName := "document_folder_archive_test_delete_after_first_folder_load"
+	deleted := false
+	if err := db.Callback().Query().After("gorm:query").Register(callbackName, func(tx *gorm.DB) {
+		if deleted || tx.Statement.Table != "document_folders" {
+			return
+		}
+		deleted = true
+		if err := tx.Session(&gorm.Session{NewDB: true}).Model(&documents.Folder{}).Where("id = ?", rootID).Update("deleted_at", time.Now().UTC()).Error; err != nil {
+			t.Fatalf("delete folder during archive callback: %v", err)
+		}
+	}); err != nil {
+		t.Fatalf("register archive callback: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := db.Callback().Query().Remove(callbackName); err != nil {
+			t.Fatalf("remove archive callback: %v", err)
+		}
+	})
+
+	response := folderJSON(t, router, http.MethodPost, "/api/document-folders/"+rootID+"/archive", `{}`, authCookieHeaders(token))
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("archive status = %d body=%s, want not found", response.Code, response.Body.String())
+	}
+	if strings.Contains(response.Body.String(), "failed to archive document folder") {
+		t.Fatalf("archive body = %s, want only post-lock validation error", response.Body.String())
+	}
+}
+
 type documentFolderTestListResponse struct {
 	Folders []documentFolderTestResponse `json:"folders"`
 }

@@ -347,6 +347,9 @@ func (h *documentFolderHandler) archive(c *gin.Context) {
 		return tx.Model(&documents.Document{}).Where("folder_id IN ? AND deleted_at IS NULL", folderIDs).Updates(updates).Error
 	})
 	if err != nil {
+		if errors.Is(err, errDocumentFolderResponseWritten) {
+			return
+		}
 		writeDocumentFolderMutationError(c, err, "failed to archive document folder")
 		return
 	}
