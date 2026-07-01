@@ -13,6 +13,7 @@ import (
 
 	"ai.ro/syncra/dms/internal/auth"
 	"ai.ro/syncra/dms/internal/orgunits"
+	"ai.ro/syncra/dms/internal/rbac"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -1913,8 +1914,26 @@ func newAuthTestRouterWithOptions(t *testing.T, options RouterOptions) (http.Han
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	if err := db.AutoMigrate(&auth.User{}, &auth.AuthAccount{}, &auth.Session{}, &auth.Verification{}, &orgunits.Unit{}); err != nil {
+	if err := db.AutoMigrate(
+		&auth.User{},
+		&auth.AuthAccount{},
+		&auth.Session{},
+		&auth.Verification{},
+		&orgunits.Unit{},
+		&rbac.Role{},
+		&rbac.Permission{},
+		&rbac.RolePermission{},
+		&rbac.UserRole{},
+		&rbac.Group{},
+		&rbac.GroupUser{},
+		&rbac.GroupRole{},
+		&rbac.OrganizationUnitRole{},
+		&rbac.BootstrapMarker{},
+	); err != nil {
 		t.Fatalf("auto migrate: %v", err)
+	}
+	if err := rbac.SeedDefaults(db); err != nil {
+		t.Fatalf("seed rbac defaults: %v", err)
 	}
 	base := RouterOptions{
 		DB:                  db,
