@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"ai.ro/syncra/dms/internal/rbac"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const maxDocumentFolderRequestBytes int64 = 1 << 20
@@ -130,7 +132,7 @@ func (h *documentFolderHandler) create(c *gin.Context) {
 		if ok := h.lockFolderHierarchyWithDB(c, tx, organizationUnitID); !ok {
 			return errDocumentFolderResponseWritten
 		}
-		if ok := h.activeOrganizationUnitExistsWithDB(c, tx, organizationUnitID); !ok {
+		if ok := h.lockActiveOrganizationUnitWithDB(c, tx, organizationUnitID, "organization unit not found"); !ok {
 			return errDocumentFolderResponseWritten
 		}
 		parentID, ok := h.validateOptionalActiveParentWithDB(c, tx, req.ParentID, organizationUnitID, user, []string{"document.create", "document.view"})
@@ -203,6 +205,9 @@ func (h *documentFolderHandler) update(c *gin.Context) {
 		updates["description"] = nullableStringValue(input.Description)
 	}
 	if err := h.db.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
+		if ok := h.lockActiveOrganizationUnitWithDB(c, tx, folder.OrganizationUnitID, "document folder not found"); !ok {
+			return errDocumentFolderResponseWritten
+		}
 		result := tx.Model(&documents.Folder{}).
 			Where("id = ? AND deleted_at IS NULL", id).
 			Where("EXISTS (SELECT 1 FROM organization_units WHERE organization_units.id = document_folders.organization_unit_id AND organization_units.archived_at IS NULL)").
@@ -215,6 +220,9 @@ func (h *documentFolderHandler) update(c *gin.Context) {
 		}
 		return tx.First(&folder, "id = ?", id).Error
 	}); err != nil {
+		if errors.Is(err, errDocumentFolderResponseWritten) {
+			return
+		}
 		writeDocumentFolderMutationError(c, err, "failed to update document folder")
 		return
 	}
@@ -246,6 +254,9 @@ func (h *documentFolderHandler) move(c *gin.Context) {
 
 	err := h.db.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
 		if ok := h.lockFolderHierarchyWithDB(c, tx, folder.OrganizationUnitID); !ok {
+			return errDocumentFolderResponseWritten
+		}
+		if ok := h.lockActiveOrganizationUnitWithDB(c, tx, folder.OrganizationUnitID, "document folder not found"); !ok {
 			return errDocumentFolderResponseWritten
 		}
 		lockedFolder, ok := h.loadActiveFolderWithActiveOrganizationUnitWithDB(c, tx, id)
@@ -314,6 +325,9 @@ func (h *documentFolderHandler) archive(c *gin.Context) {
 	now := time.Now().UTC()
 	err := h.db.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
 		if ok := h.lockFolderHierarchyWithDB(c, tx, folder.OrganizationUnitID); !ok {
+			return errDocumentFolderResponseWritten
+		}
+		if ok := h.lockActiveOrganizationUnitWithDB(c, tx, folder.OrganizationUnitID, "document folder not found"); !ok {
 			return errDocumentFolderResponseWritten
 		}
 		lockedFolder, ok := h.loadActiveFolderWithActiveOrganizationUnitWithDB(c, tx, id)
@@ -428,6 +442,30 @@ func (h *documentFolderHandler) activeOrganizationUnitExistsWithDB(c *gin.Contex
 		return false
 	}
 	return true
+}
+
+func (h *documentFolderHandler) lockActiveOrganizationUnitWithDB(c *gin.Context, db *gorm.DB, organizationUnitID string, notFoundMessage string) bool {
+	var unit orgunits.Unit
+	if err := activeOrganizationUnitLockQuery(c.Request.Context(), db, organizationUnitID).First(&unit).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			writeError(c, http.StatusNotFound, notFoundMessage)
+			return false
+		}
+		writeError(c, http.StatusInternalServerError, "failed to validate organization unit")
+		return false
+	}
+	return true
+}
+
+func activeOrganizationUnitLockQuery(ctx context.Context, db *gorm.DB, organizationUnitID string) *gorm.DB {
+	query := db.WithContext(ctx).
+		Model(&orgunits.Unit{}).
+		Select("id").
+		Where("id = ? AND archived_at IS NULL", organizationUnitID)
+	if db.Dialector.Name() == "postgres" {
+		query = query.Clauses(clause.Locking{Strength: "UPDATE"})
+	}
+	return query
 }
 
 func (h *documentFolderHandler) loadActiveFolderWithActiveOrganizationUnit(c *gin.Context, folderID string) (documents.Folder, bool) {

@@ -11,6 +11,8 @@ import (
 	"ai.ro/syncra/dms/internal/documents"
 	"ai.ro/syncra/dms/internal/orgunits"
 	"ai.ro/syncra/dms/internal/rbac"
+	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -448,6 +450,37 @@ func TestDocumentFolderUpdateRevalidatesOrganizationUnitAtWriteTime(t *testing.T
 	}
 	if folder.Name != "Invoices" {
 		t.Fatalf("folder name = %q, want Invoices", folder.Name)
+	}
+}
+
+func TestDocumentFolderActiveOrganizationUnitLockUsesPostgresRowLock(t *testing.T) {
+	postgresDB, err := gorm.Open(postgres.New(postgres.Config{
+		DSN: "postgres://syncra:syncra@localhost/syncra_dms?sslmode=disable",
+	}), &gorm.Config{DryRun: true, DisableAutomaticPing: true})
+	if err != nil {
+		t.Fatalf("open postgres dry-run db: %v", err)
+	}
+
+	postgresStatement := activeOrganizationUnitLockQuery(t.Context(), postgresDB, "00000000-0000-0000-0000-000000000123").First(&orgunits.Unit{}).Statement
+	postgresSQL := postgresStatement.SQL.String()
+	if !strings.Contains(postgresSQL, "FOR UPDATE") {
+		t.Fatalf("postgres active organization unit lock SQL = %q, want FOR UPDATE", postgresSQL)
+	}
+	if !strings.Contains(postgresSQL, "archived_at IS NULL") {
+		t.Fatalf("postgres active organization unit lock SQL = %q, want active organization unit predicate", postgresSQL)
+	}
+
+	sqliteDB, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{DryRun: true})
+	if err != nil {
+		t.Fatalf("open sqlite dry-run db: %v", err)
+	}
+	sqliteStatement := activeOrganizationUnitLockQuery(t.Context(), sqliteDB, "00000000-0000-0000-0000-000000000123").First(&orgunits.Unit{}).Statement
+	sqliteSQL := sqliteStatement.SQL.String()
+	if strings.Contains(sqliteSQL, "FOR UPDATE") {
+		t.Fatalf("sqlite active organization unit lock SQL = %q, want no FOR UPDATE", sqliteSQL)
+	}
+	if !strings.Contains(sqliteSQL, "archived_at IS NULL") {
+		t.Fatalf("sqlite active organization unit lock SQL = %q, want active organization unit predicate", sqliteSQL)
 	}
 }
 
