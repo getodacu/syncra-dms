@@ -17,6 +17,27 @@
   "host": "localhost:8080",
   "basePath": "/",
   "paths": {
+    "/api/auth/check-permission": {
+      "post": {
+        "description": "Trusted SvelteKit server endpoint. Requires an authenticated session.",
+        "tags": [
+          "me"
+        ],
+        "summary": "Check whether the current authenticated user has a permission.",
+        "operationId": "checkPermission",
+        "responses": {
+          "200": {
+            "description": "Permission decision was returned."
+          },
+          "400": {
+            "description": "Invalid permission check request."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          }
+        }
+      }
+    },
     "/api/auth/email-otp/send-verification-otp": {
       "post": {
         "description": "Trusted SvelteKit server action endpoint.",
@@ -257,9 +278,341 @@
         }
       }
     },
+    "/api/groups": {
+      "get": {
+        "description": "Trusted SvelteKit server endpoint. Requires group.view.",
+        "tags": [
+          "groups"
+        ],
+        "summary": "List groups.",
+        "operationId": "listGroups",
+        "responses": {
+          "200": {
+            "description": "Groups were listed."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "group.view permission required."
+          }
+        }
+      },
+      "post": {
+        "description": "Trusted SvelteKit server endpoint. Requires group.create.",
+        "tags": [
+          "groups"
+        ],
+        "summary": "Create a group.",
+        "operationId": "createGroup",
+        "responses": {
+          "201": {
+            "description": "Group was created."
+          },
+          "400": {
+            "description": "Invalid group request."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "group.create permission required."
+          },
+          "409": {
+            "description": "Group code already exists."
+          }
+        }
+      }
+    },
+    "/api/groups/{id}": {
+      "get": {
+        "description": "Trusted SvelteKit server endpoint. Requires group.view.",
+        "tags": [
+          "groups"
+        ],
+        "summary": "Get a group.",
+        "operationId": "getGroup",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Group was loaded."
+          },
+          "400": {
+            "description": "Invalid group id."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "group.view permission required."
+          },
+          "404": {
+            "description": "Group not found."
+          }
+        }
+      },
+      "delete": {
+        "description": "Trusted SvelteKit server endpoint. Requires group.delete.",
+        "tags": [
+          "groups"
+        ],
+        "summary": "Delete an unused group.",
+        "operationId": "deleteGroup",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Group was deleted."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "group.delete permission required."
+          },
+          "404": {
+            "description": "Group not found."
+          },
+          "409": {
+            "description": "Group has users or roles."
+          }
+        }
+      },
+      "patch": {
+        "description": "Trusted SvelteKit server endpoint. Requires group.update.",
+        "tags": [
+          "groups"
+        ],
+        "summary": "Update a group.",
+        "operationId": "updateGroup",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Group was updated."
+          },
+          "400": {
+            "description": "Invalid group request."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "group.update permission required."
+          },
+          "404": {
+            "description": "Group not found."
+          },
+          "409": {
+            "description": "Group code already exists."
+          }
+        }
+      }
+    },
+    "/api/groups/{id}/roles": {
+      "post": {
+        "description": "Trusted SvelteKit server endpoint. Requires group.assign_roles.",
+        "tags": [
+          "groups"
+        ],
+        "summary": "Assign a scoped role to a group.",
+        "operationId": "assignGroupRole",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Group role assignment was created."
+          },
+          "400": {
+            "description": "Invalid group role request."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "group.assign_roles permission required."
+          },
+          "404": {
+            "description": "Group, role, or organization unit not found."
+          }
+        }
+      }
+    },
+    "/api/groups/{id}/roles/{assignmentId}": {
+      "delete": {
+        "description": "Trusted SvelteKit server endpoint. Requires group.assign_roles.",
+        "tags": [
+          "groups"
+        ],
+        "summary": "Remove a group role assignment.",
+        "operationId": "removeGroupRole",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "assignmentId",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Group role assignment was removed."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "group.assign_roles permission required."
+          },
+          "404": {
+            "description": "Group role assignment not found."
+          }
+        }
+      }
+    },
+    "/api/groups/{id}/users": {
+      "post": {
+        "description": "Trusted SvelteKit server endpoint. Requires group.manage_users.",
+        "tags": [
+          "groups"
+        ],
+        "summary": "Add a user to a group.",
+        "operationId": "addGroupUser",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Group membership was created."
+          },
+          "400": {
+            "description": "Invalid group user request."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "group.manage_users permission required."
+          },
+          "404": {
+            "description": "Group or user not found."
+          }
+        }
+      }
+    },
+    "/api/groups/{id}/users/{userId}": {
+      "delete": {
+        "description": "Trusted SvelteKit server endpoint. Requires group.manage_users.",
+        "tags": [
+          "groups"
+        ],
+        "summary": "Remove a user from a group.",
+        "operationId": "removeGroupUser",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "userId",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Group membership was removed."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "group.manage_users permission required."
+          },
+          "404": {
+            "description": "Group membership not found."
+          }
+        }
+      }
+    },
+    "/api/me": {
+      "get": {
+        "description": "Trusted SvelteKit server endpoint. Requires an authenticated session.",
+        "tags": [
+          "me"
+        ],
+        "summary": "Get the current authenticated user.",
+        "operationId": "getMe",
+        "responses": {
+          "200": {
+            "description": "Current user was loaded."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          }
+        }
+      }
+    },
+    "/api/me/permissions": {
+      "get": {
+        "description": "Trusted SvelteKit server endpoint. Requires an authenticated session.",
+        "tags": [
+          "me"
+        ],
+        "summary": "List effective permissions for the current authenticated user.",
+        "operationId": "getMyPermissions",
+        "responses": {
+          "200": {
+            "description": "Effective permissions were listed."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          }
+        }
+      }
+    },
     "/api/organization-units": {
       "post": {
-        "description": "Trusted SvelteKit server endpoint. Requires an admin session.",
+        "description": "Trusted SvelteKit server endpoint. Requires organization_unit.create or organization_unit.manage_hierarchy.",
         "tags": [
           "organizationUnits"
         ],
@@ -276,7 +629,7 @@
             "description": "Authenticated session or trusted internal request required."
           },
           "403": {
-            "description": "Admin role required."
+            "description": "Organization unit create or hierarchy permission required."
           },
           "404": {
             "description": "Parent organization unit not found."
@@ -289,7 +642,7 @@
     },
     "/api/organization-units/archived": {
       "get": {
-        "description": "Trusted SvelteKit server endpoint. Requires an admin session.",
+        "description": "Trusted SvelteKit server endpoint. Requires organization_unit.view_audit or organization_unit.manage_hierarchy.",
         "tags": [
           "organizationUnits"
         ],
@@ -303,14 +656,14 @@
             "description": "Authenticated session or trusted internal request required."
           },
           "403": {
-            "description": "Admin role required."
+            "description": "Organization unit audit or hierarchy permission required."
           }
         }
       }
     },
     "/api/organization-units/tree": {
       "get": {
-        "description": "Trusted SvelteKit server endpoint. Requires an authenticated session.",
+        "description": "Trusted SvelteKit server endpoint. Requires organization_unit.view.",
         "tags": [
           "organizationUnits"
         ],
@@ -328,7 +681,7 @@
     },
     "/api/organization-units/{id}": {
       "patch": {
-        "description": "Trusted SvelteKit server endpoint. Requires an admin session.",
+        "description": "Trusted SvelteKit server endpoint. Requires organization_unit.update or organization_unit.manage_hierarchy.",
         "tags": [
           "organizationUnits"
         ],
@@ -353,7 +706,7 @@
             "description": "Authenticated session or trusted internal request required."
           },
           "403": {
-            "description": "Admin role required."
+            "description": "Organization unit update or hierarchy permission required."
           },
           "404": {
             "description": "Organization unit not found."
@@ -366,7 +719,7 @@
     },
     "/api/organization-units/{id}/archive": {
       "post": {
-        "description": "Trusted SvelteKit server endpoint. Requires an admin session.",
+        "description": "Trusted SvelteKit server endpoint. Requires organization_unit.delete or organization_unit.manage_hierarchy.",
         "tags": [
           "organizationUnits"
         ],
@@ -391,7 +744,7 @@
             "description": "Authenticated session or trusted internal request required."
           },
           "403": {
-            "description": "Admin role required."
+            "description": "Organization unit delete or hierarchy permission required."
           },
           "404": {
             "description": "Organization unit not found."
@@ -401,7 +754,7 @@
     },
     "/api/organization-units/{id}/parent": {
       "patch": {
-        "description": "Trusted SvelteKit server endpoint. Requires an admin session.",
+        "description": "Trusted SvelteKit server endpoint. Requires organization_unit.manage_hierarchy.",
         "tags": [
           "organizationUnits"
         ],
@@ -426,13 +779,729 @@
             "description": "Authenticated session or trusted internal request required."
           },
           "403": {
-            "description": "Admin role required."
+            "description": "Organization unit hierarchy permission required."
           },
           "404": {
             "description": "Organization unit or parent not found."
           },
           "409": {
             "description": "Move would create a cycle."
+          }
+        }
+      }
+    },
+    "/api/permissions": {
+      "get": {
+        "description": "Trusted SvelteKit server endpoint. Requires role.view.",
+        "tags": [
+          "permissions"
+        ],
+        "summary": "List fixed permission registry rows.",
+        "operationId": "listPermissions",
+        "responses": {
+          "200": {
+            "description": "Permissions were listed."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "role.view permission required."
+          }
+        }
+      }
+    },
+    "/api/permissions/categories": {
+      "get": {
+        "description": "Trusted SvelteKit server endpoint. Requires role.view.",
+        "tags": [
+          "permissions"
+        ],
+        "summary": "List unique permission categories.",
+        "operationId": "listPermissionCategories",
+        "responses": {
+          "200": {
+            "description": "Permission categories were listed."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "role.view permission required."
+          }
+        }
+      }
+    },
+    "/api/roles": {
+      "get": {
+        "description": "Trusted SvelteKit server endpoint. Requires role.view.",
+        "tags": [
+          "roles"
+        ],
+        "summary": "List roles.",
+        "operationId": "listRoles",
+        "responses": {
+          "200": {
+            "description": "Roles were listed."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "role.view permission required."
+          }
+        }
+      },
+      "post": {
+        "description": "Trusted SvelteKit server endpoint. Requires role.create.",
+        "tags": [
+          "roles"
+        ],
+        "summary": "Create a custom role.",
+        "operationId": "createRole",
+        "responses": {
+          "201": {
+            "description": "Role was created."
+          },
+          "400": {
+            "description": "Invalid role request."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "role.create permission required."
+          },
+          "409": {
+            "description": "Role code already exists."
+          }
+        }
+      }
+    },
+    "/api/roles/{id}": {
+      "get": {
+        "description": "Trusted SvelteKit server endpoint. Requires role.view.",
+        "tags": [
+          "roles"
+        ],
+        "summary": "Get a role.",
+        "operationId": "getRole",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Role was loaded."
+          },
+          "400": {
+            "description": "Invalid role id."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "role.view permission required."
+          },
+          "404": {
+            "description": "Role not found."
+          }
+        }
+      },
+      "delete": {
+        "description": "Trusted SvelteKit server endpoint. Requires role.delete.",
+        "tags": [
+          "roles"
+        ],
+        "summary": "Delete an unused custom role.",
+        "operationId": "deleteRole",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Role was deleted."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "role.delete permission required, or system role deletion rejected."
+          },
+          "404": {
+            "description": "Role not found."
+          },
+          "409": {
+            "description": "Role is assigned."
+          }
+        }
+      },
+      "patch": {
+        "description": "Trusted SvelteKit server endpoint. Requires role.update.",
+        "tags": [
+          "roles"
+        ],
+        "summary": "Update a role.",
+        "operationId": "updateRole",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Role was updated."
+          },
+          "400": {
+            "description": "Invalid role request."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "role.update permission required, or system role code change rejected."
+          },
+          "404": {
+            "description": "Role not found."
+          },
+          "409": {
+            "description": "Role code already exists."
+          }
+        }
+      }
+    },
+    "/api/roles/{id}/permissions": {
+      "get": {
+        "description": "Trusted SvelteKit server endpoint. Requires role.view.",
+        "tags": [
+          "roles"
+        ],
+        "summary": "List permissions assigned to a role.",
+        "operationId": "listRolePermissions",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Role permissions were listed."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "role.view permission required."
+          },
+          "404": {
+            "description": "Role not found."
+          }
+        }
+      },
+      "post": {
+        "description": "Trusted SvelteKit server endpoint. Requires role.assign_permissions.",
+        "tags": [
+          "roles"
+        ],
+        "summary": "Assign a permission to a role.",
+        "operationId": "assignRolePermission",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Role permission was assigned."
+          },
+          "400": {
+            "description": "Invalid role permission request."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "role.assign_permissions permission required."
+          },
+          "404": {
+            "description": "Role or permission not found."
+          }
+        }
+      }
+    },
+    "/api/roles/{id}/permissions/{permissionId}": {
+      "delete": {
+        "description": "Trusted SvelteKit server endpoint. Requires role.assign_permissions.",
+        "tags": [
+          "roles"
+        ],
+        "summary": "Remove a permission from a role.",
+        "operationId": "removeRolePermission",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "permissionId",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Role permission was removed."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "role.assign_permissions permission required."
+          },
+          "404": {
+            "description": "Role permission not found."
+          }
+        }
+      }
+    },
+    "/api/users": {
+      "get": {
+        "description": "Trusted SvelteKit server endpoint. Requires user.view.",
+        "tags": [
+          "users"
+        ],
+        "summary": "List active users.",
+        "operationId": "listUsers",
+        "responses": {
+          "200": {
+            "description": "Users were listed."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "user.view permission required."
+          }
+        }
+      },
+      "post": {
+        "description": "Trusted SvelteKit server endpoint. Requires user.create.",
+        "tags": [
+          "users"
+        ],
+        "summary": "Create an invited or active user.",
+        "operationId": "createUser",
+        "responses": {
+          "201": {
+            "description": "User was created."
+          },
+          "400": {
+            "description": "Invalid user request."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "user.create permission required."
+          },
+          "409": {
+            "description": "User already exists."
+          }
+        }
+      }
+    },
+    "/api/users/{id}": {
+      "get": {
+        "description": "Trusted SvelteKit server endpoint. Requires user.view.",
+        "tags": [
+          "users"
+        ],
+        "summary": "Get an active user.",
+        "operationId": "getUser",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User was loaded."
+          },
+          "400": {
+            "description": "Invalid user id."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "user.view permission required."
+          },
+          "404": {
+            "description": "User not found."
+          }
+        }
+      },
+      "delete": {
+        "description": "Trusted SvelteKit server endpoint. Requires user.delete.",
+        "tags": [
+          "users"
+        ],
+        "summary": "Soft-delete a user and revoke sessions.",
+        "operationId": "deleteUser",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User was deleted."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "user.delete permission required."
+          },
+          "404": {
+            "description": "User not found."
+          }
+        }
+      },
+      "patch": {
+        "description": "Trusted SvelteKit server endpoint. Requires user.update.",
+        "tags": [
+          "users"
+        ],
+        "summary": "Update user profile fields.",
+        "operationId": "updateUser",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User was updated."
+          },
+          "400": {
+            "description": "Invalid user request."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "user.update permission required."
+          },
+          "404": {
+            "description": "User not found."
+          }
+        }
+      }
+    },
+    "/api/users/{id}/activate": {
+      "post": {
+        "description": "Trusted SvelteKit server endpoint. Requires user.activate.",
+        "tags": [
+          "users"
+        ],
+        "summary": "Activate a user.",
+        "operationId": "activateUser",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User was activated."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "user.activate permission required."
+          },
+          "404": {
+            "description": "User not found."
+          }
+        }
+      }
+    },
+    "/api/users/{id}/deactivate": {
+      "post": {
+        "description": "Trusted SvelteKit server endpoint. Requires user.update.",
+        "tags": [
+          "users"
+        ],
+        "summary": "Deactivate a user.",
+        "operationId": "deactivateUser",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User was deactivated."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "user.update permission required."
+          },
+          "404": {
+            "description": "User not found."
+          }
+        }
+      }
+    },
+    "/api/users/{id}/groups": {
+      "post": {
+        "description": "Trusted SvelteKit server endpoint. Requires user.assign_group.",
+        "tags": [
+          "users"
+        ],
+        "summary": "Add a user to a group.",
+        "operationId": "addUserGroup",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Group membership was created."
+          },
+          "400": {
+            "description": "Invalid group assignment request."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "user.assign_group permission required."
+          },
+          "404": {
+            "description": "User or group not found."
+          }
+        }
+      }
+    },
+    "/api/users/{id}/groups/{groupId}": {
+      "delete": {
+        "description": "Trusted SvelteKit server endpoint. Requires user.assign_group.",
+        "tags": [
+          "users"
+        ],
+        "summary": "Remove a user from a group.",
+        "operationId": "removeUserGroup",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "groupId",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Group membership was removed."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "user.assign_group permission required."
+          },
+          "404": {
+            "description": "Group membership not found."
+          }
+        }
+      }
+    },
+    "/api/users/{id}/primary-organization-unit": {
+      "post": {
+        "description": "Trusted SvelteKit server endpoint. Requires user.assign_unit.",
+        "tags": [
+          "users"
+        ],
+        "summary": "Assign or clear a user's primary organization unit.",
+        "operationId": "setUserPrimaryOrganizationUnit",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Primary organization unit was updated."
+          },
+          "400": {
+            "description": "Invalid organization unit request."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "user.assign_unit permission required."
+          },
+          "404": {
+            "description": "User or organization unit not found."
+          }
+        }
+      }
+    },
+    "/api/users/{id}/roles": {
+      "post": {
+        "description": "Trusted SvelteKit server endpoint. Requires user.assign_role.",
+        "tags": [
+          "users"
+        ],
+        "summary": "Assign a scoped role to a user.",
+        "operationId": "assignUserRole",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Role assignment was created."
+          },
+          "400": {
+            "description": "Invalid role assignment request."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "user.assign_role permission required."
+          },
+          "404": {
+            "description": "User, role, or organization unit not found."
+          }
+        }
+      }
+    },
+    "/api/users/{id}/roles/{assignmentId}": {
+      "delete": {
+        "description": "Trusted SvelteKit server endpoint. Requires user.assign_role.",
+        "tags": [
+          "users"
+        ],
+        "summary": "Remove a user role assignment.",
+        "operationId": "removeUserRole",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "assignmentId",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Role assignment was removed."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "user.assign_role permission required."
+          },
+          "404": {
+            "description": "Role assignment not found."
+          }
+        }
+      }
+    },
+    "/api/users/{id}/suspend": {
+      "post": {
+        "description": "Trusted SvelteKit server endpoint. Requires user.suspend.",
+        "tags": [
+          "users"
+        ],
+        "summary": "Suspend a user and revoke sessions.",
+        "operationId": "suspendUser",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User was suspended."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "403": {
+            "description": "user.suspend permission required."
+          },
+          "404": {
+            "description": "User not found."
           }
         }
       }

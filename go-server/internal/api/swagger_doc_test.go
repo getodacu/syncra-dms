@@ -30,6 +30,20 @@ func TestSwaggerDocDeclaresCurrentRoutes(t *testing.T) {
 		"POST /api/auth/oauth/google/callback",
 		"POST /api/auth/oauth/github/start",
 		"POST /api/auth/oauth/github/callback",
+		"GET /api/organization-units/tree",
+		"GET /api/organization-units/archived",
+		"POST /api/organization-units",
+		"GET /api/users",
+		"POST /api/users",
+		"GET /api/roles",
+		"POST /api/roles",
+		"GET /api/permissions",
+		"GET /api/permissions/categories",
+		"GET /api/groups",
+		"POST /api/groups",
+		"GET /api/me",
+		"GET /api/me/permissions",
+		"POST /api/auth/check-permission",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("swagger_doc.go missing %q", want)
