@@ -3,6 +3,7 @@ import { paraglideMiddleware } from '$lib/paraglide/server';
 import { getTextDirection } from '$lib/paraglide/runtime';
 import type { Locale } from '$lib/paraglide/runtime';
 import { clearSessionCookie, getSession, hasSessionCookie, setPreferredLanguageCookie } from '$lib/server/auth';
+import { getMyPermissions } from '$lib/server/rbac';
 
 const guestOnlyRoutes = new Set(['/login', '/signup', '/signup-confirmation', '/recover-password']);
 
@@ -12,6 +13,7 @@ function isProtectedRoute(pathname: string) {
 
 const appHandle: Handle = async ({ event, resolve }) => {
 	const cookieHeader = event.request.headers.get('cookie');
+	event.locals.permissions = [];
 	try {
 		const auth = await getSession(event.fetch, cookieHeader);
 		event.locals.session = auth?.session ?? null;
@@ -25,7 +27,19 @@ const appHandle: Handle = async ({ event, resolve }) => {
 	} catch {
 		event.locals.session = null;
 		event.locals.user = null;
+		event.locals.permissions = [];
 		if (isProtectedRoute(event.url.pathname)) redirect(303, '/login');
+	}
+
+	if (event.locals.user) {
+		try {
+			const permissions = await getMyPermissions(event.fetch, cookieHeader);
+			event.locals.permissions = Array.from(
+				new Set(permissions.permissions.map((permission) => permission.code))
+			);
+		} catch {
+			event.locals.permissions = [];
+		}
 	}
 
 	if (isProtectedRoute(event.url.pathname) && !event.locals.user) {

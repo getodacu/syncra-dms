@@ -34,11 +34,13 @@ describe('app layout server load', () => {
 	it('returns public user and session shapes from locals', () => {
 		const locals = {
 			user: privateUser,
+			permissions: ['organization_unit.view'],
 			session: { id: 'session-id', token: 'secret-token', expiresAt: '2026-06-30T00:00:00Z' }
 		};
 
 		expect(layoutLoad({ locals } as never)).toEqual({
 			user: layoutPublicUser,
+			permissions: ['organization_unit.view'],
 			session: { expiresAt: '2026-06-30T00:00:00Z' }
 		});
 	});
@@ -59,8 +61,10 @@ describe('app dashboard server load', () => {
 });
 
 describe('organization units page server load', () => {
-	it('returns admin manage access and selectedId without loading the tree', () => {
-		const result = load(loadEvent({ role: 'admin' }, 'selected-unit') as never);
+	it('returns manage access for organization unit administrators', () => {
+		const result = load(
+			loadEvent(['organization_unit.manage_hierarchy'], 'selected-unit') as never
+		);
 
 		expect(result).toEqual({
 			canManageOrganizationUnits: true,
@@ -68,8 +72,17 @@ describe('organization units page server load', () => {
 		});
 	});
 
-	it('returns read-only access for regular users', () => {
-		const result = load(loadEvent({ role: 'user' }) as never);
+	it('returns manage access for system administrators', () => {
+		const result = load(loadEvent(['system.admin']) as never);
+
+		expect(result).toEqual({
+			canManageOrganizationUnits: true,
+			selectedId: null
+		});
+	});
+
+	it('returns read-only access without organization unit permissions, regardless of auth role', () => {
+		const result = load(loadEvent([], undefined, { role: 'admin' }) as never);
 
 		expect(result).toEqual({
 			canManageOrganizationUnits: false,
@@ -94,11 +107,15 @@ describe('organization units page source', () => {
 	});
 });
 
-function loadEvent(user: { role: string } | null, selectedId?: string) {
+function loadEvent(
+	permissions: string[],
+	selectedId?: string,
+	user: { role: string } | null = { role: 'user' }
+) {
 	const url = new URL('http://localhost/app/organization-units');
 	if (selectedId) url.searchParams.set('selectedId', selectedId);
 	return {
-		locals: { user },
+		locals: { user, permissions },
 		url
 	};
 }

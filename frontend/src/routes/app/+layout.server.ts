@@ -8,7 +8,8 @@ export const load: LayoutServerLoad = ({ locals }) => ({
 				email: locals.user.email,
 				image: locals.user.image,
 				role: locals.user.role
-			}
+		}
 		: null,
+	permissions: locals.permissions ?? [],
 	session: locals.session ? { expiresAt: locals.session.expiresAt } : null
 });

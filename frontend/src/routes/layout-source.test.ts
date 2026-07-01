@@ -18,7 +18,9 @@ describe('app sidebar layout shell', () => {
 		const source = readFileSync(new URL('./app/+layout.svelte', import.meta.url), 'utf8');
 
 		expect(source).toContain('<Sidebar.Provider');
-		expect(source).toContain('<AppSidebar variant="inset" user={data.user} />');
+		expect(source).toContain(
+			'<AppSidebar variant="inset" user={data.user} permissions={data.permissions} />'
+		);
 		expect(source).toContain('<Sidebar.Inset>');
 		expect(source).toContain('<SiteHeader />');
 		expect(source).toContain('<ConfirmDeleteDialog />');
