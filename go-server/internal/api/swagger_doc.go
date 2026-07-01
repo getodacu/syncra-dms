@@ -410,7 +410,7 @@ func swaggerOperations() {
 	//   "404":
 	//     description: Document folder not found or inaccessible.
 	//   "409":
-	//     description: Active document folder name already exists.
+	//     description: Active document folder name already exists or organization unit change was requested.
 
 	// swagger:operation PATCH /api/document-folders/{id}/parent documentFolders moveDocumentFolder
 	//

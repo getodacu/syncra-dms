@@ -279,6 +279,10 @@ func TestDocumentFolderValidationRejectsDuplicatesAndInvalidParents(t *testing.T
 	if crossUnitCreate.Code != http.StatusConflict {
 		t.Fatalf("cross-unit create status = %d body=%s, want conflict", crossUnitCreate.Code, crossUnitCreate.Body.String())
 	}
+	crossUnitUpdate := folderJSON(t, router, http.MethodPatch, "/api/document-folders/"+rootID, `{"organizationUnitId":"`+otherUnitID+`","name":"Invoices"}`, authCookieHeaders(token))
+	if crossUnitUpdate.Code != http.StatusConflict {
+		t.Fatalf("cross-unit update status = %d body=%s, want conflict", crossUnitUpdate.Code, crossUnitUpdate.Body.String())
+	}
 
 	archiveRoot := folderJSON(t, router, http.MethodPost, "/api/document-folders/"+rootID+"/archive", `{}`, authCookieHeaders(token))
 	if archiveRoot.Code != http.StatusOK {

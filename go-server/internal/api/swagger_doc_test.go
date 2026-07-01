@@ -131,3 +131,36 @@ func TestServedSwaggerDocDocumentsHiddenDocumentFolderIDs(t *testing.T) {
 		}
 	}
 }
+
+func TestServedSwaggerDocDocumentsDocumentFolderUpdateConflicts(t *testing.T) {
+	router := NewRouter(RouterOptions{})
+	spec := assertJSONStatus(t, router, "http://localhost:8090/swagger/doc.json", http.StatusOK, "swagger", "2.0")
+
+	paths, ok := spec["paths"].(map[string]any)
+	if !ok {
+		t.Fatal("/swagger/doc.json missing paths object")
+	}
+	pathDoc, ok := paths["/api/document-folders/{id}"].(map[string]any)
+	if !ok {
+		t.Fatal("/swagger/doc.json missing path /api/document-folders/{id}")
+	}
+	operation, ok := pathDoc["patch"].(map[string]any)
+	if !ok {
+		t.Fatal("/swagger/doc.json missing PATCH /api/document-folders/{id}")
+	}
+	responses, ok := operation["responses"].(map[string]any)
+	if !ok {
+		t.Fatal("/swagger/doc.json missing responses for PATCH /api/document-folders/{id}")
+	}
+	conflict, ok := responses["409"].(map[string]any)
+	if !ok {
+		t.Fatal("/swagger/doc.json missing 409 for PATCH /api/document-folders/{id}")
+	}
+	description, _ := conflict["description"].(string)
+	normalized := strings.ToLower(description)
+	for _, want := range []string{"name", "organization unit"} {
+		if !strings.Contains(normalized, want) {
+			t.Fatalf("/swagger/doc.json 409 description for PATCH /api/document-folders/{id} = %q, want %q", description, want)
+		}
+	}
+}
