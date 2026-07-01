@@ -54,7 +54,7 @@ type Document struct {
 	MimeType           string        `gorm:"column:mime_type;not null;size:255" json:"mimeType"`
 	Extension          *string       `gorm:"size:32" json:"extension,omitempty"`
 	SizeBytes          int64         `gorm:"column:size_bytes;not null" json:"sizeBytes"`
-	SHA256Hash         string        `gorm:"column:sha256_hash;not null;size:64;uniqueIndex:idx_documents_active_folder_hash_unique,priority:2,where:deleted_at IS NULL" json:"sha256Hash"`
+	SHA256Hash         string        `gorm:"column:sha256_hash;type:char(64);not null;uniqueIndex:idx_documents_active_folder_hash_unique,priority:2,where:deleted_at IS NULL" json:"sha256Hash"`
 	StorageKey         string        `gorm:"column:storage_key;not null;type:text" json:"-"`
 	CreatedByUserID    string        `gorm:"column:created_by_user_id;type:uuid;not null;index" json:"createdByUserId"`
 	CreatedByUser      auth.User     `gorm:"foreignKey:CreatedByUserID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT" json:"-"`

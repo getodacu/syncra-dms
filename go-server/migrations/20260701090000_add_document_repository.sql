@@ -28,7 +28,7 @@ CREATE TABLE "documents" (
   "mime_type" varchar(255) NOT NULL,
   "extension" varchar(32),
   "size_bytes" bigint NOT NULL,
-  "sha256_hash" varchar(64) NOT NULL,
+  "sha256_hash" char(64) NOT NULL,
   "storage_key" text NOT NULL,
   "created_by_user_id" uuid NOT NULL,
   "updated_by_user_id" uuid,
