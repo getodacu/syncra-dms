@@ -23,21 +23,22 @@ func TestDocumentFolderRoutesRequirePermissions(t *testing.T) {
 	token := loginUser(t, router, user.Email, "password123")
 
 	for _, tc := range []struct {
-		name   string
-		method string
-		path   string
-		body   string
+		name       string
+		method     string
+		path       string
+		body       string
+		wantStatus int
 	}{
-		{name: "tree", method: http.MethodGet, path: "/api/document-folders/tree?organizationUnitId=" + unitID},
-		{name: "create", method: http.MethodPost, path: "/api/document-folders", body: `{"organizationUnitId":"` + unitID + `","name":"Receipts"}`},
-		{name: "update", method: http.MethodPatch, path: "/api/document-folders/" + rootID, body: `{"organizationUnitId":"` + unitID + `","name":"Invoices Updated"}`},
-		{name: "move", method: http.MethodPatch, path: "/api/document-folders/" + childID + "/parent", body: `{"parentId":null}`},
-		{name: "archive", method: http.MethodPost, path: "/api/document-folders/" + rootID + "/archive", body: `{}`},
-		{name: "contents", method: http.MethodGet, path: "/api/document-folders/" + rootID + "/contents"},
+		{name: "tree", method: http.MethodGet, path: "/api/document-folders/tree?organizationUnitId=" + unitID, wantStatus: http.StatusForbidden},
+		{name: "create", method: http.MethodPost, path: "/api/document-folders", body: `{"organizationUnitId":"` + unitID + `","name":"Receipts"}`, wantStatus: http.StatusForbidden},
+		{name: "update", method: http.MethodPatch, path: "/api/document-folders/" + rootID, body: `{"organizationUnitId":"` + unitID + `","name":"Invoices Updated"}`, wantStatus: http.StatusNotFound},
+		{name: "move", method: http.MethodPatch, path: "/api/document-folders/" + childID + "/parent", body: `{"parentId":null}`, wantStatus: http.StatusNotFound},
+		{name: "archive", method: http.MethodPost, path: "/api/document-folders/" + rootID + "/archive", body: `{}`, wantStatus: http.StatusNotFound},
+		{name: "contents", method: http.MethodGet, path: "/api/document-folders/" + rootID + "/contents", wantStatus: http.StatusNotFound},
 	} {
 		response := folderJSON(t, router, tc.method, tc.path, tc.body, authCookieHeaders(token))
-		if response.Code != http.StatusForbidden {
-			t.Fatalf("%s status = %d body=%s, want forbidden", tc.name, response.Code, response.Body.String())
+		if response.Code != tc.wantStatus {
+			t.Fatalf("%s status = %d body=%s, want %d", tc.name, response.Code, response.Body.String(), tc.wantStatus)
 		}
 	}
 }
@@ -59,8 +60,11 @@ func TestDocumentFolderRoutesAuthenticateBeforeExistenceChecks(t *testing.T) {
 		{name: "tree missing unit", method: http.MethodGet, path: "/api/document-folders/tree?organizationUnitId=" + missingID},
 		{name: "create missing unit", method: http.MethodPost, path: "/api/document-folders", body: `{"organizationUnitId":"` + missingID + `","name":"Invoices"}`},
 		{name: "update missing folder", method: http.MethodPatch, path: "/api/document-folders/" + missingID, body: `{"organizationUnitId":"` + unitID + `","name":"Invoices Updated"}`},
+		{name: "update existing folder", method: http.MethodPatch, path: "/api/document-folders/" + rootID, body: `{"organizationUnitId":"` + unitID + `","name":"Invoices Updated"}`},
 		{name: "move missing folder", method: http.MethodPatch, path: "/api/document-folders/" + missingID + "/parent", body: `{"parentId":null}`},
+		{name: "move existing folder", method: http.MethodPatch, path: "/api/document-folders/" + rootID + "/parent", body: `{"parentId":null}`},
 		{name: "archive missing folder", method: http.MethodPost, path: "/api/document-folders/" + missingID + "/archive", body: `{}`},
+		{name: "archive existing folder", method: http.MethodPost, path: "/api/document-folders/" + rootID + "/archive", body: `{}`},
 		{name: "contents missing folder", method: http.MethodGet, path: "/api/document-folders/" + missingID + "/contents"},
 		{name: "contents existing folder", method: http.MethodGet, path: "/api/document-folders/" + rootID + "/contents"},
 	} {
@@ -76,10 +80,13 @@ func TestDocumentFolderRoutesDenyCrossUnitScopedDocumentPermissions(t *testing.T
 	adminToken := loginSeededAdmin(t, router, db, "admin@example.com")
 	financeID := createUnitViaAPI(t, router, adminToken, `{"name":"Finance"}`)
 	legalID := createUnitViaAPI(t, router, adminToken, `{"name":"Legal"}`)
+	financeRootID := createFolderViaAPI(t, router, adminToken, `{"organizationUnitId":"`+financeID+`","name":"Invoices"}`)
+	financeChildID := createFolderViaAPI(t, router, adminToken, `{"organizationUnitId":"`+financeID+`","parentId":"`+financeRootID+`","name":"2026"}`)
 	legalFolderID := createFolderViaAPI(t, router, adminToken, `{"organizationUnitId":"`+legalID+`","name":"Cases"}`)
 	user := createVerifiedUser(t, db, "finance-docs@example.com", "password123")
 	assignOrganizationUnitRoleByCode(t, db, user.ID, rbac.OrganizationAdministratorRoleCode, financeID)
 	token := loginUser(t, router, user.Email, "password123")
+	missingID := "00000000-0000-0000-0000-000000000123"
 
 	for _, tc := range []struct {
 		name   string
@@ -89,15 +96,50 @@ func TestDocumentFolderRoutesDenyCrossUnitScopedDocumentPermissions(t *testing.T
 	}{
 		{name: "tree", method: http.MethodGet, path: "/api/document-folders/tree?organizationUnitId=" + legalID},
 		{name: "create", method: http.MethodPost, path: "/api/document-folders", body: `{"organizationUnitId":"` + legalID + `","name":"Contracts"}`},
-		{name: "update", method: http.MethodPatch, path: "/api/document-folders/" + legalFolderID, body: `{"organizationUnitId":"` + legalID + `","name":"Cases Updated"}`},
-		{name: "move", method: http.MethodPatch, path: "/api/document-folders/" + legalFolderID + "/parent", body: `{"parentId":null}`},
-		{name: "archive", method: http.MethodPost, path: "/api/document-folders/" + legalFolderID + "/archive", body: `{}`},
-		{name: "contents", method: http.MethodGet, path: "/api/document-folders/" + legalFolderID + "/contents"},
 	} {
 		response := folderJSON(t, router, tc.method, tc.path, tc.body, authCookieHeaders(token))
 		if response.Code != http.StatusForbidden {
 			t.Fatalf("%s status = %d body=%s, want forbidden", tc.name, response.Code, response.Body.String())
 		}
+	}
+
+	for _, tc := range []struct {
+		name         string
+		method       string
+		existingPath string
+		missingPath  string
+		body         string
+	}{
+		{name: "update", method: http.MethodPatch, existingPath: "/api/document-folders/" + legalFolderID, missingPath: "/api/document-folders/" + missingID, body: `{"organizationUnitId":"` + legalID + `","name":"Cases Updated"}`},
+		{name: "move", method: http.MethodPatch, existingPath: "/api/document-folders/" + legalFolderID + "/parent", missingPath: "/api/document-folders/" + missingID + "/parent", body: `{"parentId":null}`},
+		{name: "archive", method: http.MethodPost, existingPath: "/api/document-folders/" + legalFolderID + "/archive", missingPath: "/api/document-folders/" + missingID + "/archive", body: `{}`},
+		{name: "contents", method: http.MethodGet, existingPath: "/api/document-folders/" + legalFolderID + "/contents", missingPath: "/api/document-folders/" + missingID + "/contents"},
+	} {
+		existing := folderJSON(t, router, tc.method, tc.existingPath, tc.body, authCookieHeaders(token))
+		if existing.Code != http.StatusNotFound {
+			t.Fatalf("%s existing cross-unit status = %d body=%s, want not found", tc.name, existing.Code, existing.Body.String())
+		}
+		missing := folderJSON(t, router, tc.method, tc.missingPath, tc.body, authCookieHeaders(token))
+		if missing.Code != http.StatusNotFound {
+			t.Fatalf("%s missing status = %d body=%s, want not found", tc.name, missing.Code, missing.Body.String())
+		}
+	}
+
+	update := folderJSON(t, router, http.MethodPatch, "/api/document-folders/"+financeRootID, `{"organizationUnitId":"`+financeID+`","name":"Invoices Updated"}`, authCookieHeaders(token))
+	if update.Code != http.StatusOK {
+		t.Fatalf("update scoped folder status = %d body=%s, want ok", update.Code, update.Body.String())
+	}
+	move := folderJSON(t, router, http.MethodPatch, "/api/document-folders/"+financeChildID+"/parent", `{"parentId":null}`, authCookieHeaders(token))
+	if move.Code != http.StatusOK {
+		t.Fatalf("move scoped folder status = %d body=%s, want ok", move.Code, move.Body.String())
+	}
+	contents := folderJSON(t, router, http.MethodGet, "/api/document-folders/"+financeRootID+"/contents", "", authCookieHeaders(token))
+	if contents.Code != http.StatusNotImplemented {
+		t.Fatalf("contents scoped folder status = %d body=%s, want not implemented", contents.Code, contents.Body.String())
+	}
+	archive := folderJSON(t, router, http.MethodPost, "/api/document-folders/"+financeRootID+"/archive", `{}`, authCookieHeaders(token))
+	if archive.Code != http.StatusOK {
+		t.Fatalf("archive scoped folder status = %d body=%s, want ok", archive.Code, archive.Body.String())
 	}
 }
 

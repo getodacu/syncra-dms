@@ -172,7 +172,7 @@ func (h *documentFolderHandler) update(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if ok := requireDocumentFolderPermissionForAuthenticatedUser(c, h.auth, user, "document.update", &folder.OrganizationUnitID); !ok {
+	if ok := requireDocumentFolderObjectPermissionForAuthenticatedUser(c, h.auth, user, "document.update", &folder.OrganizationUnitID); !ok {
 		return
 	}
 	req, ok := bindDocumentFolderRequest(c)
@@ -231,7 +231,7 @@ func (h *documentFolderHandler) move(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if ok := requireDocumentFolderPermissionForAuthenticatedUser(c, h.auth, user, "document.update", &folder.OrganizationUnitID); !ok {
+	if ok := requireDocumentFolderObjectPermissionForAuthenticatedUser(c, h.auth, user, "document.update", &folder.OrganizationUnitID); !ok {
 		return
 	}
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxDocumentFolderRequestBytes)
@@ -304,7 +304,7 @@ func (h *documentFolderHandler) archive(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if ok := requireDocumentFolderPermissionForAuthenticatedUser(c, h.auth, user, "document.delete", &folder.OrganizationUnitID); !ok {
+	if ok := requireDocumentFolderObjectPermissionForAuthenticatedUser(c, h.auth, user, "document.delete", &folder.OrganizationUnitID); !ok {
 		return
 	}
 
@@ -369,7 +369,7 @@ func (h *documentFolderHandler) contents(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if ok := requireDocumentFolderPermissionForAuthenticatedUser(c, h.auth, user, "document.view", &folder.OrganizationUnitID); !ok {
+	if ok := requireDocumentFolderObjectPermissionForAuthenticatedUser(c, h.auth, user, "document.view", &folder.OrganizationUnitID); !ok {
 		return
 	}
 	writeError(c, http.StatusNotImplemented, "document folder contents are not implemented")
@@ -463,7 +463,19 @@ func (h *documentFolderHandler) lockFolderHierarchyWithDB(c *gin.Context, db *go
 	return true
 }
 
-func requireDocumentFolderPermissionForAuthenticatedUser(c *gin.Context, h *authHandler, user auth.User, permission string, organizationUnitID *string) bool {
+func requireDocumentFolderObjectPermissionForAuthenticatedUser(c *gin.Context, h *authHandler, user auth.User, permission string, organizationUnitID *string) bool {
+	allowed, ok := checkDocumentFolderPermissionForAuthenticatedUser(c, h, user, permission, organizationUnitID)
+	if !ok {
+		return false
+	}
+	if !allowed {
+		writeError(c, http.StatusNotFound, "document folder not found")
+		return false
+	}
+	return true
+}
+
+func checkDocumentFolderPermissionForAuthenticatedUser(c *gin.Context, h *authHandler, user auth.User, permission string, organizationUnitID *string) (bool, bool) {
 	allowed, err := rbac.NewResolver(h.db).Can(c.Request.Context(), rbac.Check{
 		UserID:             user.ID,
 		Permission:         permission,
@@ -471,13 +483,9 @@ func requireDocumentFolderPermissionForAuthenticatedUser(c *gin.Context, h *auth
 	})
 	if err != nil {
 		writeError(c, http.StatusInternalServerError, "failed to check permission")
-		return false
+		return false, false
 	}
-	if !allowed {
-		writeError(c, http.StatusForbidden, "permission required")
-		return false
-	}
-	return true
+	return allowed, true
 }
 
 func (h *documentFolderHandler) validateOptionalActiveParentWithDB(c *gin.Context, db *gorm.DB, raw *string, organizationUnitID string) (*string, bool) {
