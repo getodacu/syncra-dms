@@ -518,7 +518,7 @@ func swaggerOperations() {
 	//
 	// Get document metadata.
 	//
-	// Task 9 placeholder. Trusted SvelteKit server endpoint.
+	// Trusted SvelteKit server endpoint. Requires document.view scoped to the document's organization unit. Document metadata excludes storage keys.
 	//
 	// ---
 	// parameters:
@@ -527,16 +527,20 @@ func swaggerOperations() {
 	//   required: true
 	//   type: string
 	// responses:
+	//   "200":
+	//     description: Active document metadata was loaded.
+	//   "400":
+	//     description: Invalid document id.
 	//   "401":
-	//     description: Trusted internal request required.
-	//   "501":
-	//     description: Document metadata endpoint is not implemented until Task 9.
+	//     description: Authenticated session or trusted internal request required.
+	//   "404":
+	//     description: Document not found or inaccessible.
 
 	// swagger:operation GET /api/documents/{id}/download documents downloadDocument
 	//
 	// Download a stored document file.
 	//
-	// Task 9 placeholder. Trusted SvelteKit server endpoint.
+	// Trusted SvelteKit server endpoint. Requires document.download scoped to the document's organization unit.
 	//
 	// ---
 	// parameters:
@@ -545,16 +549,22 @@ func swaggerOperations() {
 	//   required: true
 	//   type: string
 	// responses:
+	//   "200":
+	//     description: Stored document file stream with attachment disposition.
+	//   "400":
+	//     description: Invalid document id.
 	//   "401":
-	//     description: Trusted internal request required.
-	//   "501":
-	//     description: Document download endpoint is not implemented until Task 9.
+	//     description: Authenticated session or trusted internal request required.
+	//   "404":
+	//     description: Document not found, inaccessible, archived, or missing from storage.
+	//   "500":
+	//     description: Document storage key or storage state is invalid.
 
 	// swagger:operation PATCH /api/documents/{id} documents updateDocument
 	//
-	// Update document metadata.
+	// Rename an active document.
 	//
-	// Task 9 placeholder. Trusted SvelteKit server endpoint.
+	// Trusted SvelteKit server endpoint. Requires document.update scoped to the document's organization unit.
 	//
 	// ---
 	// parameters:
@@ -563,16 +573,20 @@ func swaggerOperations() {
 	//   required: true
 	//   type: string
 	// responses:
+	//   "200":
+	//     description: Document metadata was updated. Response excludes storage keys.
+	//   "400":
+	//     description: Invalid document id, JSON body, or display name.
 	//   "401":
-	//     description: Trusted internal request required.
-	//   "501":
-	//     description: Document update endpoint is not implemented until Task 9.
+	//     description: Authenticated session or trusted internal request required.
+	//   "404":
+	//     description: Document not found or inaccessible.
 
 	// swagger:operation POST /api/documents/{id}/archive documents archiveDocument
 	//
 	// Archive an active document.
 	//
-	// Task 9 placeholder. Trusted SvelteKit server endpoint.
+	// Trusted SvelteKit server endpoint. Requires document.delete scoped to the document's organization unit.
 	//
 	// ---
 	// parameters:
@@ -581,10 +595,14 @@ func swaggerOperations() {
 	//   required: true
 	//   type: string
 	// responses:
+	//   "200":
+	//     description: Document was archived.
+	//   "400":
+	//     description: Invalid document id.
 	//   "401":
-	//     description: Trusted internal request required.
-	//   "501":
-	//     description: Document archive endpoint is not implemented until Task 9.
+	//     description: Authenticated session or trusted internal request required.
+	//   "404":
+	//     description: Document not found or inaccessible.
 
 	// swagger:operation GET /api/users users listUsers
 	//

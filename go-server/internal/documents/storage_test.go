@@ -148,6 +148,26 @@ func TestLocalStorageOpenRejectsRootContainedInternalFiles(t *testing.T) {
 	assertInvalidOpenKey(t, store, "documents/../tmp/some-file")
 }
 
+func TestLocalStorageOpenMissingDocumentPreservesNotExist(t *testing.T) {
+	store := NewLocalStorage(t.TempDir(), 1024, nil)
+	key := "documents/ab/" + uuid.NewString() + ".bin"
+
+	reader, err := store.Open(key)
+	if !errors.Is(err, os.ErrNotExist) {
+		if reader != nil {
+			reader.Close()
+		}
+		t.Fatalf("Open(%q) error = %v, want os.ErrNotExist", key, err)
+	}
+	if errors.Is(err, ErrInvalidStorageKey) {
+		t.Fatalf("Open(%q) error = %v, did not want ErrInvalidStorageKey for missing file", key, err)
+	}
+	if reader != nil {
+		reader.Close()
+		t.Fatalf("Open(%q) reader = %v, want nil reader", key, reader)
+	}
+}
+
 func TestLocalStorageDeletesStoredDocument(t *testing.T) {
 	root := t.TempDir()
 	store := NewLocalStorage(root, 1024, nil)

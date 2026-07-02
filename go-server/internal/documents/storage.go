@@ -196,10 +196,16 @@ func (s *LocalStorage) Open(storageKey string) (*os.File, error) {
 
 	documentsDir := filepath.Join(s.root, parts[0])
 	if err := ensurePrivateDirectory(documentsDir); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("open stored document: %w", err)
+		}
 		return nil, fmt.Errorf("%w: %v", ErrInvalidStorageKey, err)
 	}
 	prefixDir := filepath.Join(documentsDir, parts[1])
 	if err := ensurePrivateDirectory(prefixDir); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("open stored document: %w", err)
+		}
 		return nil, fmt.Errorf("%w: %v", ErrInvalidStorageKey, err)
 	}
 
