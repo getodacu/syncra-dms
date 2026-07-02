@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"ai.ro/syncra/dms/internal/documents"
+	"ai.ro/syncra/dms/internal/orgunits"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -15,6 +16,12 @@ import (
 const (
 	documentUploadMultipartMemoryBytes   int64 = 1 << 20
 	documentUploadMultipartOverheadBytes int64 = 1 << 20
+)
+
+var (
+	errDocumentUploadDuplicate       = errors.New("document upload duplicate")
+	errDocumentUploadResponseWritten = errors.New("document upload response already written")
+	errDocumentUploadScopeNotFound   = errors.New("document upload scope not found")
 )
 
 type documentHandler struct {
@@ -92,51 +99,71 @@ func (h *documentHandler) upload(c *gin.Context) {
 		return
 	}
 
-	var duplicateCount int64
-	if err := h.db.WithContext(c.Request.Context()).
-		Model(&documents.Document{}).
-		Where("folder_id = ? AND sha256_hash = ? AND deleted_at IS NULL", folder.ID, stored.SHA256Hash).
-		Count(&duplicateCount).Error; err != nil {
-		h.deleteStoredUpload(stored.StorageKey)
-		writeError(c, http.StatusInternalServerError, "failed to validate document upload")
-		return
-	}
-	if duplicateCount != 0 {
-		h.deleteStoredUpload(stored.StorageKey)
-		writeError(c, http.StatusConflict, "active document already exists in folder")
-		return
-	}
-
 	displayName, err := documents.NormalizeDisplayName(stored.OriginalFileName)
 	if err != nil {
-		h.deleteStoredUpload(stored.StorageKey)
+		if !h.cleanupStoredUploadOrWriteError(c, stored.StorageKey) {
+			return
+		}
 		writeError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	now := time.Now().UTC()
-	documentRow := documents.Document{
-		FolderID:           folder.ID,
-		OrganizationUnitID: folder.OrganizationUnitID,
-		OriginalFileName:   stored.OriginalFileName,
-		DisplayName:        displayName,
-		MimeType:           stored.MimeType,
-		Extension:          stored.Extension,
-		SizeBytes:          stored.SizeBytes,
-		SHA256Hash:         stored.SHA256Hash,
-		StorageKey:         stored.StorageKey,
-		CreatedByUserID:    user.ID,
-		CreatedAt:          now,
-		UpdatedAt:          now,
-	}
-	if err := h.db.WithContext(c.Request.Context()).Create(&documentRow).Error; err != nil {
-		h.deleteStoredUpload(stored.StorageKey)
-		if isDocumentDuplicateHashError(err) {
-			writeError(c, http.StatusConflict, "active document already exists in folder")
+	var documentRow documents.Document
+	err = h.db.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
+		if ok := folderHelper.lockFolderHierarchyWithDB(c, tx, folder.OrganizationUnitID); !ok {
+			return errDocumentUploadResponseWritten
+		}
+
+		lockedFolder, err := h.revalidateActiveUploadScopeWithDB(c, tx, folder.ID, folder.OrganizationUnitID)
+		if err != nil {
+			return err
+		}
+
+		var duplicateCount int64
+		if err := tx.WithContext(c.Request.Context()).
+			Model(&documents.Document{}).
+			Where("folder_id = ? AND sha256_hash = ? AND deleted_at IS NULL", lockedFolder.ID, stored.SHA256Hash).
+			Count(&duplicateCount).Error; err != nil {
+			return err
+		}
+		if duplicateCount != 0 {
+			return errDocumentUploadDuplicate
+		}
+
+		now := time.Now().UTC()
+		documentRow = documents.Document{
+			FolderID:           lockedFolder.ID,
+			OrganizationUnitID: lockedFolder.OrganizationUnitID,
+			OriginalFileName:   stored.OriginalFileName,
+			DisplayName:        displayName,
+			MimeType:           stored.MimeType,
+			Extension:          stored.Extension,
+			SizeBytes:          stored.SizeBytes,
+			SHA256Hash:         stored.SHA256Hash,
+			StorageKey:         stored.StorageKey,
+			CreatedByUserID:    user.ID,
+			CreatedAt:          now,
+			UpdatedAt:          now,
+		}
+		return tx.WithContext(c.Request.Context()).Create(&documentRow).Error
+	})
+	if err != nil {
+		if !h.cleanupStoredUploadOrWriteError(c, stored.StorageKey) {
 			return
 		}
-		writeError(c, http.StatusInternalServerError, "failed to create document")
-		return
+		switch {
+		case errors.Is(err, errDocumentUploadResponseWritten):
+			return
+		case errors.Is(err, errDocumentUploadScopeNotFound):
+			writeError(c, http.StatusNotFound, "document folder not found")
+			return
+		case errors.Is(err, errDocumentUploadDuplicate), isDocumentDuplicateHashError(err):
+			writeError(c, http.StatusConflict, "active document already exists in folder")
+			return
+		default:
+			writeError(c, http.StatusInternalServerError, "failed to create document")
+			return
+		}
 	}
 
 	c.JSON(http.StatusCreated, documentMetadataResponseFromModel(documentRow))
@@ -158,11 +185,41 @@ func (h *documentHandler) archive(c *gin.Context) {
 	writeError(c, http.StatusNotImplemented, "document archive endpoint is not implemented")
 }
 
-func (h *documentHandler) deleteStoredUpload(storageKey string) {
+func (h *documentHandler) deleteStoredUpload(storageKey string) error {
 	if h.storage == nil || storageKey == "" {
-		return
+		return nil
 	}
-	_ = h.storage.Delete(storageKey)
+	return h.storage.Delete(storageKey)
+}
+
+func (h *documentHandler) cleanupStoredUploadOrWriteError(c *gin.Context, storageKey string) bool {
+	if err := h.deleteStoredUpload(storageKey); err != nil {
+		writeError(c, http.StatusInternalServerError, "failed to clean up document upload")
+		return false
+	}
+	return true
+}
+
+func (h *documentHandler) revalidateActiveUploadScopeWithDB(c *gin.Context, db *gorm.DB, folderID string, organizationUnitID string) (documents.Folder, error) {
+	var unit orgunits.Unit
+	if err := activeOrganizationUnitLockQuery(c.Request.Context(), db, organizationUnitID).First(&unit).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return documents.Folder{}, errDocumentUploadScopeNotFound
+		}
+		return documents.Folder{}, err
+	}
+
+	var folder documents.Folder
+	if err := db.WithContext(c.Request.Context()).
+		Joins("JOIN organization_units ON organization_units.id = document_folders.organization_unit_id").
+		Where("document_folders.id = ? AND document_folders.organization_unit_id = ? AND document_folders.deleted_at IS NULL AND organization_units.archived_at IS NULL", folderID, organizationUnitID).
+		First(&folder).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return documents.Folder{}, errDocumentUploadScopeNotFound
+		}
+		return documents.Folder{}, err
+	}
+	return folder, nil
 }
 
 func writeDocumentUploadStorageError(c *gin.Context, err error) {
