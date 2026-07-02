@@ -12,6 +12,8 @@ pnpm dev
 
 `SYNCRA_API_BASE_URL` points server-side load functions at the Go API. Keep it private.
 
+`BODY_SIZE_LIMIT` configures adapter-node request body handling. Keep it at least `26M` so document uploads can clear the Go API's 25 MiB limit plus multipart overhead.
+
 ## Commands
 
 ```sh

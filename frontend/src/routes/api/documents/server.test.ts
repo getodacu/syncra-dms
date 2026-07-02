@@ -173,7 +173,10 @@ describe('document Svelte API routes', () => {
 				status: 200,
 				headers: {
 					'content-type': 'application/pdf',
-					'content-disposition': 'attachment; filename="invoice.pdf"'
+					'content-disposition': 'attachment; filename="invoice.pdf"',
+					'content-length': '13',
+					etag: '"download-etag"',
+					'set-cookie': 'session=leaked'
 				}
 			})
 		);
@@ -192,6 +195,9 @@ describe('document Svelte API routes', () => {
 		expect(response.status).toBe(200);
 		expect(response.headers.get('content-type')).toBe('application/pdf');
 		expect(response.headers.get('content-disposition')).toBe('attachment; filename="invoice.pdf"');
+		expect(response.headers.get('content-length')).toBe('13');
+		expect(response.headers.get('etag')).toBe('"download-etag"');
+		expect(response.headers.has('set-cookie')).toBe(false);
 		expect(await response.text()).toBe('download-body');
 	});
 

@@ -8,6 +8,17 @@ import {
 } from '../../api.server';
 
 const DOWNLOAD_ERROR_FALLBACK = 'Failed to download document';
+const UNSAFE_UPSTREAM_HEADERS = [
+	'set-cookie',
+	'connection',
+	'keep-alive',
+	'proxy-authenticate',
+	'proxy-authorization',
+	'te',
+	'trailer',
+	'transfer-encoding',
+	'upgrade'
+];
 
 export const GET: RequestHandler = async ({ fetch, locals, params, request }) => {
 	const authError = requireAuthenticatedUser(locals);
@@ -16,12 +27,16 @@ export const GET: RequestHandler = async ({ fetch, locals, params, request }) =>
 
 	try {
 		const upstream = await downloadDocument(fetch, cookieHeader(request), params.id);
+		const headers = new Headers(upstream.headers);
+		for (const header of UNSAFE_UPSTREAM_HEADERS) {
+			headers.delete(header);
+		}
+		if (!headers.has('content-type')) headers.set('content-type', 'application/octet-stream');
+		if (!headers.has('content-disposition')) headers.set('content-disposition', 'attachment');
+
 		return new Response(upstream.body, {
 			status: upstream.status,
-			headers: {
-				'content-type': upstream.headers.get('content-type') ?? 'application/octet-stream',
-				'content-disposition': upstream.headers.get('content-disposition') ?? 'attachment'
-			}
+			headers
 		});
 	} catch (error) {
 		return documentAPIErrorResponse(error, DOWNLOAD_ERROR_FALLBACK);

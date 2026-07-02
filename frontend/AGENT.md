@@ -14,6 +14,7 @@ These rules apply inside `frontend/` in addition to the repository conventions.
 
 - Copy `.env.example` to `.env` for local development.
 - `SYNCRA_API_BASE_URL` defaults to the local Go API at `http://localhost:8080`.
+- `BODY_SIZE_LIMIT` must stay high enough for document uploads; use at least `26M` for the 25 MiB Go upload limit plus multipart overhead.
 - Private values must stay in server-only modules, server routes, server load functions, or hooks.
 - Browser code must not import private environment modules.
 
