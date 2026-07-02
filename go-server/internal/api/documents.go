@@ -1,6 +1,8 @@
 package api
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"io"
 	"math"
@@ -249,6 +251,19 @@ func (h *documentHandler) download(c *gin.Context) {
 	}
 	if info.Size() != documentRow.SizeBytes {
 		writeError(c, http.StatusInternalServerError, "document file storage is invalid")
+		return
+	}
+	hasher := sha256.New()
+	if _, err := io.Copy(hasher, reader); err != nil {
+		writeError(c, http.StatusInternalServerError, "failed to open document file")
+		return
+	}
+	if hex.EncodeToString(hasher.Sum(nil)) != documentRow.SHA256Hash {
+		writeError(c, http.StatusInternalServerError, "document file storage is invalid")
+		return
+	}
+	if _, err := reader.Seek(0, io.SeekStart); err != nil {
+		writeError(c, http.StatusInternalServerError, "failed to open document file")
 		return
 	}
 

@@ -529,6 +529,27 @@ func TestDocumentMetadataDownloadReturnsServerErrorForMismatchedStorageSize(t *t
 	if download.Code != http.StatusInternalServerError {
 		t.Fatalf("download mismatched storage size status = %d body=%s, want internal server error", download.Code, download.Body.String())
 	}
+	assertDownloadAttachmentHeadersOmitted(t, download)
+}
+
+func TestDocumentMetadataDownloadReturnsServerErrorForMismatchedStorageHash(t *testing.T) {
+	storageRoot := t.TempDir()
+	router, db := newAuthTestRouterWithOptions(t, RouterOptions{DocumentStorageRoot: storageRoot})
+	token := loginSeededAdmin(t, router, db, "admin@example.com")
+	unitID := createUnitViaAPI(t, router, token, `{"name":"Finance"}`)
+	folderID := createFolderViaAPI(t, router, token, `{"organizationUnitId":"`+unitID+`","name":"Invoices"}`)
+	docID := uploadDocumentID(t, router, token, folderID, "invoice.pdf", []byte("hello"))
+	stored := loadDocumentByID(t, db, docID)
+	storedPath := filepath.Join(storageRoot, filepath.FromSlash(stored.StorageKey))
+	if err := os.WriteFile(storedPath, []byte("HELLO"), 0o600); err != nil {
+		t.Fatalf("overwrite stored file: %v", err)
+	}
+
+	download := authJSON(t, router, http.MethodGet, "/api/documents/"+docID+"/download", "", authCookieHeaders(token))
+	if download.Code != http.StatusInternalServerError {
+		t.Fatalf("download mismatched storage hash status = %d body=%s, want internal server error", download.Code, download.Body.String())
+	}
+	assertDownloadAttachmentHeadersOmitted(t, download)
 }
 
 func TestDocumentMetadataRenameRejectsInvalidDisplayNames(t *testing.T) {
@@ -716,6 +737,15 @@ func assertResponseOmitsStorageKey(t *testing.T, response *httptest.ResponseReco
 	decodeJSON(t, response, &raw)
 	if _, ok := raw["storageKey"]; ok {
 		t.Fatalf("response leaked storageKey: %s", response.Body.String())
+	}
+}
+
+func assertDownloadAttachmentHeadersOmitted(t *testing.T, response *httptest.ResponseRecorder) {
+	t.Helper()
+	for _, header := range []string{"Content-Disposition", "Content-Length"} {
+		if got := response.Header().Get(header); got != "" {
+			t.Fatalf("%s header = %q, want omitted", header, got)
+		}
 	}
 }
 
