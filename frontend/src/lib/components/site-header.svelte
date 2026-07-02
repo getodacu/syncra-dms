@@ -11,6 +11,7 @@
 	const title = $derived.by(() => {
 		if (pathname === '/app') return 'Dashboard';
 		if (pathname === '/app/organization-units') return 'Organization Units';
+		if (pathname === '/app/documents') return 'Documents';
 		return 'Syncra DMS';
 	});
 </script>

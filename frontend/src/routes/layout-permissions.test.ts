@@ -69,6 +69,9 @@ describe('app sidebar permission gates', () => {
 		expect(source).toContain("'user.view'");
 		expect(source).toContain("'role.view'");
 		expect(source).toContain("'group.view'");
+		expect(source).toContain('documentNavPermissions');
+		expect(source).toContain("'document.view'");
+		expect(source).toContain("url: '/app/documents'");
 		expect(source).not.toContain("user?.role === 'admin'");
 	});
 });

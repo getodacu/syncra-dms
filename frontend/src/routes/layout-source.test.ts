@@ -37,6 +37,8 @@ describe('app sidebar layout shell', () => {
 		expect(source).toContain("url: '/app'");
 		expect(source).toContain("title: 'Organization Units'");
 		expect(source).toContain("url: '/app/organization-units'");
+		expect(source).toContain("title: 'Documents'");
+		expect(source).toContain("url: '/app/documents'");
 		expect(source).not.toContain('/app/billing');
 		expect(source).not.toContain('/app/jobs');
 		expect(source).not.toContain('/app/datasets');
@@ -52,5 +54,6 @@ describe('app sidebar layout shell', () => {
 		expect(source).toContain('toggleMode');
 		expect(source).toContain('Toggle theme');
 		expect(source).toContain("if (pathname === '/app/organization-units')");
+		expect(source).toContain("if (pathname === '/app/documents')");
 	});
 });

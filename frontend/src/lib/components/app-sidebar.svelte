@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Building2Icon from '@lucide/svelte/icons/building-2';
 	import CircleHelpIcon from '@lucide/svelte/icons/circle-help';
+	import FileTextIcon from '@lucide/svelte/icons/file-text';
 	import KeyRoundIcon from '@lucide/svelte/icons/key-round';
 	import LayoutDashboardIcon from '@lucide/svelte/icons/layout-dashboard';
 	import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
@@ -39,6 +40,14 @@
 		}
 	];
 
+	const documentNavPermissions = [
+		'document.view',
+		'document.create',
+		'document.update',
+		'document.delete',
+		'document.download'
+	];
+
 	const data = {
 		navSecondary: [
 			{
@@ -59,8 +68,23 @@
 		permissions?: string[];
 	} = $props();
 
-	const canViewAdminArea = (permission: string) =>
-		permissions.includes('system.admin') || permissions.includes(permission);
+	const hasAnyPermission = (requiredPermissions: string[]) =>
+		permissions.includes('system.admin') ||
+		requiredPermissions.some((permission) => permissions.includes(permission));
+
+	const canViewAdminArea = (permission: string) => hasAnyPermission([permission]);
+
+	const documentNav = $derived(
+		hasAnyPermission(documentNavPermissions)
+			? [
+					{
+						title: 'Documents',
+						url: '/app/documents',
+						icon: FileTextIcon
+					}
+				]
+			: []
+	);
 
 	const adminNav = $derived([
 		...(canViewAdminArea('user.view')
@@ -97,7 +121,7 @@
 			: [])
 	]);
 
-	const navMain = $derived([...baseNav, ...adminNav]);
+	const navMain = $derived([...baseNav, ...documentNav, ...adminNav]);
 </script>
 
 <Sidebar.Root collapsible="offcanvas" {...restProps}>
