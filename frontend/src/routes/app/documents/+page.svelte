@@ -213,6 +213,18 @@
 	const contentRows = $derived(
 		repositoryRows(folderContentsQuery.data?.folders ?? [], folderContentsQuery.data?.documents ?? [])
 	);
+	const activeRepositoryCount = $derived.by(() => {
+		if (!hasDocumentAccess || !selectedOrganizationUnitId) return 0;
+		if (selectedFolderId) return contentRows.length;
+		return flatFolders.length;
+	});
+	const activeRepositoryCountLabel = $derived.by(() => {
+		if (!hasDocumentAccess || !selectedOrganizationUnitId || selectedFolderId) {
+			return `${activeRepositoryCount} active items`;
+		}
+
+		return `${activeRepositoryCount} active folders`;
+	});
 	let selectedFolderName = $derived(selectedFolder?.name ?? '');
 	let selectedFolderDescription = $derived(selectedFolder?.description ?? '');
 	let selectedFolderParentId = $derived(selectedFolder?.parentId ?? '');
@@ -447,13 +459,16 @@
 				<FileTextIcon class="size-5 text-primary" />
 				<h2 class="truncate text-xl font-semibold tracking-normal">Documents</h2>
 			</div>
-			<p class="mt-1 text-sm text-muted-foreground">
-				{#if selectedOrganizationUnitId}
-					Organization unit {selectedOrganizationUnitId}
-				{:else}
-					No organization unit selected
-				{/if}
-			</p>
+			<div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+				<span>{activeRepositoryCountLabel}</span>
+				<span>
+					{#if selectedOrganizationUnitId}
+						Organization unit {selectedOrganizationUnitId}
+					{:else}
+						No organization unit selected
+					{/if}
+				</span>
+			</div>
 		</div>
 		<Badge variant={hasDocumentAccess ? 'secondary' : 'outline'}>
 			{hasDocumentAccess ? 'Repository' : 'No access'}

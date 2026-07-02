@@ -63,6 +63,15 @@ describe('documents page source', () => {
 		expect(source).toContain('documentFolderContentsQueryKey(selectedFolderId)');
 		expect(source).toContain('documentFoldersQueryKey(organizationUnitId)');
 		expect(source).toContain('documentFolderContentsQueryKey(folderId)');
+		expect(source).toContain(
+			'queryClient.invalidateQueries({ queryKey: documentFoldersQueryKey(organizationUnitId) })'
+		);
+		expect(source).toContain(
+			'queryClient.invalidateQueries({ queryKey: documentFolderContentsQueryKey(folderId) })'
+		);
+		expect(source).toContain(
+			'queryClient.invalidateQueries({ queryKey: DOCUMENT_FOLDER_CONTENTS_QUERY_KEY })'
+		);
 		expect(source).toContain('filesToUploadItems');
 		expect(source).toContain('markUploadUploading');
 		expect(source).toContain('markUploadUploaded');
@@ -77,7 +86,22 @@ describe('documents page source', () => {
 		expect(source).toContain('FolderTree');
 		expect(source).toContain('RepositoryTable');
 		expect(source).toContain('UploadPanel');
+		expect(source).toContain('const activeRepositoryCount = $derived.by');
+		expect(source).toContain('const activeRepositoryCountLabel = $derived.by');
+		expect(source).toContain('{activeRepositoryCountLabel}');
+		expect(source).toContain('active items');
+		expect(source).toContain('active folders');
+		expect(source).toContain(
+			'{#if pageData.canCreateDocuments && folderTree.length === 0 && !folderTreeQuery.isLoading}'
+		);
+		expect(source).toContain('submitRootFolder');
+		expect(source).toContain('Create root');
+		expect(source).toContain('organizationUnitsQuery.isError');
+		expect(source).toContain('folderTreeQuery.isError');
+		expect(source).toContain('folderContentsQuery.isError');
+		expect(source).toContain('Loading folders');
 		expect(source).toContain('No document access');
+		expect(source).toContain('Select an organization unit to open the repository.');
 		expect(source).not.toContain('$lib/server/documents');
 		expect(source).not.toContain("from '$lib/server");
 	});
