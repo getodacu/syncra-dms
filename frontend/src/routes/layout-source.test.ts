@@ -54,6 +54,6 @@ describe('app sidebar layout shell', () => {
 		expect(source).toContain('toggleMode');
 		expect(source).toContain('Toggle theme');
 		expect(source).toContain("if (pathname === '/app/organization-units')");
-		expect(source).toContain("if (pathname === '/app/documents')");
+		expect(source).toContain("if (pathname === '/app/documents') return 'Documents'");
 	});
 });
