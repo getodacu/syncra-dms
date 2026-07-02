@@ -204,6 +204,67 @@ func TestLocalStorageSaveRejectsSymlinkPrefixDirectory(t *testing.T) {
 	}
 }
 
+func TestLocalStorageSaveRejectsSymlinkDocumentsDirectory(t *testing.T) {
+	root := t.TempDir()
+	outside := t.TempDir()
+	createSymlink(t, outside, filepath.Join(root, "documents"))
+	store := NewLocalStorage(root, 1024, nil)
+
+	if _, err := store.Save(context.Background(), strings.NewReader("hello"), "invoice.txt"); err == nil {
+		t.Fatal("Save error = nil, want symlink documents rejection")
+	}
+	assertNoTempFiles(t, root)
+	entries, err := os.ReadDir(outside)
+	if err != nil {
+		t.Fatalf("read outside directory: %v", err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("outside directory entries = %d, want 0", len(entries))
+	}
+}
+
+func TestLocalStorageSaveRejectsSymlinkTempDirectory(t *testing.T) {
+	root := t.TempDir()
+	outside := t.TempDir()
+	createSymlink(t, outside, filepath.Join(root, "tmp"))
+	store := NewLocalStorage(root, 1024, nil)
+
+	if _, err := store.Save(context.Background(), strings.NewReader("hello"), "invoice.txt"); err == nil {
+		t.Fatal("Save error = nil, want symlink temp rejection")
+	}
+	entries, err := os.ReadDir(outside)
+	if err != nil {
+		t.Fatalf("read outside directory: %v", err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("outside directory entries = %d, want 0", len(entries))
+	}
+}
+
+func TestLocalStorageSaveMakesManagedDirectoriesPrivate(t *testing.T) {
+	root := t.TempDir()
+	tmpDir := filepath.Join(root, "tmp")
+	documentsDir := filepath.Join(root, "documents")
+	prefixDir := filepath.Join(documentsDir, "2c")
+	for _, dir := range []string{tmpDir, prefixDir} {
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			t.Fatalf("create directory %s: %v", dir, err)
+		}
+	}
+	for _, dir := range []string{tmpDir, documentsDir, prefixDir} {
+		chmodForPermissionTest(t, dir, 0o777)
+	}
+
+	store := NewLocalStorage(root, 1024, nil)
+	if _, err := store.Save(context.Background(), strings.NewReader("hello"), "invoice.txt"); err != nil {
+		t.Fatalf("Save error = %v", err)
+	}
+
+	for _, dir := range []string{tmpDir, documentsDir, prefixDir} {
+		assertPrivateDirectoryMode(t, dir)
+	}
+}
+
 func assertInvalidOpenKey(t *testing.T, store *LocalStorage, key string) {
 	t.Helper()
 	reader, err := store.Open(key)
@@ -234,5 +295,33 @@ func assertNoTempFiles(t *testing.T, root string) {
 	}
 	if len(entries) != 0 {
 		t.Fatalf("temp directory entries = %d, want 0", len(entries))
+	}
+}
+
+func chmodForPermissionTest(t *testing.T, path string, mode os.FileMode) {
+	t.Helper()
+	if err := os.Chmod(path, mode); err != nil {
+		t.Skipf("chmod unavailable for permission test: %v", err)
+	}
+	info, err := os.Lstat(path)
+	if err != nil {
+		t.Fatalf("inspect %s: %v", path, err)
+	}
+	if info.Mode().Perm()&0o777 != mode {
+		t.Skipf("filesystem does not preserve chmod mode %o on %s; got %o", mode, path, info.Mode().Perm())
+	}
+}
+
+func assertPrivateDirectoryMode(t *testing.T, path string) {
+	t.Helper()
+	info, err := os.Lstat(path)
+	if err != nil {
+		t.Fatalf("inspect %s: %v", path, err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+		t.Fatalf("%s mode = %v, want real directory", path, info.Mode())
+	}
+	if info.Mode().Perm()&0o077 != 0 {
+		t.Fatalf("%s mode = %o, want no group/other permissions", path, info.Mode().Perm())
 	}
 }

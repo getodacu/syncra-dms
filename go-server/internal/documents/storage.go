@@ -16,11 +16,17 @@ import (
 )
 
 var (
-	ErrUploadTooLarge    = errors.New("document exceeds maximum upload size")
-	ErrUnsupportedMIME   = errors.New("document MIME type is not allowed")
-	ErrInvalidStorageKey = errors.New("invalid storage key")
+	ErrUploadTooLarge          = errors.New("document exceeds maximum upload size")
+	ErrUnsupportedMIME         = errors.New("document MIME type is not allowed")
+	ErrInvalidStorageKey       = errors.New("invalid storage key")
+	ErrUnsafeStorageDirectory  = errors.New("unsafe storage directory")
+	privateStorageDirMode      = os.FileMode(0o700)
+	groupOrOtherPermissionMask = os.FileMode(0o077)
 )
 
+// LocalStorage expects root to be private to the service user. It makes managed
+// subdirectories private and rejects symlinks below root, but it is not a
+// same-UID filesystem race defense.
 type LocalStorage struct {
 	root             string
 	maxUploadBytes   int64
@@ -67,11 +73,15 @@ func NewLocalStorage(root string, maxUploadBytes int64, allowedMIMETypes []strin
 }
 
 func (s *LocalStorage) Save(ctx context.Context, reader io.Reader, originalFileName string) (StoredFile, error) {
-	if err := os.MkdirAll(filepath.Join(s.root, "tmp"), 0o700); err != nil {
+	tmpDir := filepath.Join(s.root, "tmp")
+	if err := os.MkdirAll(tmpDir, privateStorageDirMode); err != nil {
 		return StoredFile{}, fmt.Errorf("create storage temp directory: %w", err)
 	}
+	if err := ensurePrivateDirectory(tmpDir); err != nil {
+		return StoredFile{}, err
+	}
 
-	tmpFile, err := os.CreateTemp(filepath.Join(s.root, "tmp"), "upload-*")
+	tmpFile, err := os.CreateTemp(tmpDir, "upload-*")
 	if err != nil {
 		return StoredFile{}, fmt.Errorf("create storage temp file: %w", err)
 	}
@@ -139,18 +149,18 @@ func (s *LocalStorage) Save(ctx context.Context, reader io.Reader, originalFileN
 	sha256Hash := hex.EncodeToString(hasher.Sum(nil))
 	hashPrefix := sha256Hash[:2]
 	documentsDir := filepath.Join(s.root, "documents")
-	if err := os.MkdirAll(documentsDir, 0o700); err != nil {
+	if err := os.MkdirAll(documentsDir, privateStorageDirMode); err != nil {
 		return StoredFile{}, fmt.Errorf("create storage documents directory: %w", err)
 	}
-	if err := ensureRealDirectory(documentsDir); err != nil {
+	if err := ensurePrivateDirectory(documentsDir); err != nil {
 		return StoredFile{}, err
 	}
 
 	targetDir := filepath.Join(documentsDir, hashPrefix)
-	if err := os.MkdirAll(targetDir, 0o700); err != nil {
+	if err := os.MkdirAll(targetDir, privateStorageDirMode); err != nil {
 		return StoredFile{}, fmt.Errorf("create storage document directory: %w", err)
 	}
-	if err := ensureRealDirectory(targetDir); err != nil {
+	if err := ensurePrivateDirectory(targetDir); err != nil {
 		return StoredFile{}, err
 	}
 
@@ -185,12 +195,12 @@ func (s *LocalStorage) Open(storageKey string) (*os.File, error) {
 	}
 
 	documentsDir := filepath.Join(s.root, parts[0])
-	if err := ensureRealDirectory(documentsDir); err != nil {
-		return nil, err
+	if err := ensurePrivateDirectory(documentsDir); err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrInvalidStorageKey, err)
 	}
 	prefixDir := filepath.Join(documentsDir, parts[1])
-	if err := ensureRealDirectory(prefixDir); err != nil {
-		return nil, err
+	if err := ensurePrivateDirectory(prefixDir); err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrInvalidStorageKey, err)
 	}
 
 	fullPath := filepath.Join(prefixDir, parts[2])
@@ -249,13 +259,29 @@ func isLowerHexPair(value string) bool {
 	return true
 }
 
-func ensureRealDirectory(path string) error {
+func ensurePrivateDirectory(path string) error {
 	info, err := os.Lstat(path)
 	if err != nil {
-		return fmt.Errorf("inspect storage directory: %w", err)
+		return fmt.Errorf("%w: inspect %s: %w", ErrUnsafeStorageDirectory, path, err)
 	}
 	if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
-		return fmt.Errorf("%w: unsafe document directory", ErrInvalidStorageKey)
+		return fmt.Errorf("%w: %s is not a real directory", ErrUnsafeStorageDirectory, path)
+	}
+
+	if info.Mode().Perm() != privateStorageDirMode {
+		if err := os.Chmod(path, privateStorageDirMode); err != nil {
+			return fmt.Errorf("%w: make %s private: %w", ErrUnsafeStorageDirectory, path, err)
+		}
+		info, err = os.Lstat(path)
+		if err != nil {
+			return fmt.Errorf("%w: inspect %s after chmod: %w", ErrUnsafeStorageDirectory, path, err)
+		}
+		if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+			return fmt.Errorf("%w: %s is not a real directory after chmod", ErrUnsafeStorageDirectory, path)
+		}
+		if info.Mode().Perm()&groupOrOtherPermissionMask != 0 {
+			return fmt.Errorf("%w: %s remains group/other accessible after chmod", ErrUnsafeStorageDirectory, path)
+		}
 	}
 	return nil
 }
