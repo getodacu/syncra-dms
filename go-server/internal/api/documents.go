@@ -242,6 +242,16 @@ func (h *documentHandler) download(c *gin.Context) {
 	}
 	defer reader.Close()
 
+	info, err := reader.Stat()
+	if err != nil {
+		writeError(c, http.StatusInternalServerError, "failed to open document file")
+		return
+	}
+	if info.Size() != documentRow.SizeBytes {
+		writeError(c, http.StatusInternalServerError, "document file storage is invalid")
+		return
+	}
+
 	c.Header("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": documentRow.OriginalFileName}))
 	c.Header("Content-Type", documentRow.MimeType)
 	c.Header("Content-Length", strconv.FormatInt(documentRow.SizeBytes, 10))

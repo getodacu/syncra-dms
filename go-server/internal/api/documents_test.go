@@ -512,6 +512,25 @@ func TestDocumentMetadataDownloadReturnsServerErrorForInvalidStorageKey(t *testi
 	}
 }
 
+func TestDocumentMetadataDownloadReturnsServerErrorForMismatchedStorageSize(t *testing.T) {
+	storageRoot := t.TempDir()
+	router, db := newAuthTestRouterWithOptions(t, RouterOptions{DocumentStorageRoot: storageRoot})
+	token := loginSeededAdmin(t, router, db, "admin@example.com")
+	unitID := createUnitViaAPI(t, router, token, `{"name":"Finance"}`)
+	folderID := createFolderViaAPI(t, router, token, `{"organizationUnitId":"`+unitID+`","name":"Invoices"}`)
+	docID := uploadDocumentID(t, router, token, folderID, "invoice.pdf", []byte("hello"))
+	stored := loadDocumentByID(t, db, docID)
+	storedPath := filepath.Join(storageRoot, filepath.FromSlash(stored.StorageKey))
+	if err := os.WriteFile(storedPath, []byte("corrupted"), 0o600); err != nil {
+		t.Fatalf("overwrite stored file: %v", err)
+	}
+
+	download := authJSON(t, router, http.MethodGet, "/api/documents/"+docID+"/download", "", authCookieHeaders(token))
+	if download.Code != http.StatusInternalServerError {
+		t.Fatalf("download mismatched storage size status = %d body=%s, want internal server error", download.Code, download.Body.String())
+	}
+}
+
 func TestDocumentMetadataRenameRejectsInvalidDisplayNames(t *testing.T) {
 	router, db := newAuthTestRouterWithOptions(t, RouterOptions{DocumentStorageRoot: t.TempDir()})
 	token := loginSeededAdmin(t, router, db, "admin@example.com")
