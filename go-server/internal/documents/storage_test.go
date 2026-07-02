@@ -148,6 +148,34 @@ func TestLocalStorageOpenRejectsRootContainedInternalFiles(t *testing.T) {
 	assertInvalidOpenKey(t, store, "documents/../tmp/some-file")
 }
 
+func TestLocalStorageDeletesStoredDocument(t *testing.T) {
+	root := t.TempDir()
+	store := NewLocalStorage(root, 1024, nil)
+	result, err := store.Save(context.Background(), strings.NewReader("hello"), "invoice.txt")
+	if err != nil {
+		t.Fatalf("Save error = %v", err)
+	}
+
+	if err := store.Delete(result.StorageKey); err != nil {
+		t.Fatalf("Delete error = %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(result.StorageKey))); !os.IsNotExist(err) {
+		t.Fatalf("stored file stat error = %v, want not exist", err)
+	}
+	if reader, err := store.Open(result.StorageKey); err == nil {
+		reader.Close()
+		t.Fatal("Open deleted file error = nil, want error")
+	}
+}
+
+func TestLocalStorageDeleteRejectsTraversal(t *testing.T) {
+	store := NewLocalStorage(t.TempDir(), 1024, nil)
+
+	if err := store.Delete("../outside.txt"); !errors.Is(err, ErrInvalidStorageKey) {
+		t.Fatalf("Delete traversal error = %v, want ErrInvalidStorageKey", err)
+	}
+}
+
 func TestLocalStorageOpenRejectsSymlinkPathComponents(t *testing.T) {
 	root := t.TempDir()
 	outside := t.TempDir()

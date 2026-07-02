@@ -40,6 +40,11 @@ func TestSwaggerDocDeclaresCurrentRoutes(t *testing.T) {
 		"PATCH /api/document-folders/{id}/parent",
 		"POST /api/document-folders/{id}/archive",
 		"GET /api/document-folders/{id}/contents",
+		"POST /api/documents/upload",
+		"GET /api/documents/{id}",
+		"GET /api/documents/{id}/download",
+		"PATCH /api/documents/{id}",
+		"POST /api/documents/{id}/archive",
 		"GET /api/users",
 		"POST /api/users",
 		"GET /api/roles",
@@ -54,6 +59,35 @@ func TestSwaggerDocDeclaresCurrentRoutes(t *testing.T) {
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("swagger_doc.go missing %q", want)
+		}
+	}
+}
+
+func TestServedSwaggerDocDeclaresDocumentRoutes(t *testing.T) {
+	router := NewRouter(RouterOptions{})
+	spec := assertJSONStatus(t, router, "http://localhost:8090/swagger/doc.json", http.StatusOK, "swagger", "2.0")
+
+	paths, ok := spec["paths"].(map[string]any)
+	if !ok {
+		t.Fatal("/swagger/doc.json missing paths object")
+	}
+
+	for _, route := range []struct {
+		method string
+		path   string
+	}{
+		{method: "post", path: "/api/documents/upload"},
+		{method: "get", path: "/api/documents/{id}"},
+		{method: "get", path: "/api/documents/{id}/download"},
+		{method: "patch", path: "/api/documents/{id}"},
+		{method: "post", path: "/api/documents/{id}/archive"},
+	} {
+		pathDoc, ok := paths[route.path].(map[string]any)
+		if !ok {
+			t.Fatalf("/swagger/doc.json missing path %q", route.path)
+		}
+		if _, ok := pathDoc[route.method]; !ok {
+			t.Fatalf("/swagger/doc.json missing %s %s", strings.ToUpper(route.method), route.path)
 		}
 	}
 }

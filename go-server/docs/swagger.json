@@ -477,6 +477,158 @@
         }
       }
     },
+    "/api/documents/upload": {
+      "post": {
+        "description": "Trusted SvelteKit server endpoint. Requires document.create scoped to the folder's organization unit. Document metadata excludes storage keys.",
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "tags": [
+          "documents"
+        ],
+        "summary": "Upload a document file into an active document folder.",
+        "operationId": "uploadDocument",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "folderId",
+            "in": "formData",
+            "required": true
+          },
+          {
+            "type": "file",
+            "name": "file",
+            "in": "formData",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Document metadata was created and the file was stored."
+          },
+          "400": {
+            "description": "Invalid multipart upload, document folder id, or missing file."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "404": {
+            "description": "Document folder not found or inaccessible."
+          },
+          "409": {
+            "description": "Active document with the same file hash already exists in the folder."
+          },
+          "413": {
+            "description": "Uploaded document exceeds the configured maximum size."
+          },
+          "415": {
+            "description": "Uploaded document MIME type is not allowed."
+          }
+        }
+      }
+    },
+    "/api/documents/{id}": {
+      "get": {
+        "description": "Task 9 placeholder. Trusted SvelteKit server endpoint.",
+        "tags": [
+          "documents"
+        ],
+        "summary": "Get document metadata.",
+        "operationId": "getDocument",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Trusted internal request required."
+          },
+          "501": {
+            "description": "Document metadata endpoint is not implemented until Task 9."
+          }
+        }
+      },
+      "patch": {
+        "description": "Task 9 placeholder. Trusted SvelteKit server endpoint.",
+        "tags": [
+          "documents"
+        ],
+        "summary": "Update document metadata.",
+        "operationId": "updateDocument",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Trusted internal request required."
+          },
+          "501": {
+            "description": "Document update endpoint is not implemented until Task 9."
+          }
+        }
+      }
+    },
+    "/api/documents/{id}/archive": {
+      "post": {
+        "description": "Task 9 placeholder. Trusted SvelteKit server endpoint.",
+        "tags": [
+          "documents"
+        ],
+        "summary": "Archive an active document.",
+        "operationId": "archiveDocument",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Trusted internal request required."
+          },
+          "501": {
+            "description": "Document archive endpoint is not implemented until Task 9."
+          }
+        }
+      }
+    },
+    "/api/documents/{id}/download": {
+      "get": {
+        "description": "Task 9 placeholder. Trusted SvelteKit server endpoint.",
+        "tags": [
+          "documents"
+        ],
+        "summary": "Download a stored document file.",
+        "operationId": "downloadDocument",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Trusted internal request required."
+          },
+          "501": {
+            "description": "Document download endpoint is not implemented until Task 9."
+          }
+        }
+      }
+    },
     "/api/groups": {
       "get": {
         "description": "Trusted SvelteKit server endpoint. Requires group.view.",

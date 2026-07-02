@@ -124,6 +124,15 @@ func NewRouter(options RouterOptions) http.Handler {
 	folderAPI.POST("/:id/archive", documentFolders.archive)
 	folderAPI.GET("/:id/contents", documentFolders.contents)
 
+	documentsHandler := newDocumentHandler(options, auth)
+	documentAPI := router.Group("/api/documents")
+	documentAPI.Use(auth.requireTrustedInternalRequest())
+	documentAPI.POST("/upload", documentsHandler.upload)
+	documentAPI.GET("/:id", documentsHandler.get)
+	documentAPI.GET("/:id/download", documentsHandler.download)
+	documentAPI.PATCH("/:id", documentsHandler.update)
+	documentAPI.POST("/:id/archive", documentsHandler.archive)
+
 	users := newUserHandler(options, auth)
 	userAPI := router.Group("/api/users")
 	userAPI.Use(auth.requireTrustedInternalRequest())

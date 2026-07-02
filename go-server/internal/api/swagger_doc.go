@@ -480,6 +480,112 @@ func swaggerOperations() {
 	//   "404":
 	//     description: Document folder not found or inaccessible.
 
+	// swagger:operation POST /api/documents/upload documents uploadDocument
+	//
+	// Upload a document file into an active document folder.
+	//
+	// Trusted SvelteKit server endpoint. Requires document.create scoped to the folder's organization unit. Document metadata excludes storage keys.
+	//
+	// ---
+	// consumes:
+	// - multipart/form-data
+	// parameters:
+	// - name: folderId
+	//   in: formData
+	//   required: true
+	//   type: string
+	// - name: file
+	//   in: formData
+	//   required: true
+	//   type: file
+	// responses:
+	//   "201":
+	//     description: Document metadata was created and the file was stored.
+	//   "400":
+	//     description: Invalid multipart upload, document folder id, or missing file.
+	//   "401":
+	//     description: Authenticated session or trusted internal request required.
+	//   "404":
+	//     description: Document folder not found or inaccessible.
+	//   "409":
+	//     description: Active document with the same file hash already exists in the folder.
+	//   "413":
+	//     description: Uploaded document exceeds the configured maximum size.
+	//   "415":
+	//     description: Uploaded document MIME type is not allowed.
+
+	// swagger:operation GET /api/documents/{id} documents getDocument
+	//
+	// Get document metadata.
+	//
+	// Task 9 placeholder. Trusted SvelteKit server endpoint.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "401":
+	//     description: Trusted internal request required.
+	//   "501":
+	//     description: Document metadata endpoint is not implemented until Task 9.
+
+	// swagger:operation GET /api/documents/{id}/download documents downloadDocument
+	//
+	// Download a stored document file.
+	//
+	// Task 9 placeholder. Trusted SvelteKit server endpoint.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "401":
+	//     description: Trusted internal request required.
+	//   "501":
+	//     description: Document download endpoint is not implemented until Task 9.
+
+	// swagger:operation PATCH /api/documents/{id} documents updateDocument
+	//
+	// Update document metadata.
+	//
+	// Task 9 placeholder. Trusted SvelteKit server endpoint.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "401":
+	//     description: Trusted internal request required.
+	//   "501":
+	//     description: Document update endpoint is not implemented until Task 9.
+
+	// swagger:operation POST /api/documents/{id}/archive documents archiveDocument
+	//
+	// Archive an active document.
+	//
+	// Task 9 placeholder. Trusted SvelteKit server endpoint.
+	//
+	// ---
+	// parameters:
+	// - name: id
+	//   in: path
+	//   required: true
+	//   type: string
+	// responses:
+	//   "401":
+	//     description: Trusted internal request required.
+	//   "501":
+	//     description: Document archive endpoint is not implemented until Task 9.
+
 	// swagger:operation GET /api/users users listUsers
 	//
 	// List active users.

@@ -219,6 +219,44 @@ func (s *LocalStorage) Open(storageKey string) (*os.File, error) {
 	return file, nil
 }
 
+func (s *LocalStorage) Delete(storageKey string) error {
+	parts, err := validateStorageKey(storageKey)
+	if err != nil {
+		return err
+	}
+
+	documentsDir := filepath.Join(s.root, parts[0])
+	if err := ensurePrivateDirectory(documentsDir); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return fmt.Errorf("%w: %v", ErrInvalidStorageKey, err)
+	}
+	prefixDir := filepath.Join(documentsDir, parts[1])
+	if err := ensurePrivateDirectory(prefixDir); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return fmt.Errorf("%w: %v", ErrInvalidStorageKey, err)
+	}
+
+	fullPath := filepath.Join(prefixDir, parts[2])
+	info, err := os.Lstat(fullPath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return fmt.Errorf("delete stored document: %w", err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+		return fmt.Errorf("%w: unsafe document file", ErrInvalidStorageKey)
+	}
+	if err := os.Remove(fullPath); err != nil {
+		return fmt.Errorf("delete stored document: %w", err)
+	}
+	return nil
+}
+
 func validateStorageKey(storageKey string) ([]string, error) {
 	if storageKey == "" || strings.HasPrefix(storageKey, "/") || filepath.IsAbs(storageKey) || strings.Contains(storageKey, "\\") {
 		return nil, ErrInvalidStorageKey
