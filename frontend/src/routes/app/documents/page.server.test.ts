@@ -45,25 +45,89 @@ describe('documents page server load', () => {
 });
 
 describe('documents page source', () => {
-	it('renders a page shell that consumes server permission data without repository APIs', () => {
+	it('uses TanStack query and mutations against the document API wrapper', () => {
 		const source = readFileSync(new URL('./+page.svelte', import.meta.url), 'utf8');
 
 		expect(source).toContain("import type { PageProps } from './$types'");
+		expect(source).toContain("import { createMutation, createQuery, useQueryClient }");
+		expect(source).toContain('fetchDocumentFolderTree');
+		expect(source).toContain('fetchDocumentFolderContents');
+		expect(source).toContain('uploadDocument');
+		expect(source).toContain('createDocumentFolder');
+		expect(source).toContain('updateDocumentFolder');
+		expect(source).toContain('moveDocumentFolder');
+		expect(source).toContain('archiveDocumentFolder');
+		expect(source).toContain('updateDocument');
+		expect(source).toContain('archiveDocument');
+		expect(source).toContain('documentFoldersQueryKey(selectedOrganizationUnitId)');
+		expect(source).toContain('documentFolderContentsQueryKey(selectedFolderId)');
+		expect(source).toContain('documentFoldersQueryKey(organizationUnitId)');
+		expect(source).toContain('documentFolderContentsQueryKey(folderId)');
+		expect(source).toContain('filesToUploadItems');
+		expect(source).toContain('markUploadUploading');
+		expect(source).toContain('markUploadUploaded');
+		expect(source).toContain('markUploadFailed');
 		expect(source).toContain('canViewDocuments');
 		expect(source).toContain('canCreateDocuments');
 		expect(source).toContain('canUpdateDocuments');
 		expect(source).toContain('canDeleteDocuments');
 		expect(source).toContain('canDownloadDocuments');
 		expect(source).toContain('selectedOrganizationUnitId');
-		expect(source).toContain(
-			'const hasDocumentAccess = $derived(pageData.canViewDocuments || canManageDocuments)'
-		);
-		expect(source).toContain('{#if hasDocumentAccess}');
+		expect(source).toContain('fetchOrganizationUnitTree');
+		expect(source).toContain('FolderTree');
+		expect(source).toContain('RepositoryTable');
+		expect(source).toContain('UploadPanel');
 		expect(source).toContain('No document access');
-		expect(source).not.toContain('{#if pageData.canViewDocuments}');
 		expect(source).not.toContain('$lib/server/documents');
-		expect(source).not.toContain('/api/documents');
-		expect(source).not.toContain('/api/document-folders');
+		expect(source).not.toContain("from '$lib/server");
+	});
+
+	it('implements document repository component contracts', () => {
+		const folderTree = readFileSync(new URL('./folder-tree.svelte', import.meta.url), 'utf8');
+		const repositoryTable = readFileSync(
+			new URL('./repository-table.svelte', import.meta.url),
+			'utf8'
+		);
+		const uploadPanel = readFileSync(new URL('./upload-panel.svelte', import.meta.url), 'utf8');
+
+		expect(folderTree).toContain('folders: FlatDocumentFolderNode[]');
+		expect(folderTree).toContain('selectedId: string | null');
+		expect(folderTree).toContain('onSelect: (id: string) => void');
+		expect(folderTree).toContain('FolderIcon');
+		expect(folderTree).toContain('role="tree"');
+		expect(folderTree).toContain('aria-level={folder.depth + 1}');
+		expect(folderTree).toContain('padding-left');
+		expect(folderTree).toContain('No folders');
+
+		expect(repositoryTable).toContain('rows: RepositoryRow[]');
+		expect(repositoryTable).toContain('canUpdate: boolean');
+		expect(repositoryTable).toContain('canDelete: boolean');
+		expect(repositoryTable).toContain('canDownload: boolean');
+		expect(repositoryTable).toContain('onOpenFolder: (id: string) => void');
+		expect(repositoryTable).toContain('onRenameFolder: (id: string, name: string) => Promise<void>');
+		expect(repositoryTable).toContain('onArchiveFolder: (id: string) => Promise<void>');
+		expect(repositoryTable).toContain(
+			'onRenameDocument: (id: string, displayName: string) => Promise<void>'
+		);
+		expect(repositoryTable).toContain('onArchiveDocument: (id: string) => Promise<void>');
+		expect(repositoryTable).toContain('documentDownloadHref(row.id)');
+		expect(repositoryTable).toContain('confirm(');
+		expect(repositoryTable).toContain('<table');
+		expect(repositoryTable).toContain('DownloadIcon');
+		expect(repositoryTable).toContain('PencilIcon');
+		expect(repositoryTable).toContain('ArchiveIcon');
+
+		expect(uploadPanel).toContain('canCreate: boolean');
+		expect(uploadPanel).toContain('selectedFolderId: string | null');
+		expect(uploadPanel).toContain('queue: UploadQueueItem[]');
+		expect(uploadPanel).toContain('isUploading: boolean');
+		expect(uploadPanel).toContain('onFilesSelected: (files: FileList) => void');
+		expect(uploadPanel).toContain('onUpload: () => Promise<void>');
+		expect(uploadPanel).toContain('multiple');
+		expect(uploadPanel).toContain('queued');
+		expect(uploadPanel).toContain('uploading');
+		expect(uploadPanel).toContain('uploaded');
+		expect(uploadPanel).toContain('failed');
 	});
 });
 
