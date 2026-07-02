@@ -6,9 +6,15 @@ export type UploadQueueItem = {
 	documentId?: string;
 };
 
+let fallbackSelectionSequence = 0;
+
 export function filesToUploadItems(files: Iterable<File> | ArrayLike<File>): UploadQueueItem[] {
+	const randomUUID = globalThis.crypto?.randomUUID;
+	const fallbackSelectionId =
+		typeof randomUUID === 'function' ? null : fallbackSelectionSequence++;
+
 	return Array.from(files, (file, index) => ({
-		id: uploadItemId(file, index),
+		id: uploadItemId(file, index, randomUUID, fallbackSelectionId),
 		file,
 		status: 'queued' as const
 	}));
@@ -56,13 +62,17 @@ function updateUploadItem(
 	return items.map((item) => (item.id === id ? update(item) : item));
 }
 
-function uploadItemId(file: File, index: number) {
-	const randomUUID = globalThis.crypto?.randomUUID;
+function uploadItemId(
+	file: File,
+	index: number,
+	randomUUID: Crypto['randomUUID'] | undefined,
+	fallbackSelectionId: number | null
+) {
 	if (typeof randomUUID === 'function') {
 		return randomUUID.call(globalThis.crypto);
 	}
 
-	return `upload-${index}-${fileNameToken(file.name)}-${file.size}-${file.lastModified}`;
+	return `upload-${fallbackSelectionId ?? 0}-${index}-${fileNameToken(file.name)}-${file.size}-${file.lastModified}`;
 }
 
 function fileNameToken(name: string) {

@@ -45,10 +45,32 @@ describe('document upload queue utilities', () => {
 
 		const items = filesToUploadItems([first, second]);
 
-		expect(items.map((item) => item.id)).toEqual([
-			'upload-0-invoice-pdf-7-1700000000000',
-			'upload-1-invoice-pdf-7-1700000000000'
+		expect(items[0].id).toMatch(/^upload-\d+-0-invoice-pdf-7-1700000000000$/);
+		expect(items[1].id).toMatch(/^upload-\d+-1-invoice-pdf-7-1700000000000$/);
+		expect(new Set(items.map((item) => item.id)).size).toBe(2);
+		expect(batchId(items[0].id)).toBe(batchId(items[1].id));
+	});
+
+	it('keeps fallback ids unique across separate file selections', () => {
+		vi.stubGlobal('crypto', {});
+		const firstSelection = filesToUploadItems([
+			file('invoice.pdf', 'invoice', 1700000000000)
 		]);
+		const secondSelection = filesToUploadItems([
+			file('invoice.pdf', 'invoice', 1700000000000)
+		]);
+		const items = [...firstSelection, ...secondSelection];
+
+		expect(items[0].id).not.toBe(items[1].id);
+		expect(new Set(items.map((item) => item.id)).size).toBe(2);
+
+		const uploading = markUploadUploading(items, items[1].id);
+
+		expect(uploading[0]).toEqual(items[0]);
+		expect(uploading[1]).toMatchObject({
+			id: items[1].id,
+			status: 'uploading'
+		});
 	});
 
 	it('transitions upload item status while preserving item ids', () => {
@@ -86,4 +108,8 @@ function file(name: string, contents: string, lastModified = 1700000000001) {
 		type: 'application/pdf',
 		lastModified
 	});
+}
+
+function batchId(id: string) {
+	return id.split('-')[1];
 }

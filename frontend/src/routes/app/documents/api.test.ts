@@ -7,6 +7,8 @@ import {
 	archiveDocument,
 	archiveDocumentFolder,
 	createDocumentFolder,
+	documentFolderContentsQueryKey,
+	documentFoldersQueryKey,
 	documentDownloadHref,
 	fetchDocumentFolderContents,
 	fetchDocumentFolderTree,
@@ -74,6 +76,13 @@ describe('document repository browser API', () => {
 	it('exports document query keys', () => {
 		expect(DOCUMENT_FOLDERS_QUERY_KEY).toEqual(['document-folders']);
 		expect(DOCUMENT_FOLDER_CONTENTS_QUERY_KEY).toEqual(['document-folder-contents']);
+		expect(documentFoldersQueryKey('unit/id')).toEqual(['document-folders', 'unit/id']);
+		expect(documentFolderContentsQueryKey('folder/id')).toEqual([
+			'document-folder-contents',
+			'folder/id'
+		]);
+		expect(documentFolderContentsQueryKey(null)).toEqual(['document-folder-contents', null]);
+		expect(documentFolderContentsQueryKey(undefined)).toEqual(['document-folder-contents', null]);
 	});
 
 	it('fetches folder tree through the Svelte API wrapper with an encoded query id', async () => {
@@ -287,6 +296,8 @@ describe('document repository browser API', () => {
 			'archiveDocumentFolder',
 			'createDocumentFolder',
 			'documentDownloadHref',
+			'documentFolderContentsQueryKey',
+			'documentFoldersQueryKey',
 			'fetchDocumentFolderContents',
 			'fetchDocumentFolderTree',
 			'moveDocumentFolder',

@@ -7,6 +7,14 @@ type JsonObject = Record<string, unknown>;
 export const DOCUMENT_FOLDERS_QUERY_KEY = ['document-folders'] as const;
 export const DOCUMENT_FOLDER_CONTENTS_QUERY_KEY = ['document-folder-contents'] as const;
 
+export function documentFoldersQueryKey(organizationUnitId: string) {
+	return ['document-folders', organizationUnitId] as const;
+}
+
+export function documentFolderContentsQueryKey(folderId: string | null | undefined) {
+	return ['document-folder-contents', folderId ?? null] as const;
+}
+
 export type DocumentFolderTreeResponse = {
 	folders: DocumentFolderNode[];
 };
