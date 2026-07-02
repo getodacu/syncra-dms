@@ -76,6 +76,12 @@ describe('documents page source', () => {
 		expect(source).toContain('markUploadUploading');
 		expect(source).toContain('markUploadUploaded');
 		expect(source).toContain('markUploadFailed');
+		expect(source).toContain(
+			'type PageArchiveDocumentFolderVariables = ArchiveDocumentFolderVariables & {'
+		);
+		expect(source).toContain(
+			'type PageArchiveDocumentVariables = ArchiveDocumentVariables & { folderId: string }'
+		);
 		expect(source).toContain('canViewDocuments');
 		expect(source).toContain('canCreateDocuments');
 		expect(source).toContain('canUpdateDocuments');
@@ -104,6 +110,59 @@ describe('documents page source', () => {
 		expect(source).toContain('Select an organization unit to open the repository.');
 		expect(source).not.toContain('$lib/server/documents');
 		expect(source).not.toContain("from '$lib/server");
+	});
+
+	it('guards folder selection, archive invalidation, and upload pending state', () => {
+		const source = readFileSync(new URL('./+page.svelte', import.meta.url), 'utf8');
+		const uploadPanel = readFileSync(new URL('./upload-panel.svelte', import.meta.url), 'utf8');
+
+		const selectFolderBlock = sourceBlock(
+			source,
+			'function selectFolder(id: string | null)',
+			'async function submitRootFolder'
+		);
+		expect(selectFolderBlock).toContain('if (id !== selectedFolderId) {');
+		expect(selectFolderBlock).toContain('uploadQueue = [];');
+		expect(selectFolderBlock).toContain('selectedFolderOverride = id;');
+		expect(source).toContain('selectFolder(folder.id)');
+		expect(source).toContain('selectFolder(null)');
+		expect(source).toContain('onSelect={selectFolder}');
+		expect(source).toContain('onOpenFolder={selectFolder}');
+		expect(source).not.toContain('onSelect={(id) => (selectedFolderOverride = id)}');
+		expect(source).not.toContain('onOpenFolder={(id) => (selectedFolderOverride = id)}');
+
+		const archiveFolderBlock = sourceBlock(
+			source,
+			'const archiveFolderMutationState = createMutation',
+			'const uploadMutationState = createMutation'
+		);
+		expect(archiveFolderBlock).toContain('invalidateFolderTree(variables.organizationUnitId)');
+		expect(archiveFolderBlock).toContain('if (variables.wasSelected)');
+		expect(archiveFolderBlock).not.toContain('selectedOrganizationUnitId');
+		expect(archiveFolderBlock).not.toContain('selectedFolderId');
+
+		const archiveDocumentBlock = sourceBlock(
+			source,
+			'const archiveDocumentMutationState = createMutation',
+			'const moveTargets = $derived'
+		);
+		expect(archiveDocumentBlock).toContain('invalidateFolderContents(variables.folderId)');
+		expect(archiveDocumentBlock).not.toContain('selectedFolderId');
+
+		const uploadQueueBlock = sourceBlock(
+			source,
+			'async function runUploadQueue()',
+			'function requireName'
+		);
+		expect(uploadQueueBlock).toContain('if (isMutationPending || isUploadingQueue) return;');
+		expect(uploadQueueBlock.indexOf('if (isMutationPending || isUploadingQueue) return;')).toBeLessThan(
+			uploadQueueBlock.indexOf('resetMutationErrors();')
+		);
+		expect(source).toContain('isPending={isMutationPending}');
+
+		expect(uploadPanel).toContain('isPending: boolean');
+		expect(uploadPanel).toContain('!isPending');
+		expect(uploadPanel).toContain('disabled={!canCreate || !selectedFolderId || isUploading || isPending}');
 	});
 
 	it('implements document repository component contracts', () => {
@@ -145,6 +204,7 @@ describe('documents page source', () => {
 		expect(uploadPanel).toContain('selectedFolderId: string | null');
 		expect(uploadPanel).toContain('queue: UploadQueueItem[]');
 		expect(uploadPanel).toContain('isUploading: boolean');
+		expect(uploadPanel).toContain('isPending: boolean');
 		expect(uploadPanel).toContain('onFilesSelected: (files: FileList) => void');
 		expect(uploadPanel).toContain('onUpload: () => Promise<void>');
 		expect(uploadPanel).toContain('multiple');
@@ -154,6 +214,14 @@ describe('documents page source', () => {
 		expect(uploadPanel).toContain('failed');
 	});
 });
+
+function sourceBlock(source: string, start: string, end: string) {
+	const startIndex = source.indexOf(start);
+	expect(startIndex).toBeGreaterThanOrEqual(0);
+	const endIndex = source.indexOf(end, startIndex);
+	expect(endIndex).toBeGreaterThan(startIndex);
+	return source.slice(startIndex, endIndex);
+}
 
 function loadEvent(
 	permissions: string[],

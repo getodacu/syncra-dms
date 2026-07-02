@@ -73,6 +73,12 @@
 		selectedOrganizationUnitId: string | null;
 	};
 
+	type PageArchiveDocumentFolderVariables = ArchiveDocumentFolderVariables & {
+		organizationUnitId: string;
+		wasSelected: boolean;
+	};
+	type PageArchiveDocumentVariables = ArchiveDocumentVariables & { folderId: string };
+
 	let { data }: PageProps = $props();
 
 	const pageData = $derived(data as DocumentsPageData);
@@ -122,7 +128,7 @@
 			mutationKey: ['document-folders', 'create'],
 			mutationFn: (input) => createDocumentFolder(fetch, input),
 			onSuccess: async (folder, variables) => {
-				selectedFolderOverride = folder.id;
+				selectFolder(folder.id);
 				await Promise.all([
 					invalidateFolderTree(variables.organizationUnitId),
 					invalidateFolderContents(variables.parentId)
@@ -138,7 +144,7 @@
 		mutationKey: ['document-folders', 'update'],
 		mutationFn: (variables) => updateDocumentFolder(fetch, variables),
 		onSuccess: async (folder) => {
-			selectedFolderOverride = folder.id;
+			selectFolder(folder.id);
 			await Promise.all([
 				invalidateFolderTree(folder.organizationUnitId),
 				invalidateFolderContents(folder.id),
@@ -154,23 +160,23 @@
 		mutationKey: ['document-folders', 'move'],
 		mutationFn: (variables) => moveDocumentFolder(fetch, variables),
 		onSuccess: async (folder) => {
-			selectedFolderOverride = folder.id;
+			selectFolder(folder.id);
 			await Promise.all([invalidateFolderTree(folder.organizationUnitId), invalidateAllFolderContents()]);
 		}
 	}));
 	const archiveFolderMutationState = createMutation<
 		ArchiveDocumentFolderResponse,
 		Error,
-		ArchiveDocumentFolderVariables
+		PageArchiveDocumentFolderVariables
 	>(() => ({
 		mutationKey: ['document-folders', 'archive'],
 		mutationFn: (variables) => archiveDocumentFolder(fetch, variables),
 		onSuccess: async (_response, variables) => {
-			if (selectedFolderId === variables.id) {
-				selectedFolderOverride = null;
+			if (variables.wasSelected) {
+				selectFolder(null);
 			}
 			await Promise.all([
-				invalidateFolderTree(selectedOrganizationUnitId),
+				invalidateFolderTree(variables.organizationUnitId),
 				invalidateAllFolderContents()
 			]);
 		}
@@ -198,12 +204,12 @@
 	const archiveDocumentMutationState = createMutation<
 		ArchiveDocumentResponse,
 		Error,
-		ArchiveDocumentVariables
+		PageArchiveDocumentVariables
 	>(() => ({
 		mutationKey: ['documents', 'archive'],
 		mutationFn: (variables) => archiveDocument(fetch, variables),
-		onSuccess: async () => {
-			await invalidateFolderContents(selectedFolderId);
+		onSuccess: async (_response, variables) => {
+			await invalidateFolderContents(variables.folderId);
 		}
 	}));
 
@@ -263,9 +269,15 @@
 
 	function setOrganizationUnit(id: string) {
 		organizationUnitIdOverride = id;
-		selectedFolderOverride = null;
-		uploadQueue = [];
+		selectFolder(null);
 		resetMutationErrors();
+	}
+
+	function selectFolder(id: string | null) {
+		if (id !== selectedFolderId) {
+			uploadQueue = [];
+		}
+		selectedFolderOverride = id;
 	}
 
 	async function submitRootFolder(event: SubmitEvent) {
@@ -363,7 +375,17 @@
 
 	async function runArchiveFolder(id: string) {
 		resetMutationErrors();
-		await archiveFolderMutationState.mutateAsync({ id });
+		const folder = findFolder(folderTree, id);
+		if (!folder) {
+			localError = 'Folder was not found';
+			throw new Error(localError);
+		}
+
+		await archiveFolderMutationState.mutateAsync({
+			id,
+			organizationUnitId: folder.organizationUnitId,
+			wasSelected: selectedFolderId === id
+		});
 	}
 
 	async function runRenameDocument(id: string, displayName: string) {
@@ -376,7 +398,13 @@
 
 	async function runArchiveDocument(id: string) {
 		resetMutationErrors();
-		await archiveDocumentMutationState.mutateAsync({ id });
+		const row = contentRows.find((row) => row.type === 'document' && row.id === id);
+		if (!row || row.type !== 'document') {
+			localError = 'Document was not found';
+			throw new Error(localError);
+		}
+
+		await archiveDocumentMutationState.mutateAsync({ id, folderId: row.document.folderId });
 	}
 
 	function handleFilesSelected(files: FileList) {
@@ -384,9 +412,11 @@
 	}
 
 	async function runUploadQueue() {
+		if (isMutationPending || isUploadingQueue) return;
+
 		resetMutationErrors();
 		const folderId = selectedFolderId;
-		if (!folderId || isUploadingQueue) return;
+		if (!folderId) return;
 
 		const pendingItems = uploadQueue.filter(
 			(item) => item.status === 'queued' || item.status === 'failed'
@@ -590,7 +620,7 @@
 						<FolderTree
 							folders={flatFolders}
 							selectedId={selectedFolderId}
-							onSelect={(id) => (selectedFolderOverride = id)}
+							onSelect={selectFolder}
 						/>
 
 						{#if pageData.canCreateDocuments && folderTree.length === 0 && !folderTreeQuery.isLoading}
@@ -823,7 +853,7 @@
 								canDelete={pageData.canDeleteDocuments}
 								canDownload={pageData.canDownloadDocuments}
 								isPending={isMutationPending || folderContentsQuery.isLoading}
-								onOpenFolder={(id) => (selectedFolderOverride = id)}
+								onOpenFolder={selectFolder}
 								onRenameFolder={runRenameFolder}
 								onArchiveFolder={runArchiveFolder}
 								onRenameDocument={runRenameDocument}
@@ -837,6 +867,7 @@
 						{selectedFolderId}
 						queue={uploadQueue}
 						isUploading={isUploadingQueue}
+						isPending={isMutationPending}
 						onFilesSelected={handleFilesSelected}
 						onUpload={runUploadQueue}
 					/>

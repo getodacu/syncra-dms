@@ -10,6 +10,7 @@
 		selectedFolderId,
 		queue,
 		isUploading,
+		isPending,
 		onFilesSelected,
 		onUpload
 	}: {
@@ -17,6 +18,7 @@
 		selectedFolderId: string | null;
 		queue: UploadQueueItem[];
 		isUploading: boolean;
+		isPending: boolean;
 		onFilesSelected: (files: FileList) => void;
 		onUpload: () => Promise<void>;
 	} = $props();
@@ -24,7 +26,9 @@
 	const hasPendingUploads = $derived(
 		queue.some((item) => item.status === 'queued' || item.status === 'failed')
 	);
-	const canUpload = $derived(canCreate && selectedFolderId !== null && hasPendingUploads && !isUploading);
+	const canUpload = $derived(
+		canCreate && selectedFolderId !== null && hasPendingUploads && !isUploading && !isPending
+	);
 
 	function handleFileChange(event: Event) {
 		const input = event.currentTarget as HTMLInputElement;
@@ -76,7 +80,7 @@
 					class="h-9 rounded-md border bg-background px-3 py-1.5 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-2 file:py-1 file:text-xs file:font-medium disabled:cursor-not-allowed disabled:opacity-60"
 					type="file"
 					multiple
-					disabled={!canCreate || !selectedFolderId || isUploading}
+					disabled={!canCreate || !selectedFolderId || isUploading || isPending}
 					onchange={handleFileChange}
 				/>
 			</label>
