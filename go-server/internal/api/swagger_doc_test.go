@@ -92,6 +92,40 @@ func TestServedSwaggerDocDeclaresDocumentRoutes(t *testing.T) {
 	}
 }
 
+func TestServedSwaggerDocDocumentsImplementedDocumentOperations(t *testing.T) {
+	router := NewRouter(RouterOptions{})
+	spec := assertJSONStatus(t, router, "http://localhost:8090/swagger/doc.json", http.StatusOK, "swagger", "2.0")
+
+	paths, ok := spec["paths"].(map[string]any)
+	if !ok {
+		t.Fatal("/swagger/doc.json missing paths object")
+	}
+
+	for _, route := range []struct {
+		method string
+		path   string
+	}{
+		{method: "get", path: "/api/documents/{id}"},
+		{method: "get", path: "/api/documents/{id}/download"},
+		{method: "patch", path: "/api/documents/{id}"},
+		{method: "post", path: "/api/documents/{id}/archive"},
+	} {
+		operation := swaggerOperationForRoute(t, paths, route.method, route.path)
+		for _, stale := range []string{"Task 9 placeholder", "not implemented until Task 9"} {
+			if swaggerValueContainsString(operation, stale) {
+				t.Fatalf("/swagger/doc.json %s %s contains stale description %q", strings.ToUpper(route.method), route.path, stale)
+			}
+		}
+		responses, ok := operation["responses"].(map[string]any)
+		if !ok {
+			t.Fatalf("/swagger/doc.json missing responses for %s %s", strings.ToUpper(route.method), route.path)
+		}
+		if _, ok := responses["501"]; ok {
+			t.Fatalf("/swagger/doc.json documents 501 for implemented %s %s", strings.ToUpper(route.method), route.path)
+		}
+	}
+}
+
 func TestServedSwaggerDocDeclaresDocumentFolderRoutes(t *testing.T) {
 	router := NewRouter(RouterOptions{})
 	spec := assertJSONStatus(t, router, "http://localhost:8090/swagger/doc.json", http.StatusOK, "swagger", "2.0")
@@ -164,6 +198,39 @@ func TestServedSwaggerDocDocumentsHiddenDocumentFolderIDs(t *testing.T) {
 			t.Fatalf("/swagger/doc.json 404 description for %s %s = %q, want inaccessible behavior documented", strings.ToUpper(route.method), route.path, description)
 		}
 	}
+}
+
+func swaggerOperationForRoute(t *testing.T, paths map[string]any, method string, path string) map[string]any {
+	t.Helper()
+	pathDoc, ok := paths[path].(map[string]any)
+	if !ok {
+		t.Fatalf("/swagger/doc.json missing path %q", path)
+	}
+	operation, ok := pathDoc[method].(map[string]any)
+	if !ok {
+		t.Fatalf("/swagger/doc.json missing %s %s", strings.ToUpper(method), path)
+	}
+	return operation
+}
+
+func swaggerValueContainsString(value any, needle string) bool {
+	switch typed := value.(type) {
+	case string:
+		return strings.Contains(typed, needle)
+	case []any:
+		for _, child := range typed {
+			if swaggerValueContainsString(child, needle) {
+				return true
+			}
+		}
+	case map[string]any:
+		for _, child := range typed {
+			if swaggerValueContainsString(child, needle) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func TestServedSwaggerDocDocumentsDocumentFolderContentsResponse(t *testing.T) {

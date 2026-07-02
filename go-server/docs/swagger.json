@@ -529,7 +529,7 @@
     },
     "/api/documents/{id}": {
       "get": {
-        "description": "Task 9 placeholder. Trusted SvelteKit server endpoint.",
+        "description": "Trusted SvelteKit server endpoint. Requires document.view scoped to the document's organization unit. Document metadata excludes storage keys.",
         "tags": [
           "documents"
         ],
@@ -544,20 +544,26 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "Trusted internal request required."
+          "200": {
+            "description": "Active document metadata was loaded."
           },
-          "501": {
-            "description": "Document metadata endpoint is not implemented until Task 9."
+          "400": {
+            "description": "Invalid document id."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "404": {
+            "description": "Document not found or inaccessible."
           }
         }
       },
       "patch": {
-        "description": "Task 9 placeholder. Trusted SvelteKit server endpoint.",
+        "description": "Trusted SvelteKit server endpoint. Requires document.update scoped to the document's organization unit.",
         "tags": [
           "documents"
         ],
-        "summary": "Update document metadata.",
+        "summary": "Rename an active document.",
         "operationId": "updateDocument",
         "parameters": [
           {
@@ -568,18 +574,24 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "Trusted internal request required."
+          "200": {
+            "description": "Document metadata was updated. Response excludes storage keys."
           },
-          "501": {
-            "description": "Document update endpoint is not implemented until Task 9."
+          "400": {
+            "description": "Invalid document id, JSON body, or display name."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "404": {
+            "description": "Document not found or inaccessible."
           }
         }
       }
     },
     "/api/documents/{id}/archive": {
       "post": {
-        "description": "Task 9 placeholder. Trusted SvelteKit server endpoint.",
+        "description": "Trusted SvelteKit server endpoint. Requires document.delete scoped to the document's organization unit.",
         "tags": [
           "documents"
         ],
@@ -594,18 +606,24 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "Trusted internal request required."
+          "200": {
+            "description": "Document was archived."
           },
-          "501": {
-            "description": "Document archive endpoint is not implemented until Task 9."
+          "400": {
+            "description": "Invalid document id."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "404": {
+            "description": "Document not found or inaccessible."
           }
         }
       }
     },
     "/api/documents/{id}/download": {
       "get": {
-        "description": "Task 9 placeholder. Trusted SvelteKit server endpoint.",
+        "description": "Trusted SvelteKit server endpoint. Requires document.download scoped to the document's organization unit.",
         "tags": [
           "documents"
         ],
@@ -620,11 +638,20 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "Trusted internal request required."
+          "200": {
+            "description": "Stored document file stream with attachment disposition."
           },
-          "501": {
-            "description": "Document download endpoint is not implemented until Task 9."
+          "400": {
+            "description": "Invalid document id."
+          },
+          "401": {
+            "description": "Authenticated session or trusted internal request required."
+          },
+          "404": {
+            "description": "Document not found, inaccessible, archived, or missing from storage."
+          },
+          "500": {
+            "description": "Document storage key or storage state is invalid."
           }
         }
       }
