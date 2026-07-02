@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { load } from './+page.server';
@@ -40,6 +41,24 @@ describe('documents page server load', () => {
 			canDownloadDocuments: false,
 			selectedOrganizationUnitId: null
 		});
+	});
+});
+
+describe('documents page source', () => {
+	it('renders a page shell that consumes server permission data without repository APIs', () => {
+		const source = readFileSync(new URL('./+page.svelte', import.meta.url), 'utf8');
+
+		expect(source).toContain("import type { PageProps } from './$types'");
+		expect(source).toContain('canViewDocuments');
+		expect(source).toContain('canCreateDocuments');
+		expect(source).toContain('canUpdateDocuments');
+		expect(source).toContain('canDeleteDocuments');
+		expect(source).toContain('canDownloadDocuments');
+		expect(source).toContain('selectedOrganizationUnitId');
+		expect(source).toContain('No document access');
+		expect(source).not.toContain('$lib/server/documents');
+		expect(source).not.toContain('/api/documents');
+		expect(source).not.toContain('/api/document-folders');
 	});
 });
 
