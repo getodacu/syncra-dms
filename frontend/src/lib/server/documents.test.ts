@@ -218,6 +218,18 @@ describe('server document client', () => {
 		);
 	});
 
+	it('rejects document metadata sizeBytes values that are not safe byte counts', async () => {
+		stubAPIEnv();
+
+		for (const sizeBytes of [1.5, -1, Number.MAX_SAFE_INTEGER + 1]) {
+			const fetch = vi.fn(async () => jsonResponse(documentMetadata({ sizeBytes })));
+
+			await expect(getDocument(fetch, 'session=token', 'document-id')).rejects.toMatchObject(
+				new DocumentApiError(502, 'Invalid Document response')
+			);
+		}
+	});
+
 	it('maps public backend errors and supports DocumentApiError narrowing', async () => {
 		stubAPIEnv();
 		const forbiddenFetch = vi.fn(async () => jsonResponse({ error: 'document.view required' }, 403));

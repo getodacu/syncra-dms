@@ -429,7 +429,9 @@ function requiredString(value: unknown) {
 }
 
 function requiredSizeBytes(value: unknown) {
-	if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) invalidDocumentResponse();
+	if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
+		invalidDocumentResponse();
+	}
 	return value;
 }
 
