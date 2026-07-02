@@ -20,6 +20,7 @@
 			pageData.canDeleteDocuments ||
 			pageData.canDownloadDocuments
 	);
+	const hasDocumentAccess = $derived(pageData.canViewDocuments || canManageDocuments);
 	const organizationUnitLabel = $derived(
 		pageData.selectedOrganizationUnitId
 			? `Organization unit ${pageData.selectedOrganizationUnitId}`
@@ -40,7 +41,7 @@
 		<p class="mt-1 text-sm text-muted-foreground">{organizationUnitLabel}</p>
 	</div>
 
-	{#if pageData.canViewDocuments}
+	{#if hasDocumentAccess}
 		<section class="rounded-md border bg-muted/30 p-4">
 			<h3 class="text-sm font-medium">Document repository</h3>
 			<p class="mt-1 text-sm text-muted-foreground">

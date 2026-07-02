@@ -55,7 +55,12 @@ describe('documents page source', () => {
 		expect(source).toContain('canDeleteDocuments');
 		expect(source).toContain('canDownloadDocuments');
 		expect(source).toContain('selectedOrganizationUnitId');
+		expect(source).toContain(
+			'const hasDocumentAccess = $derived(pageData.canViewDocuments || canManageDocuments)'
+		);
+		expect(source).toContain('{#if hasDocumentAccess}');
 		expect(source).toContain('No document access');
+		expect(source).not.toContain('{#if pageData.canViewDocuments}');
 		expect(source).not.toContain('$lib/server/documents');
 		expect(source).not.toContain('/api/documents');
 		expect(source).not.toContain('/api/document-folders');
